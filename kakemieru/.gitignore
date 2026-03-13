@@ -1,0 +1,30 @@
+# 環境変数（絶対コミットしない）
+.env
+
+# Rails
+/log/*
+/tmp/*
+!/log/.keep
+!/tmp/.keep
+/storage/*
+!/storage/.keep
+/public/assets
+
+# Bundler
+/.bundle
+/vendor/bundle
+
+# Rails credentials
+/config/master.key
+/config/credentials/*.key
+
+# DB
+/db/*.sqlite3
+/db/*.sqlite3-journal
+
+# Editor / OS
+.DS_Store
+*.swp
+*.swo
+.idea/
+.vscode/
