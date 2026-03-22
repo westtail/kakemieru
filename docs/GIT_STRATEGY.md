@@ -63,7 +63,7 @@ main
        └── fix/17-login-redirect-bug
 ```
 
-リリース時: `develop` → `main` へPR、マージ後に手動デプロイ
+リリース時: `develop` → `main` へPR、タグpush（`v*`）でFly.ioへ自動デプロイ
 
 ### PR ルール
 
@@ -83,7 +83,7 @@ main
 
 - [x] `develop` ブランチを設ける → **採用**
 - [x] PRのsquash mergeにするか、merge commitにするか → **merge commit採用**（作業ログ・調査・意図を残すため）
-- [ ] デプロイ先選定（保留中）→ 決定後にデプロイトリガー設定を追加
+- [x] デプロイ先選定 → **Fly.io採用**（ADR-0006参照）。タグpushでGitHub Actions経由で自動デプロイ
 - [x] `develop` → `main` PRのタイミング → **機能単位採用**（調査の切り分けしやすさ、未完成機能はdevelopで保持）
 - [x] コミットメッセージのlint → **不採用**（AIとのコミットメッセージ作成コマンドで代替）
 

@@ -49,12 +49,14 @@
 
 ### v1（現在開発予定）
 ```
-Backend:    Ruby on Rails 7
+Backend:    Ruby on Rails 8
 Database:   PostgreSQL
 Frontend:   Hotwire (Turbo + Stimulus)
+JS:         importmap
+CSS:        Tailwind CSS
 Charts:     Chartkick + Chart.js
 Container:  Docker + docker-compose
-Hosting:    Render（無料枠 → 将来有料）
+Hosting:    Fly.io（スケールゼロ → 採用活動時にアップグレード）
 CI/CD:      GitHub Actions
 ```
 
@@ -301,15 +303,15 @@ test: Transaction モデルのテスト追加
 
 ## 🎯 重要な意思決定（ADR）
 
-### 1. ホスティング: Render を選択
+### 1. ホスティング: Fly.io を選択
 
 **理由**:
-- 無料枠でPostgreSQL使える
-- Docker対応
-- 15分スリープは許容範囲（個人利用）
-- 90日DB制限はバックアップで対応
+- スケールゼロ対応でコストほぼ0（個人利用時）
+- Dockerネイティブでローカルと本番環境が一致
+- cold start 2〜5秒（Renderの30〜60秒より大幅に速い）
+- 採用活動時にアップグレードで常時起動に切り替え可能
 
-**代替案**: Railway, Fly.io, Heroku
+詳細は [ADR-0006](decisions/0006-hosting-strategy.md) を参照。
 
 ### 2. Docker化必須
 
