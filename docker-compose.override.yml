@@ -1,0 +1,30 @@
+# ローカル開発専用の設定
+# docker compose up で自動的に読み込まれる（本番・CIには影響しない）
+
+services:
+  web:
+    build:
+      target: development
+    command: bundle exec rails server -b 0.0.0.0 -p 3000
+    environment:
+      RAILS_ENV: development
+      DATABASE_URL: postgresql://${POSTGRES_USER:-postgres}:${POSTGRES_PASSWORD:-password}@db/${POSTGRES_DB:-kakemieru_development}
+    volumes:
+      # ソースコードをマウント（コード変更を即時反映）
+      - .:/rails
+      # Gem キャッシュをボリュームに分離（毎回 bundle install を防ぐ）
+      - bundle_cache:/usr/local/bundle
+    ports:
+      - "3000:3000"
+    stdin_open: true
+    tty: true
+
+  db:
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB:-kakemieru_development}
+    ports:
+      # ローカルから直接 DB に接続できるようにポートを公開
+      - "5432:5432"
+
+volumes:
+  bundle_cache:
