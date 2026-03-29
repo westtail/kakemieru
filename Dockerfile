@@ -61,7 +61,8 @@ FROM base AS production
 
 ENV RAILS_ENV="production" \
     BUNDLE_DEPLOYMENT="1" \
-    BUNDLE_WITHOUT="development:test"
+    BUNDLE_WITHOUT="development:test" \
+    PORT="8080"
 
 COPY --from=build "${BUNDLE_PATH}" "${BUNDLE_PATH}"
 COPY --from=build /rails /rails
@@ -75,6 +76,6 @@ USER 1000:1000
 # Entrypoint prepares the database.
 ENTRYPOINT ["/rails/bin/docker-entrypoint"]
 
-# Start server via Thruster: 圧縮・キャッシュ・HTTP/2 対応
-EXPOSE 80
-CMD ["./bin/thrust", "./bin/rails", "server"]
+# Start Rails server directly on port 8080
+EXPOSE 8080
+CMD ["./bin/rails", "server", "-b", "0.0.0.0", "-p", "8080"]
