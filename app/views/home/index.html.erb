@@ -4,6 +4,8 @@
 
   <div class="status">
     <p>✅ アプリケーション稼働中</p>
-    <p>環境: <%= Rails.env %></p>
+    <% unless Rails.env.production? %>
+      <p>環境: <%= Rails.env %></p>
+    <% end %>
   </div>
 </div>
