@@ -1,0 +1,11 @@
+<div class="container">
+  <h1>掛け見える - 家計簿アプリ</h1>
+  <p>シンプルな家計簿管理アプリケーションです。</p>
+
+  <div class="status">
+    <p>✅ アプリケーション稼働中</p>
+    <% unless Rails.env.production? %>
+      <p>環境: <%= Rails.env %></p>
+    <% end %>
+  </div>
+</div>
