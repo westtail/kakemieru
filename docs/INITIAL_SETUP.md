@@ -157,11 +157,4 @@ GitHub Actionsのワークフローが実行され、Fly.ioへデプロイされ
 
 ## 完了チェックリスト
 
-- [ ] ローカルで `docker compose up` が起動する
-- [ ] `http://localhost:3000` でRailsのデフォルト画面が表示される
-- [ ] `rails db:create` が成功する
-- [ ] Fly.ioアプリが作成されている
-- [ ] GitHub Secretsが設定されている
-- [ ] ブランチ保護が設定されている
-- [ ] タグpushでデプロイが実行される
-- [ ] 本番URLでアプリが表示される
+完了状況は [TODO.md](../TODO.md) の「初期セットアップ完了チェックリスト」で管理する。
