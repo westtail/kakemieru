@@ -84,6 +84,8 @@ API:        RESTful / GraphQL
   - 例: "JR東日本" → 交通費
 - [ ] 月別集計グラフ
 - [ ] カテゴリ別集計グラフ
+- [ ] 前年同月比表示
+- [ ] 月平均支出（カテゴリ別・全体）
 
 **データモデル**:
 ```
@@ -105,6 +107,7 @@ User（ユーザー）
 - [ ] 予算 vs 実績の比較表示
 - [ ] 予算達成率グラフ
 - [ ] 残額アラート
+- [ ] 支出トレンド（増加・減少傾向の可視化）
 
 **追加データモデル**:
 ```
@@ -146,6 +149,7 @@ MonthlyBudget（月次予算）
   - 使いすぎた分を翌月から差し引き
   - 例: 交通費2,000円オーバー → 翌月の交通費予算から減算
 
+- [ ] キャッシュフロー予測（現在の支出パターンから将来残高を予測）
 - [ ] 大型支出の分割払い管理
   - 例: MacBook 180,000円購入
   - 月々10,000円ずつ予算から引く
@@ -160,7 +164,39 @@ LargeExpense（大型支出）
 
 ---
 
-### フェーズ4: エクスポート（1週間）
+### フェーズ4: ローカル自動取り込み（1週間）
+**目標**: ローカル環境でもシンプルに動かせるようにする
+
+**機能**:
+- [ ] CLIコマンドによる取り込み（`rails import:run`）
+  - 特定ディレクトリ（例: `~/kakemieru/import/`）のCSVを一括処理
+  - 処理済みファイルを別ディレクトリへ移動
+- [ ] フォルダウォッチャー（常駐プロセス）
+  - 対象フォルダを監視し、CSVを置くと自動取り込み
+  - バックグラウンドで動作
+
+**背景**:
+- Webアップロードに加えてローカルでも手軽に動かせる環境を提供
+- ダウンロードしたCSVをフォルダに置くだけで完結させる
+
+---
+
+### フェーズ5: 認証・管理画面（1-2週間）
+**目標**: セキュアな認証と管理者機能の実装
+
+**機能**:
+- [ ] 認証機能（方式は設計フェーズで決定）
+  - 候補: Rails 8 Built-in + webauthn-rails（パスキー）+ OmniAuth（Google/GitHub）
+  - 詳細は [AUTHENTICATION.md](AUTHENTICATION.md) を参照
+- [ ] 管理画面
+  - ユーザー管理
+  - 取り込み済みデータの確認・修正
+  - カテゴリ分類ルールの管理
+- [ ] `admin` フラグによる管理者権限制御
+
+---
+
+### フェーズ6: エクスポート（1週間）
 **機能**:
 - [ ] グラフを画像出力（PNG）
 - [ ] スライド用レイアウト生成
@@ -170,40 +206,33 @@ LargeExpense（大型支出）
 
 ## 🗄 データベース設計（詳細）
 
-### フェーズ1のモデル
-```ruby
-# User（ユーザー）
-class User < ApplicationRecord
-  has_many :cards
-  has_many :transactions
-  has_many :categories
-end
+詳細は [DATABASE_DESIGN.md](DATABASE_DESIGN.md) を参照。
 
-# Card（クレジットカード）
-class Card < ApplicationRecord
-  belongs_to :user
-  has_many :transactions
-  
-  # name: "楽天カード"
-  # card_number_last4: "1234"
-end
+### フェーズ1のモデル構成
 
-# Category（カテゴリ）
-class Category < ApplicationRecord
-  # name: "食費", "交通費", "娯楽", など
-end
-
-# Transaction（明細）
-class Transaction < ApplicationRecord
-  belongs_to :user
-  belongs_to :card
-  belongs_to :category
-  
-  # date: 支払日
-  # amount: 金額
-  # description: 説明文（"セブンイレブン 渋谷店"）
-end
 ```
+User
+├─ has_many :cards
+├─ has_many :transactions, through: :cards
+└─ has_many :categories
+
+Card（クレジットカード・電子マネーなど支払い手段）
+├─ belongs_to :user
+└─ has_many :transactions
+
+Category（カテゴリ）
+└─ has_many :transactions
+
+Transaction（明細 ※全期間を1テーブルで管理）
+├─ belongs_to :card
+└─ belongs_to :category
+```
+
+**設計方針**
+- 明細は期間ごとに分けず全部 `transactions` テーブルに格納
+- 「1ヶ月の明細」はクエリの `date` 絞り込みで表現
+- `User → Card → Transaction` の経路で辿ることで「誰のデータか」を保証
+- `has_many :transactions, through: :cards` で `current_user.transactions` と直接辿れる
 
 ### カテゴリ自動分類のロジック
 ```ruby
