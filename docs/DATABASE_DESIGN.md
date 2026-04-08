@@ -8,8 +8,8 @@
 
 - 明細は期間ごとに分けず全部 `transactions` テーブルに格納する
 - 「1ヶ月の明細」はクエリの `date` 絞り込みで表現（テーブル分割しない）
-- `User → PaymentMethod → Transaction` の経路で辿ることで「誰のデータか」を保証
-- `has_many :transactions, through: :payment_methods` で `current_user.transactions` と直接辿れる
+- `transactions.user_id` を直接持つことでマルチテナント分離をDB側で保証
+- `WHERE user_id = current_user.id` だけで安全に絞り込める
 
 **テーブル分割しない理由**
 - 月ごとにテーブルを分けると前年同月比・トレンド分析が JOIN だらけになる
@@ -23,7 +23,7 @@
 ```
 User
 ├─ has_many :payment_methods
-├─ has_many :transactions, through: :payment_methods
+├─ has_many :transactions        # user_id を直接持つ
 ├─ has_many :imports
 └─ has_many :categories
 
@@ -37,10 +37,15 @@ Import（CSV取り込み履歴）
 ├─ belongs_to :payment_method
 └─ has_many :transactions
 
-Category（カテゴリ）
+CategoryTemplate（システム共通テンプレート・不変）
+└─ 登録時に categories にコピーされる
+
+Category（ユーザーごとのカテゴリ・コピー方式）
+├─ belongs_to :user              # 必ず user_id あり（NOT NULL）
 └─ has_many :transactions
 
 Transaction（明細）
+├─ belongs_to :user              # 直接持つ（マルチテナント保証）
 ├─ belongs_to :payment_method
 ├─ belongs_to :import, optional: true   # NULL = 手動入力
 └─ belongs_to :category, optional: true # NULL = 未分類
@@ -61,6 +66,20 @@ Transaction（明細）
 | created_at | datetime | |
 | updated_at | datetime | |
 
+### category_templates
+
+| カラム | 型 | 説明 |
+|---|---|---|
+| id | bigint | PK |
+| category_key | string | 分類キー（"food" / "transport" など） |
+| name | string | デフォルト表示名（"食費" / "交通費" など） |
+| created_at | datetime | |
+| updated_at | datetime | |
+
+- システム管理・ユーザーは編集不可
+- 新規ユーザー登録時に `categories` にコピーされる
+- `category_key` は `merchant_classifications` との紐づけに使用
+
 ### payment_methods
 
 | カラム | 型 | 説明 |
@@ -69,6 +88,7 @@ Transaction（明細）
 | user_id | bigint | FK → users |
 | name | string | 名称（例: "楽天カード" / "PayPay" / "現金"） |
 | payment_type | string | 種別（credit / debit / e_money / qr / cash） |
+| archived_at | datetime | ソフトデリート（NULL = 使用中） |
 | created_at | datetime | |
 | updated_at | datetime | |
 
@@ -78,6 +98,11 @@ Transaction（明細）
 - `e_money`：電子マネー（Suicaなど）
 - `qr`：QRコード決済（PayPay・楽天Payなど）
 - `cash`：現金
+
+**削除ポリシー**
+- 物理削除は行わずソフトデリート（`archived_at`）
+- 削除時は大きな警告を表示（過去明細が残る旨）
+- 削除後1週間は復元可能、1週間後に完全削除バッチを実行
 
 ### imports
 
@@ -101,45 +126,58 @@ Transaction（明細）
 | カラム | 型 | 説明 |
 |---|---|---|
 | id | bigint | PK |
-| user_id | bigint | FK → users（ユーザーごとのカスタムカテゴリ） |
-| name | string | カテゴリ名（例: "食費"） |
+| user_id | bigint | FK → users（NOT NULL・必ずユーザーに紐づく） |
+| category_key | string | テンプレートとの紐づけキー（独自カテゴリは NULL） |
+| name | string | カテゴリ名（ユーザーが自由に変更可） |
 | created_at | datetime | |
 | updated_at | datetime | |
+
+**インデックス**
+- `UNIQUE (user_id, name)`
+- `UNIQUE (user_id, category_key)` WHERE category_key IS NOT NULL
 
 ### transactions
 
 | カラム | 型 | 説明 |
 |---|---|---|
 | id | bigint | PK |
+| user_id | bigint | FK → users（直接保持・マルチテナント保証） |
 | payment_method_id | bigint | FK → payment_methods |
 | import_id | bigint | FK → imports（nullable: NULL = 手動入力） |
 | category_id | bigint | FK → categories（nullable: NULL = 未分類） |
-| date | date | 利用日（原本） |
-| amount | integer | 請求金額・円（原本） |
-| description | string | CSV生文字（不変・原本） |
+| date | date | 利用日（原本・不変） |
+| amount | integer | 請求金額・円（原本・不変） |
+| description | string | CSV生文字（原本・不変） |
 | merchant_name | string | 正規化した店舗名（ユーザー編集可能・分類キー） |
-| amount_override | integer | 金額の上書き値（NULL なら原本を使用） |
-| date_override | date | 日付の上書き値（NULL なら原本を使用） |
-| amount_locked | boolean | true = 上書き済み・以降編集不可（default: false） |
-| date_locked | boolean | true = 上書き済み・以降編集不可（default: false） |
+| amount_override | integer | 金額の訂正値（NULL なら原本を使用） |
+| date_override | date | 日付の訂正値（NULL なら原本を使用） |
+| effective_amount | integer | 集計用金額（generated: COALESCE(amount_override, amount)） |
+| effective_date | date | 集計用日付（generated: COALESCE(date_override, date)） |
 | deleted_at | datetime | ソフトデリート（NULL = 有効） |
 | created_at | datetime | |
 | updated_at | datetime | |
 
 **カラムの役割**
-- `description` / `amount` / `date`：CSV原本。取り込み後は変更しない
+- `date` / `amount` / `description`：CSV原本。取り込み後は変更しない
 - `merchant_name`：自動生成 → ユーザー編集可。分類キーとして使用
-- `amount_override` / `date_override`：訂正が必要な場合のみ入れる。1回のみ変更可
+- `amount_override` / `date_override`：訂正が必要な場合のみ入れる
+- `effective_amount` / `effective_date`：集計・グラフは必ずこちらを使う（DB生成カラム）
 - `import_id = NULL`：手動入力（現金・QRなど）
-- `deleted_at`：ソフトデリート。物理削除はしない
+- `user_id`：直接保持でマルチテナント分離を保証
 
 **インデックス**
-- `payment_method_id`（belongs_to で自動）
-- `import_id`（belongs_to で自動）
-- `category_id`（belongs_to で自動）
-- `date`（月別絞り込み用）
+- `user_id`（マルチテナント絞り込み用）
+- `(user_id, effective_date)`（月別集計用・複合）
+- `(user_id, category_id, effective_date)`（カテゴリ別集計用・複合）
+- `import_id`（取り込み単位の操作用）
 - `merchant_name`（分類キー検索用）
 - `deleted_at`（有効明細の絞り込み用）
+
+**ON DELETE ポリシー**
+- `users` 削除 → CASCADE（退会時に全データ削除）
+- `payment_methods` 削除 → RESTRICT（archived_at によるソフトデリートで対応）
+- `imports` 削除 → 検討中
+- `categories` 削除 → 検討中
 
 ---
 
@@ -151,7 +189,8 @@ Transaction（明細）
 # Transaction に scope を定義
 class Transaction < ApplicationRecord
   scope :in_month, ->(year, month) {
-    where(date: Date.new(year, month).all_month)
+    where(effective_date: Date.new(year, month).all_month)  # 集計は effective_date を使う
+      .where(deleted_at: nil)
   }
 end
 
