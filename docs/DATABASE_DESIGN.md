@@ -1,6 +1,6 @@
 # データベース設計
 
-最終更新: 2026-04-05
+最終更新: 2026-04-08
 
 ---
 
@@ -8,8 +8,8 @@
 
 - 明細は期間ごとに分けず全部 `transactions` テーブルに格納する
 - 「1ヶ月の明細」はクエリの `date` 絞り込みで表現（テーブル分割しない）
-- `User → Card → Transaction` の経路で辿ることで「誰のデータか」を保証
-- `has_many :transactions, through: :cards` で `current_user.transactions` と直接辿れる
+- `User → PaymentMethod → Transaction` の経路で辿ることで「誰のデータか」を保証
+- `has_many :transactions, through: :payment_methods` で `current_user.transactions` と直接辿れる
 
 **テーブル分割しない理由**
 - 月ごとにテーブルを分けると前年同月比・トレンド分析が JOIN だらけになる
@@ -22,20 +22,28 @@
 
 ```
 User
-├─ has_many :cards
-├─ has_many :transactions, through: :cards
+├─ has_many :payment_methods
+├─ has_many :transactions, through: :payment_methods
+├─ has_many :imports
 └─ has_many :categories
 
-Card（クレジットカード・電子マネーなど支払い手段）
+PaymentMethod（支払い手段: クレカ・QR・現金など）
 ├─ belongs_to :user
+├─ has_many :transactions
+└─ has_many :imports
+
+Import（CSV取り込み履歴）
+├─ belongs_to :user
+├─ belongs_to :payment_method
 └─ has_many :transactions
 
 Category（カテゴリ）
 └─ has_many :transactions
 
 Transaction（明細）
-├─ belongs_to :card
-└─ belongs_to :category
+├─ belongs_to :payment_method
+├─ belongs_to :import, optional: true   # NULL = 手動入力
+└─ belongs_to :category, optional: true # NULL = 未分類
 ```
 
 ---
@@ -53,21 +61,40 @@ Transaction（明細）
 | created_at | datetime | |
 | updated_at | datetime | |
 
-### cards
+### payment_methods
 
 | カラム | 型 | 説明 |
 |---|---|---|
 | id | bigint | PK |
 | user_id | bigint | FK → users |
-| name | string | カード名（例: "楽天カード"） |
-| card_type | string | 種別（credit / debit / e-money） |
+| name | string | 名称（例: "楽天カード" / "PayPay" / "現金"） |
+| payment_type | string | 種別（credit / debit / e_money / qr / cash） |
 | created_at | datetime | |
 | updated_at | datetime | |
 
-**card_type の値**
+**payment_type の値**
 - `credit`：クレジットカード
 - `debit`：デビットカード
-- `e_money`：電子マネー（Suica・PayPayなど）
+- `e_money`：電子マネー（Suicaなど）
+- `qr`：QRコード決済（PayPay・楽天Payなど）
+- `cash`：現金
+
+### imports
+
+| カラム | 型 | 説明 |
+|---|---|---|
+| id | bigint | PK |
+| user_id | bigint | FK → users |
+| payment_method_id | bigint | FK → payment_methods |
+| filename | string | アップロードファイル名 |
+| file_hash | string | 重複防止用ハッシュ |
+| row_count | integer | 取り込み件数 |
+| imported_at | datetime | 取り込み日時 |
+| created_at | datetime | |
+| updated_at | datetime | |
+
+**インデックス**
+- `[user_id, file_hash]`（重複チェック用）
 
 ### categories
 
@@ -84,18 +111,35 @@ Transaction（明細）
 | カラム | 型 | 説明 |
 |---|---|---|
 | id | bigint | PK |
-| card_id | bigint | FK → cards |
-| category_id | bigint | FK → categories（nullable: 未分類の場合 null） |
-| date | date | 利用日 |
-| amount | integer | 請求金額（円） |
-| description | string | 店舗名・説明文 |
+| payment_method_id | bigint | FK → payment_methods |
+| import_id | bigint | FK → imports（nullable: NULL = 手動入力） |
+| category_id | bigint | FK → categories（nullable: NULL = 未分類） |
+| date | date | 利用日（原本） |
+| amount | integer | 請求金額・円（原本） |
+| description | string | CSV生文字（不変・原本） |
+| merchant_name | string | 正規化した店舗名（ユーザー編集可能・分類キー） |
+| amount_override | integer | 金額の上書き値（NULL なら原本を使用） |
+| date_override | date | 日付の上書き値（NULL なら原本を使用） |
+| amount_locked | boolean | true = 上書き済み・以降編集不可（default: false） |
+| date_locked | boolean | true = 上書き済み・以降編集不可（default: false） |
+| deleted_at | datetime | ソフトデリート（NULL = 有効） |
 | created_at | datetime | |
 | updated_at | datetime | |
 
+**カラムの役割**
+- `description` / `amount` / `date`：CSV原本。取り込み後は変更しない
+- `merchant_name`：自動生成 → ユーザー編集可。分類キーとして使用
+- `amount_override` / `date_override`：訂正が必要な場合のみ入れる。1回のみ変更可
+- `import_id = NULL`：手動入力（現金・QRなど）
+- `deleted_at`：ソフトデリート。物理削除はしない
+
 **インデックス**
-- `card_id`（belongs_to で自動）
+- `payment_method_id`（belongs_to で自動）
+- `import_id`（belongs_to で自動）
 - `category_id`（belongs_to で自動）
-- `date`（月別絞り込みに使用）
+- `date`（月別絞り込み用）
+- `merchant_name`（分類キー検索用）
+- `deleted_at`（有効明細の絞り込み用）
 
 ---
 
@@ -139,7 +183,7 @@ diff = this_year - last_year
 
 フェーズ2以降で追加予定：
 
-### cards テーブル
+### payment_methods テーブル
 - `point_rate`（decimal）：ポイント還元率
 - `limit_amount`（integer）：利用上限
 - `bank_account`（string）：引き落とし口座
@@ -147,8 +191,12 @@ diff = this_year - last_year
 ### transactions テーブル
 - `is_installment`（boolean）：分割払いフラグ
 - `installment_count`（integer）：分割回数
-- `original_amount`（integer）：利用金額（請求金額と別の場合）
-- `file_hash`（string）：重複防止用ファイルハッシュ
+
+### monthly_budgets テーブル
+- `memo`（text）：月単位のメモ（「今月は旅行で食費多め」など振り返り用）
+
+### imports テーブル（将来）
+- レシート画像・OCR取り込み対応（`source_type`: csv / image / manual）
 
 ---
 
