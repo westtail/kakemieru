@@ -4,6 +4,13 @@
 
 ---
 
+> **採用方針（ADR-0011 で確定）**
+> - フェーズ1: **Rails 8 Built-in Authentication**（以下の比較表の「1」）
+> - フェーズ2以降: パスキー（webauthn-rails）→ OmniAuth の順で段階的に拡張
+> - Devise は採用しない
+
+---
+
 ## 概要
 
 Rails 8 で利用できる認証方式の比較と KakeMieru への適用検討。

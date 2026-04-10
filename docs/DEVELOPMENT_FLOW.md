@@ -109,7 +109,7 @@ git tag v{major}.{minor}.{patch}
 git push origin v{major}.{minor}.{patch}
 ```
 
-タグpushをトリガーにGitHub ActionsがRenderへ自動デプロイする。
+タグpushをトリガーにGitHub ActionsがFly.ioへ自動デプロイする。
 バージョニングはSemVerに準拠:
 
 | 変更の種類 | 上げる桁 | 例 |
@@ -126,7 +126,7 @@ git push origin v{major}.{minor}.{patch}
 |---|---|
 | PR作成・更新時 | テスト実行、Lintチェック |
 | developマージ時 | テスト実行 |
-| タグpush時 | Renderへ自動デプロイ |
+| タグpush時 | Fly.ioへ自動デプロイ |
 
 ---
 

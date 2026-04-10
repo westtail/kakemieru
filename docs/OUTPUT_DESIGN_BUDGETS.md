@@ -91,7 +91,7 @@
 | `budget_items` | テンプレート × カテゴリ × 基本予算額 |
 | `monthly_budgets` | 年月 × 適用テンプレート × 確定日時 |
 | `carryovers` | 月 × カテゴリ × 持ち越し金額（確定済み） |
-| `transactions` | 実績はここから集計（専用テーブルなし） |
+| `transactions` | 実績はここから集計（`effective_amount` を使用・専用テーブルなし） |
 
 ---
 

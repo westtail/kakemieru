@@ -190,8 +190,8 @@ LargeExpense（大型支出）
 **目標**: セキュアな認証と管理者機能の実装
 
 **機能**:
-- [ ] 認証機能（方式は設計フェーズで決定）
-  - 候補: Rails 8 Built-in + webauthn-rails（パスキー）+ OmniAuth（Google/GitHub）
+- [ ] パスキー認証（webauthn-rails）の追加（フェーズ1の Rails 8 Built-in を拡張）
+  - フェーズ1で実装済みの Rails 8 Built-in に webauthn-rails → OmniAuth の順で追加
   - 詳細は [AUTHENTICATION.md](AUTHENTICATION.md) を参照
 - [ ] 管理画面
   - ユーザー管理
@@ -419,7 +419,7 @@ kakemieru/
 
 ### 来週やること
 1. [ ] データベース設計
-2. [ ] User/Card/Transaction/Category モデル作成
+2. [ ] User/PaymentMethod/Import/Category/Transaction モデル作成
 3. [ ] CSVアップロード機能（基本）
 4. [ ] 明細一覧表示
 
@@ -427,7 +427,7 @@ kakemieru/
 
 ## 🔗 参考リンク
 
-- **Render**: https://render.com/
+- **Fly.io**: https://fly.io/
 - **Rails Guides**: https://guides.rubyonrails.org/
 - **Docker公式**: https://docs.docker.com/
 

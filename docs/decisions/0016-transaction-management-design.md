@@ -59,10 +59,10 @@ transactions
 
   merchant_name    編集可（自動生成 → ユーザー上書き可）
   category_id      編集可
-  amount_override  金額訂正値（1回のみ変更可）
-  date_override    日付訂正値（1回のみ変更可）
-  amount_locked    上書き済みフラグ
-  date_locked      上書き済みフラグ
+  amount_override  金額訂正値（NULL なら原本を使用）
+  date_override    日付訂正値（NULL なら原本を使用）
+  effective_amount 集計用金額（generated: COALESCE(amount_override, amount)）
+  effective_date   集計用日付（generated: COALESCE(date_override, date)）
   deleted_at       ソフトデリート
 ```
 
