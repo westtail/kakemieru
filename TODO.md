@@ -32,14 +32,16 @@
 **目標**: CSV をアップロードして明細一覧とグラフを見られる状態
 
 ### 認証
-- [ ] ユーザー登録・ログイン（devise or 自前）
+- [ ] ユーザー登録・ログイン（Rails 8 Built-in 認証）
 - [ ] ログイン必須ページの保護
 
 ### データモデル
 - [ ] User モデル
-- [ ] Card（クレジットカード）モデル
-- [ ] Category（カテゴリ）モデル
-- [ ] Transaction（明細）モデル
+- [ ] CategoryTemplate モデル（システムテンプレート）
+- [ ] PaymentMethod モデル（支払い手段）
+- [ ] Import モデル（CSV取り込み履歴）
+- [ ] Category モデル（user_id NOT NULL・コピー方式）
+- [ ] Transaction モデル（user_id 直接保持・effective_date/amount）
 
 ### CSV アップロード
 - [ ] CSV アップロード画面

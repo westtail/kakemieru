@@ -76,6 +76,11 @@
 2. 前月の Carryover があれば取得（なければ暫定計算）
 3. 画面を表示
 
+> **⚠️ 実装上の注意（冪等作成）**
+> 同一年月に複数リクエストが同時に来ると MonthlyBudget が重複作成される恐れがある。
+> `monthly_budgets` には `UNIQUE (user_id, year_month)` 制約を設け、
+> `find_or_create_by` + 競合時リトライ（または `INSERT ... ON CONFLICT DO NOTHING`）で冪等に生成すること。
+
 ---
 
 ## 関連DBテーブル

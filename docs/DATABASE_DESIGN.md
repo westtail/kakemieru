@@ -7,13 +7,14 @@
 ## 設計方針
 
 - 明細は期間ごとに分けず全部 `transactions` テーブルに格納する
-- 「1ヶ月の明細」はクエリの `date` 絞り込みで表現（テーブル分割しない）
+- 「1ヶ月の明細」はクエリの `effective_date` 絞り込みで表現（テーブル分割しない）
+- 集計・グラフ・レポートは全て `effective_date` / `effective_amount` を使う（`date` / `amount` は原本保持のみ）
 - `transactions.user_id` を直接持つことでマルチテナント分離をDB側で保証
 - `WHERE user_id = current_user.id` だけで安全に絞り込める
 
 **テーブル分割しない理由**
 - 月ごとにテーブルを分けると前年同月比・トレンド分析が JOIN だらけになる
-- `date` カラムにインデックスを貼れば絞り込みのパフォーマンスは十分
+- `effective_date` カラムにインデックスを貼れば絞り込みのパフォーマンスは十分
 - 個人利用レベルのデータ量ではパフォーマンス問題は起きない
 
 ---
@@ -205,14 +206,14 @@ current_user.transactions
   .in_month(2026, 1)
   .joins(:category)
   .group("categories.name")
-  .sum(:amount)
+  .sum(:effective_amount)
 ```
 
 ### 前年同月比
 
 ```ruby
-this_year  = current_user.transactions.in_month(2026, 1).sum(:amount)
-last_year  = current_user.transactions.in_month(2025, 1).sum(:amount)
+this_year  = current_user.transactions.in_month(2026, 1).sum(:effective_amount)
+last_year  = current_user.transactions.in_month(2025, 1).sum(:effective_amount)
 diff = this_year - last_year
 ```
 
@@ -242,18 +243,6 @@ diff = this_year - last_year
 ---
 
 ## 決定事項の追記（2026-04-07）
-
-### カテゴリ設計：1テーブルで共通＋ユーザー独自を併用
-
-`user_id: null` をシステム共通、`user_id: あり` をユーザー独自として1テーブルで管理。
-
-```ruby
-Category.where(user_id: [nil, current_user.id])
-```
-
-- 共通カテゴリ（食費・交通費・娯楽・家賃・光熱費・通信費など）はシードで投入
-- ユーザーが独自カテゴリを追加・編集・削除できる
-- 共通カテゴリはユーザーが編集不可
 
 ### `amount` の型：integer（円単位）
 
@@ -294,23 +283,30 @@ Category.where(user_id: [nil, current_user.id])
 
 ```
 User
-├─ has_many :cards
-├─ has_many :transactions, through: :cards
-├─ has_many :categories                        # user_idあり = 独自カテゴリ
+├─ has_many :payment_methods
+├─ has_many :transactions                      # user_id 直接保持
+├─ has_many :imports
+├─ has_many :categories                        # user_id NOT NULL（コピー方式）
 ├─ has_many :budget_templates
 └─ has_many :monthly_budgets
 
-Card
+CategoryTemplate                               # システム共通テンプレート・不変
+                                               # 登録時に categories にコピーされる
+
+PaymentMethod
 ├─ belongs_to :user
-└─ has_many :transactions
+├─ has_many :transactions
+└─ has_many :imports
 
 Category
-├─ belongs_to :user, optional: true            # null = 共通カテゴリ
+├─ belongs_to :user                            # NOT NULL・必ずユーザーに紐づく
 └─ has_many :transactions
 
 Transaction
-├─ belongs_to :card
-└─ belongs_to :category
+├─ belongs_to :user                            # 直接保持（マルチテナント保証）
+├─ belongs_to :payment_method
+├─ belongs_to :import, optional: true
+└─ belongs_to :category, optional: true
 
 BudgetTemplate
 ├─ belongs_to :user
@@ -410,7 +406,7 @@ effective = base.merge(carryover) { |_k, b, c| b + c }
 ```ruby
 actual = current_user.transactions
                      .in_month(2026, 4)
-                     .group(:category_id).sum(:amount)
+                     .group(:category_id).sum(:effective_amount)
 
 diff = effective.merge(actual) { |_k, e, a| e - a }
 ```

@@ -90,9 +90,14 @@ API:        RESTful / GraphQL
 **データモデル**:
 ```
 User（ユーザー）
-├─ Card（クレジットカード）
-├─ Transaction（明細）
-│   └─ Category（カテゴリ）
+├─ PaymentMethod（支払い手段: クレカ・QR・現金など）
+├─ Import（CSV取り込み履歴）
+├─ Category（カテゴリ・user_id NOT NULL）
+└─ Transaction（明細・user_id 直接保持）
+    ├─ belongs_to :user
+    ├─ belongs_to :payment_method
+    ├─ belongs_to :import (optional)
+    └─ belongs_to :category (optional)
 ```
 
 ---
@@ -212,27 +217,35 @@ LargeExpense（大型支出）
 
 ```
 User
-├─ has_many :cards
-├─ has_many :transactions, through: :cards
-└─ has_many :categories
+├─ has_many :payment_methods
+├─ has_many :transactions       # user_id 直接保持
+├─ has_many :imports
+└─ has_many :categories         # user_id NOT NULL（コピー方式）
 
-Card（クレジットカード・電子マネーなど支払い手段）
+CategoryTemplate（システム共通テンプレート・不変）
+                                # 登録時に categories にコピーされる
+
+PaymentMethod（支払い手段: credit/debit/e_money/qr/cash）
+├─ belongs_to :user
+├─ has_many :transactions
+└─ has_many :imports
+
+Category（ユーザーごとのカテゴリ）
 ├─ belongs_to :user
 └─ has_many :transactions
 
-Category（カテゴリ）
-└─ has_many :transactions
-
 Transaction（明細 ※全期間を1テーブルで管理）
-├─ belongs_to :card
-└─ belongs_to :category
+├─ belongs_to :user             # 直接保持（マルチテナント保証）
+├─ belongs_to :payment_method
+├─ belongs_to :import, optional: true
+└─ belongs_to :category, optional: true
 ```
 
 **設計方針**
 - 明細は期間ごとに分けず全部 `transactions` テーブルに格納
-- 「1ヶ月の明細」はクエリの `date` 絞り込みで表現
-- `User → Card → Transaction` の経路で辿ることで「誰のデータか」を保証
-- `has_many :transactions, through: :cards` で `current_user.transactions` と直接辿れる
+- 「1ヶ月の明細」はクエリの `effective_date` 絞り込みで表現
+- `transactions.user_id` を直接保持してマルチテナント分離をDB側で保証
+- 詳細は [DATABASE_DESIGN.md](DATABASE_DESIGN.md) を参照
 
 ### カテゴリ自動分類のロジック
 ```ruby

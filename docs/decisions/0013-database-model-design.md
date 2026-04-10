@@ -25,7 +25,7 @@
 
 **B. 全期間を1テーブルで管理（採用）**
 - `transactions` テーブルに全明細を格納
-- `date` カラムで月・年を絞り込む
+- `effective_date` カラムで月・年を絞り込む（ADR-0017 で `date` → `effective_date` に変更）
 - デメリット：データが増えるが、インデックスで対応可能
 
 ### Card モデルの有無
@@ -34,7 +34,7 @@
 - シンプルだが、カード別集計・ポイント管理・利用上限管理が難しくなる
 - 後から Card を追加する場合、既存データのマイグレーションが必要
 
-**B. User → Card → Transaction（Card あり・採用）**
+**B. User → Card → Transaction（Card あり・当時採用）**
 - カード別集計が自然にできる
 - 将来のポイント還元率・引き落とし口座・利用上限管理に対応しやすい
 - `has_many :transactions, through: :cards` で `current_user.transactions` と直接辿れる
@@ -45,13 +45,16 @@
 
 ### 1. 明細は全期間を1テーブルで管理
 
-`transactions` テーブルに全明細を格納し、`date` カラムで絞り込む。
+`transactions` テーブルに全明細を格納し、`effective_date` カラムで絞り込む。
+
+> **⚠️ ADR-0017 で修正**: 集計・絞り込みは `date` ではなく `effective_date` を使う。
+> `date` は原本として保持するが集計には使わない。
 
 **理由**
 - 月別・年別・カテゴリ別など、どの切り口でも自由に集計できる
 - 前年同月比・支出トレンドなどの分析がシンプルなクエリで書ける
 - 個人利用レベルのデータ量ではパフォーマンス問題は起きない
-- `date` カラムにインデックスを貼ることで絞り込みは十分高速
+- `effective_date` カラムにインデックスを貼ることで絞り込みは十分高速
 
 ### 2. Card モデルを挟む（User → Card → Transaction）
 
@@ -63,7 +66,14 @@
   - 「前回と同じカード」の記憶
 - 将来のポイント管理・引き落とし口座・利用上限管理で明確にメリットがある
 
-### 3. モデル構成
+> **⚠️ この決定は後の ADR で修正されている**
+> - `Card` → `PaymentMethod` に改名（ADR-0016）
+> - `transactions.user_id` を直接保持・`through: :cards` 廃止（ADR-0017 CRITICAL 2）
+> - `Category` はコピー方式に変更・`category_templates` を別テーブルに切り出し（ADR-0017 CRITICAL 1）
+>
+> 現行のモデル構成は [DATABASE_DESIGN.md](../DATABASE_DESIGN.md) を参照。
+
+### 3. モデル構成（当時の案 ※現行は ADR-0016/0017 で修正済み）
 
 ```
 User
