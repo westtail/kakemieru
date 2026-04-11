@@ -100,6 +100,11 @@ Transaction（明細）
 - `qr`：QRコード決済（PayPay・楽天Payなど）
 - `cash`：現金
 
+**初期生成**
+- ユーザー登録時に `payment_type: cash`（現金）を1件自動生成する
+- 手動入力時に「現金という支払方法を先に作ってください」というUXを避けるため
+- `category_templates → categories` のコピー方式と同じ発想
+
 **削除ポリシー**
 - 物理削除は行わずソフトデリート（`archived_at`）
 - 削除時は大きな警告を表示（過去明細が残る旨）
@@ -107,17 +112,30 @@ Transaction（明細）
 
 ### imports
 
+1回の取り込み操作をまとめる単位。CSV・OCR・API連携など入力経路に関わらず、複数の Transaction を1つの操作として管理する。
+
 | カラム | 型 | 説明 |
 |---|---|---|
 | id | bigint | PK |
 | user_id | bigint | FK → users |
 | payment_method_id | bigint | FK → payment_methods |
-| filename | string | アップロードファイル名 |
+| source_type | string | 取り込み経路（csv / ocr / api / manual_bulk）フェーズ1は csv 固定 |
+| filename | string | アップロードファイル名（source_type: csv の場合） |
 | file_hash | string | 重複防止用ハッシュ |
 | row_count | integer | 取り込み件数 |
 | imported_at | datetime | 取り込み日時 |
 | created_at | datetime | |
 | updated_at | datetime | |
+
+**source_type の値**
+- `csv`：CSV ファイルの取り込み（フェーズ1で使用）
+- `ocr`：レシート画像の OCR 取り込み（フェーズ4以降）
+- `api`：銀行・決済サービスの API 連携（フェーズ4以降）
+- `manual_bulk`：複数件の手動一括入力（将来拡張候補）
+
+**`import_id` の意味（Transaction 側）**
+- `import_id あり`：何らかの取り込み操作由来
+- `import_id = NULL`：ユーザーによる手動1件入力
 
 **インデックス**
 - `[user_id, file_hash]`（重複チェック用）
