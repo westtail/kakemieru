@@ -84,13 +84,20 @@ API:        RESTful / GraphQL
   - 例: "JR東日本" → 交通費
 - [ ] 月別集計グラフ
 - [ ] カテゴリ別集計グラフ
+- [ ] 前年同月比表示
+- [ ] 月平均支出（カテゴリ別・全体）
 
 **データモデル**:
 ```
 User（ユーザー）
-├─ Card（クレジットカード）
-├─ Transaction（明細）
-│   └─ Category（カテゴリ）
+├─ PaymentMethod（支払い手段: クレカ・QR・現金など）
+├─ Import（CSV取り込み履歴）
+├─ Category（カテゴリ・user_id NOT NULL）
+└─ Transaction（明細・user_id 直接保持）
+    ├─ belongs_to :user
+    ├─ belongs_to :payment_method
+    ├─ belongs_to :import (optional)
+    └─ belongs_to :category (optional)
 ```
 
 ---
@@ -105,6 +112,7 @@ User（ユーザー）
 - [ ] 予算 vs 実績の比較表示
 - [ ] 予算達成率グラフ
 - [ ] 残額アラート
+- [ ] 支出トレンド（増加・減少傾向の可視化）
 
 **追加データモデル**:
 ```
@@ -146,6 +154,7 @@ MonthlyBudget（月次予算）
   - 使いすぎた分を翌月から差し引き
   - 例: 交通費2,000円オーバー → 翌月の交通費予算から減算
 
+- [ ] キャッシュフロー予測（現在の支出パターンから将来残高を予測）
 - [ ] 大型支出の分割払い管理
   - 例: MacBook 180,000円購入
   - 月々10,000円ずつ予算から引く
@@ -160,7 +169,39 @@ LargeExpense（大型支出）
 
 ---
 
-### フェーズ4: エクスポート（1週間）
+### フェーズ4: ローカル自動取り込み（1週間）
+**目標**: ローカル環境でもシンプルに動かせるようにする
+
+**機能**:
+- [ ] CLIコマンドによる取り込み（`rails import:run`）
+  - 特定ディレクトリ（例: `~/kakemieru/import/`）のCSVを一括処理
+  - 処理済みファイルを別ディレクトリへ移動
+- [ ] フォルダウォッチャー（常駐プロセス）
+  - 対象フォルダを監視し、CSVを置くと自動取り込み
+  - バックグラウンドで動作
+
+**背景**:
+- Webアップロードに加えてローカルでも手軽に動かせる環境を提供
+- ダウンロードしたCSVをフォルダに置くだけで完結させる
+
+---
+
+### フェーズ5: 認証・管理画面（1-2週間）
+**目標**: セキュアな認証と管理者機能の実装
+
+**機能**:
+- [ ] パスキー認証（webauthn-rails）の追加（フェーズ1の Rails 8 Built-in を拡張）
+  - フェーズ1で実装済みの Rails 8 Built-in に webauthn-rails → OmniAuth の順で追加
+  - 詳細は [AUTHENTICATION.md](AUTHENTICATION.md) を参照
+- [ ] 管理画面
+  - ユーザー管理
+  - 取り込み済みデータの確認・修正
+  - カテゴリ分類ルールの管理
+- [ ] `admin` フラグによる管理者権限制御
+
+---
+
+### フェーズ6: エクスポート（1週間）
 **機能**:
 - [ ] グラフを画像出力（PNG）
 - [ ] スライド用レイアウト生成
@@ -170,40 +211,41 @@ LargeExpense（大型支出）
 
 ## 🗄 データベース設計（詳細）
 
-### フェーズ1のモデル
-```ruby
-# User（ユーザー）
-class User < ApplicationRecord
-  has_many :cards
-  has_many :transactions
-  has_many :categories
-end
+詳細は [DATABASE_DESIGN.md](DATABASE_DESIGN.md) を参照。
 
-# Card（クレジットカード）
-class Card < ApplicationRecord
-  belongs_to :user
-  has_many :transactions
-  
-  # name: "楽天カード"
-  # card_number_last4: "1234"
-end
+### フェーズ1のモデル構成
 
-# Category（カテゴリ）
-class Category < ApplicationRecord
-  # name: "食費", "交通費", "娯楽", など
-end
-
-# Transaction（明細）
-class Transaction < ApplicationRecord
-  belongs_to :user
-  belongs_to :card
-  belongs_to :category
-  
-  # date: 支払日
-  # amount: 金額
-  # description: 説明文（"セブンイレブン 渋谷店"）
-end
 ```
+User
+├─ has_many :payment_methods
+├─ has_many :transactions       # user_id 直接保持
+├─ has_many :imports
+└─ has_many :categories         # user_id NOT NULL（コピー方式）
+
+CategoryTemplate（システム共通テンプレート・不変）
+                                # 登録時に categories にコピーされる
+
+PaymentMethod（支払い手段: credit/debit/e_money/qr/cash）
+├─ belongs_to :user
+├─ has_many :transactions
+└─ has_many :imports
+
+Category（ユーザーごとのカテゴリ）
+├─ belongs_to :user
+└─ has_many :transactions
+
+Transaction（明細 ※全期間を1テーブルで管理）
+├─ belongs_to :user             # 直接保持（マルチテナント保証）
+├─ belongs_to :payment_method
+├─ belongs_to :import, optional: true
+└─ belongs_to :category, optional: true
+```
+
+**設計方針**
+- 明細は期間ごとに分けず全部 `transactions` テーブルに格納
+- 「1ヶ月の明細」はクエリの `effective_date` 絞り込みで表現
+- `transactions.user_id` を直接保持してマルチテナント分離をDB側で保証
+- 詳細は [DATABASE_DESIGN.md](DATABASE_DESIGN.md) を参照
 
 ### カテゴリ自動分類のロジック
 ```ruby
@@ -377,7 +419,7 @@ kakemieru/
 
 ### 来週やること
 1. [ ] データベース設計
-2. [ ] User/Card/Transaction/Category モデル作成
+2. [ ] User/PaymentMethod/Import/Category/Transaction モデル作成
 3. [ ] CSVアップロード機能（基本）
 4. [ ] 明細一覧表示
 
@@ -385,7 +427,7 @@ kakemieru/
 
 ## 🔗 参考リンク
 
-- **Render**: https://render.com/
+- **Fly.io**: https://fly.io/
 - **Rails Guides**: https://guides.rubyonrails.org/
 - **Docker公式**: https://docs.docker.com/
 

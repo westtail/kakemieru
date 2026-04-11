@@ -104,13 +104,13 @@ main ← develop ← feat/xxx, fix/xxx
 
 - 本番への手動デプロイ方針は決定済み
 - デプロイ先（Render、Fly.io等）は別途議論して決定する
-- 決定後にデプロイトリガー設定をGIT_STRATEGY.mdに追記
+- 決定後にデプロイトリガー設定をDEVELOPMENT_GUIDE.mdに追記
 
 ---
 
 ## 結果
 
-[docs/GIT_STRATEGY.md](../GIT_STRATEGY.md) に運用ルールとして反映済み。
+[docs/DEVELOPMENT_GUIDE.md](../DEVELOPMENT_GUIDE.md) に運用ルールとして反映済み。
 
 参考資料
 https://zenn.dev/divsawa/articles/20251010-3_note-github-branch-myrules
