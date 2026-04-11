@@ -76,7 +76,7 @@ transactions
 imports
   user_id
   payment_method_id
-  filename
+  source_ref        # 取り込み元の参照情報（source_type により意味が変わる）
   file_hash         重複防止
   row_count
   imported_at

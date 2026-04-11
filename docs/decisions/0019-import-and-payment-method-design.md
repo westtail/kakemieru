@@ -58,7 +58,7 @@ imports
   user_id
   payment_method_id
   source_type        # csv / ocr / api / manual_bulk（フェーズ1は csv 固定）
-  filename           # CSVファイル名など（source_type に応じた参照情報）
+  source_ref         # 取り込み元の参照情報（csv: ファイル名、ocr: 画像ファイル名、api: エンドポイント識別子、manual_bulk: NULL）
   file_hash          # 重複取り込み防止
   row_count          # 取り込み件数
   imported_at
@@ -120,7 +120,7 @@ user.payment_methods.create!(
 ## 保留事項
 
 - `source_type` の値の追加は実装時に決定（OCR・API連携のフェーズで）
-- `filename` カラムの名称は `source_type` によって意味が変わるため、将来 `payload_ref` などに見直す可能性あり
+- `filename` カラムは `source_ref` に改名済み（DB-H3 対応）。source_type に応じた参照情報を格納する
 
 ---
 

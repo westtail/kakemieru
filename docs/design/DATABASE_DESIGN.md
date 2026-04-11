@@ -93,22 +93,36 @@ Transaction（明細）
 | created_at | datetime | |
 | updated_at | datetime | |
 
-**payment_type の値**
+**payment_type の値**（Rails `enum` + CHECK 制約で保護）
 - `credit`：クレジットカード
 - `debit`：デビットカード
 - `e_money`：電子マネー（Suicaなど）
 - `qr`：QRコード決済（PayPay・楽天Payなど）
 - `cash`：現金
 
+```ruby
+# モデル定義例
+enum :payment_type, { credit: "credit", debit: "debit", e_money: "e_money", qr: "qr", cash: "cash" }
+validates :payment_type, presence: true
+```
+
 **初期生成**
 - ユーザー登録時に `payment_type: cash`（現金）を1件自動生成する
 - 手動入力時に「現金という支払方法を先に作ってください」というUXを避けるため
 - `category_templates → categories` のコピー方式と同じ発想
 
-**削除ポリシー**
-- 物理削除は行わずソフトデリート（`archived_at`）
-- 削除時は大きな警告を表示（過去明細が残る旨）
-- 削除後1週間は復元可能、1週間後に完全削除バッチを実行
+**削除ポリシー**（明細の有無で動作を分ける）
+
+| 条件 | 動作 |
+|---|---|
+| 明細ゼロの支払方法を削除 | 物理削除（誤登録の整理を想定） |
+| 明細ありの支払方法を削除 | `archived_at` をセット（永続アーカイブ） |
+| ユーザー退会 | users の CASCADE 削除で全削除（アーカイブ済みも含む） |
+
+- アーカイブ済みは新規取り込み・手動入力のセレクトには表示しない
+- アーカイブ済みでも過去明細の参照・集計には引き続き使用される（`payment_method_id` FK は有効のまま）
+- 復元ボタンで `archived_at` を NULL に戻せる
+- アーカイブ時は「過去の明細はそのまま残り、新しい取り込みや手動入力では選択できなくなります」と説明を表示する
 
 ### imports
 
@@ -120,18 +134,24 @@ Transaction（明細）
 | user_id | bigint | FK → users |
 | payment_method_id | bigint | FK → payment_methods |
 | source_type | string | 取り込み経路（csv / ocr / api / manual_bulk）フェーズ1は csv 固定 |
-| filename | string | アップロードファイル名（source_type: csv の場合） |
-| file_hash | string | 重複防止用ハッシュ |
+| source_ref | string | 取り込み元の参照情報（source_type に応じて意味が変わる。csv: ファイル名、ocr: 画像ファイル名、api: エンドポイント識別子、manual_bulk: NULL） |
+| file_hash | string | 重複防止用ハッシュ（csv の場合はファイルの SHA256。その他の source_type では使用方法を別途定義） |
 | row_count | integer | 取り込み件数 |
 | imported_at | datetime | 取り込み日時 |
 | created_at | datetime | |
 | updated_at | datetime | |
 
-**source_type の値**
+**source_type の値**（Rails `enum` + CHECK 制約で保護）
 - `csv`：CSV ファイルの取り込み（フェーズ1で使用）
 - `ocr`：レシート画像の OCR 取り込み（フェーズ4以降）
 - `api`：銀行・決済サービスの API 連携（フェーズ4以降）
 - `manual_bulk`：複数件の手動一括入力（将来拡張候補）
+
+```ruby
+# モデル定義例
+enum :source_type, { csv: "csv", ocr: "ocr", api: "api", manual_bulk: "manual_bulk" }
+validates :source_type, presence: true
+```
 
 **`import_id` の意味（Transaction 側）**
 - `import_id あり`：何らかの取り込み操作由来
@@ -151,6 +171,12 @@ Transaction（明細）
 | created_at | datetime | |
 | updated_at | datetime | |
 
+**「未分類」カテゴリの扱い**
+- `transactions.category_id = NULL` が未分類を表す（専用カテゴリレコードは持たない）
+- `category_templates` には `category_key: "uncategorized"` を持たせ、ユーザー登録時に `categories` へコピーする
+- コピーされた「未分類」カテゴリは名前変更のみ可・削除不可（`category_key` が "uncategorized" のものは保護）
+- カテゴリ削除時に `SET NULL` されると `category_id = NULL`（= 未分類）に戻る
+
 **インデックス**
 - `UNIQUE (user_id, name)`
 - `UNIQUE (user_id, category_key)` WHERE category_key IS NOT NULL
@@ -166,7 +192,7 @@ Transaction（明細）
 | category_id | bigint | FK → categories（nullable: NULL = 未分類） |
 | date | date | 利用日（原本・不変） |
 | amount | integer | 請求金額・円（原本・不変） |
-| description | string | CSV生文字（原本・不変） |
+| description | string | CSV原本の摘要欄テキスト（不変）。手動入力時は NULL。merchant_name の正規化元として使用 |
 | merchant_name | string | 正規化した店舗名（ユーザー編集可能・分類キー） |
 | amount_override | integer | 金額の訂正値（NULL なら原本を使用） |
 | date_override | date | 日付の訂正値（NULL なら原本を使用） |
@@ -177,7 +203,7 @@ Transaction（明細）
 | updated_at | datetime | |
 
 **カラムの役割**
-- `date` / `amount` / `description`：CSV原本。取り込み後は変更しない
+- `date` / `amount` / `description`：CSV原本。取り込み後は変更しない（手動入力の場合、description は NULL）
 - `merchant_name`：自動生成 → ユーザー編集可。分類キーとして使用
 - `amount_override` / `date_override`：訂正が必要な場合のみ入れる
 - `effective_amount` / `effective_date`：集計・グラフは必ずこちらを使う（DB生成カラム）
@@ -188,15 +214,16 @@ Transaction（明細）
 - `user_id`（マルチテナント絞り込み用）
 - `(user_id, effective_date)`（月別集計用・複合）
 - `(user_id, category_id, effective_date)`（カテゴリ別集計用・複合）
+- `(user_id, payment_method_id)`（支払方法別絞り込み用・複合）
 - `import_id`（取り込み単位の操作用）
-- `merchant_name`（分類キー検索用）
+- `(user_id, merchant_name)`（キーワード検索用・複合 LIKE 検索に使用）
 - `deleted_at`（有効明細の絞り込み用）
 
 **ON DELETE ポリシー**
 - `users` 削除 → CASCADE（退会時に全データ削除）
-- `payment_methods` 削除 → RESTRICT（archived_at によるソフトデリートで対応）
-- `imports` 削除 → 検討中
-- `categories` 削除 → 検討中
+- `payment_methods` 削除 → RESTRICT（archived_at によるソフトデリートで対応・物理削除は起きない）
+- `imports` 削除 → RESTRICT（Import を物理削除させない。取り込み取り消しは transactions.deleted_at でソフトデリート）
+- `categories` 削除 → SET NULL（カテゴリ削除時に transactions.category_id を NULL にする = 未分類扱い）
 
 ---
 
@@ -341,7 +368,7 @@ BudgetItem
 MonthlyBudget
 ├─ belongs_to :user
 ├─ belongs_to :budget_template
-├─ year_month: string                          # "2026-04"
+├─ year_month: date                            # 月初日で保存（例: 2026-04-01）
 ├─ confirmed_at: datetime（null = 未確定）
 └─ has_many :carryovers
 
@@ -383,7 +410,7 @@ Carryover
 | id | bigint | PK |
 | user_id | bigint | FK → users |
 | budget_template_id | bigint | FK → budget_templates |
-| year_month | string | 対象年月（"2026-04"） |
+| year_month | date | 対象年月（月初日で保存: 2026-04-01。DATE 型で範囲クエリ・ソートを自然に行う） |
 | confirmed_at | datetime | 持ち越し確定日時（null = 未確定） |
 | created_at | datetime | |
 | updated_at | datetime | |
@@ -412,7 +439,7 @@ base = monthly_budget.budget_template.budget_items
                      .group(:category_id).sum(:amount)
 
 # 3月からの持ち越し
-prev_month = MonthlyBudget.find_by(user: current_user, year_month: "2026-03")
+prev_month = MonthlyBudget.find_by(user: current_user, year_month: Date.new(2026, 3, 1))
 carryover  = prev_month&.carryovers&.group(:category_id)&.sum(:amount) || {}
 
 # 有効予算 = 基本予算 + 持ち越し

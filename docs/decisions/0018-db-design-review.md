@@ -122,7 +122,7 @@ effective_amount GENERATED ALWAYS AS (COALESCE(amount_override, amount)) STORED
 | 親 → 子 | ポリシー | 理由 |
 |---|---|---|
 | users → 全テーブル | CASCADE | 退会時に全データ削除 |
-| payment_methods → transactions | RESTRICT | ソフトデリートで物理削除は起きない |
+| payment_methods → transactions | RESTRICT（明細あり）/ 物理削除（明細なし） | 明細がある場合はアーカイブのみ・明細なしなら物理削除可 |
 | imports → transactions | 検討中 | 実装時に決定 |
 | categories → transactions | 検討中 | 実装時に決定 |
 
