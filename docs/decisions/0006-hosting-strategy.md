@@ -69,5 +69,5 @@ v1完成後に以下を候補として検討する：
 
 ## 結果
 
-[docs/INITIAL_SETUP.md](../INITIAL_SETUP.md) にFly.ioのセットアップ手順として反映。
+[docs/infra/INITIAL_SETUP.md](../infra/INITIAL_SETUP.md) にFly.ioのセットアップ手順として反映。
 [docs/decisions/0005-cicd-pipeline.md](0005-cicd-pipeline.md) のデプロイ方法もFly.ioに更新済み。

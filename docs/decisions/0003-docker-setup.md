@@ -218,4 +218,4 @@ docker build --target production .
 
 ## 結果
 
-[docs/INITIAL_SETUP.md](../INITIAL_SETUP.md) に構築手順として反映済み。
+[docs/infra/INITIAL_SETUP.md](../infra/INITIAL_SETUP.md) に構築手順として反映済み。

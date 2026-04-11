@@ -66,4 +66,4 @@ Issue作成からデプロイまでの一連の開発フローを定義する必
 
 ## 結果
 
-[docs/DEVELOPMENT_FLOW.md](../DEVELOPMENT_FLOW.md) に運用ルールとして反映済み。
+[docs/DEVELOPMENT_GUIDE.md](../DEVELOPMENT_GUIDE.md) に運用ルールとして反映済み。

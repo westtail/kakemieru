@@ -1,13 +1,13 @@
-# 開発フロー
+# 開発ガイド
 
-最終更新: 2026-03-21
+最終更新: 2026-04-11
 
 ---
 
 ## 前提
 
 このドキュメントは、開発環境・CI/CD・デプロイ基盤が整った状態での通常開発フローを定義する。
-初期セットアップは [INITIAL_SETUP.md](INITIAL_SETUP.md) を参照。
+初期セットアップは [infra/INITIAL_SETUP.md](infra/INITIAL_SETUP.md) を参照。
 
 ---
 
@@ -30,6 +30,80 @@ develop → main へPR（機能単位）
   ↓
 リリースタグ作成 → 自動デプロイ
 ```
+
+---
+
+## ブランチ戦略
+
+### 主要ブランチ
+
+| ブランチ | 役割 |
+|---|---|
+| `main` | 本番リリース済みコード |
+| `develop` | 開発統合ブランチ（PR先） |
+
+### ブランチ構成
+
+```
+main
+ └── develop ← 通常のPR先
+       └── feat/42-user-authentication
+       └── fix/17-login-redirect-bug
+```
+
+リリース時: `develop` → `main` へPR、タグpush（`v*`）でFly.ioへ自動デプロイ
+
+### ブランチ保護
+
+- `main`: direct push禁止、PR必須
+- `develop`: direct push禁止、PR必須
+
+### ブランチ命名規則
+
+```
+{type}/{issue番号}-{説明}
+```
+
+#### 例
+
+```
+feat/42-user-authentication
+fix/17-login-redirect-bug
+chore/3-docker-setup
+refactor/28-extract-auth-service
+docs/5-api-reference
+test/33-add-user-model-specs
+perf/61-optimize-n-plus-one
+ci/8-github-actions-setup
+```
+
+#### タイプ一覧
+
+| タイプ | 用途 |
+|---|---|
+| `feat` | 新機能 |
+| `fix` | バグ修正 |
+| `refactor` | リファクタリング（機能変更なし） |
+| `docs` | ドキュメントのみ |
+| `test` | テストのみ |
+| `chore` | 設定・環境・依存関係など |
+| `perf` | パフォーマンス改善 |
+| `ci` | CI/CD設定 |
+
+#### ルール
+
+- 小文字 + ハイフン区切り
+- Issue番号は必須（Issueなしの作業は先にIssueを作る）
+- 説明は英語、動詞または名詞で簡潔に
+- 目安40文字以内
+
+### PRルール
+
+- 1ブランチ = 1Issue
+- PRタイトルは `{type}: {説明} (#{issue番号})` 形式
+- 通常は `develop` へ、リリース時のみ `main` へ
+- セルフレビュー後にマージ
+- merge commit採用（作業ログ・調査・意図を残すため）
 
 ---
 
@@ -61,7 +135,7 @@ git pull origin develop
 git switch -c {type}/{issue番号}-{説明}
 ```
 
-命名規則は [GIT_STRATEGY.md](GIT_STRATEGY.md) を参照。
+命名規則は[ブランチ命名規則](#ブランチ命名規則)を参照。
 
 ### 4. 実装（TDD）
 
@@ -78,7 +152,7 @@ git add {ファイル}
 git commit -m "{type}: {説明}"
 ```
 
-コミットタイプは [GIT_STRATEGY.md](GIT_STRATEGY.md) を参照。
+コミットタイプは[タイプ一覧](#タイプ一覧)を参照。
 wipコミットは許容。小さい単位でこまめに記録する。
 
 ### 6. PR作成 → developへマージ

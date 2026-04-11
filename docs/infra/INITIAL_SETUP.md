@@ -7,7 +7,7 @@
 ## 概要
 
 このドキュメントは、KakeMieru の開発環境を0から構築し、本番デプロイまでを通す手順を定義する。
-一度完了すれば以降は [DEVELOPMENT_FLOW.md](DEVELOPMENT_FLOW.md) に従って開発する。
+一度完了すれば以降は [DEVELOPMENT_GUIDE.md](../DEVELOPMENT_GUIDE.md) に従って開発する。
 
 ---
 
