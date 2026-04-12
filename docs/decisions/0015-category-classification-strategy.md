@@ -60,10 +60,13 @@ CSVから取り込んだ明細をカテゴリ（食費・交通費など）に�
 ```
 merchant_classifications
   merchant_name   店舗名（CSVの表記）
-  category_id     紐付けたカテゴリ
+  category_key    カテゴリキー（category_templates.category_key と対応）
   source          ai / user_manual
   classified_at
 ```
+
+- `user_id` は持たない（全ユーザー共通の店舗→カテゴリマッピング）
+- `category_key` を使うことでユーザーごとのカテゴリIDに依存せず共有できる
 
 **理由**
 - AI コストを「店舗ごと1回」に抑えられる

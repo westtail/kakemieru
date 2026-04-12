@@ -97,7 +97,6 @@ Transaction（明細）
 | `subscription` | サブスク |
 | `education` | 教育 |
 | `other` | その他 |
-| `uncategorized` | 未分類（システム用・削除不可） |
 
 ### payment_methods
 
@@ -128,6 +127,9 @@ validates :payment_type, presence: true
 - ユーザー登録時に `payment_type: cash`（現金）を1件自動生成する
 - 手動入力時に「現金という支払方法を先に作ってください」というUXを避けるため
 - `category_templates → categories` のコピー方式と同じ発想
+
+**インデックス**
+- `archived_at`（アクティブな支払方法の絞り込み `WHERE archived_at IS NULL` 用）
 
 **削除ポリシー**（明細の有無で動作を分ける）
 
@@ -213,16 +215,16 @@ validates :source_ref, presence: true, unless: -> { source_type == "manual_bulk"
 | created_at | datetime | |
 | updated_at | datetime | |
 
-**「未分類」カテゴリの扱い**
-- `transactions.category_id = NULL` が未分類を表す（専用カテゴリレコードは持たない）
-- `category_templates` には `category_key: "uncategorized"` を持たせ、ユーザー登録時に `categories` へコピーする
-- コピーされた「未分類」カテゴリは名前変更のみ可・削除不可
-- 削除禁止はアプリ層で `before_destroy` に実装する（`category_key == "uncategorized"` の場合に例外を上げる）
-- カテゴリ削除時に `SET NULL` されると `category_id = NULL`（= 未分類）に戻る
+**「未分類」の扱い**
+- `transactions.category_id = NULL` が未分類を表す
+- 専用の「未分類」カテゴリレコードは持たない（`category_templates` にも `uncategorized` は含めない）
+- カテゴリ削除時に `SET NULL` されると `category_id = NULL`（= 未分類）に自然に戻る
+- UI のカテゴリセレクトには「未分類」を先頭の特殊オプション（value 空）として表示し、選択時に `category_id = NULL` をセットする
 
 **インデックス**
 - `UNIQUE (user_id, name)`
 - `UNIQUE (user_id, category_key)` WHERE category_key IS NOT NULL
+- `UNIQUE (user_id, id)`（transactions の複合FK `(user_id, category_id) REFERENCES categories(user_id, id)` の参照先として必要）
 
 **category_templates のインデックス**
 - `UNIQUE (category_key)`（テンプレートキーの重複登録を防ぐ）
