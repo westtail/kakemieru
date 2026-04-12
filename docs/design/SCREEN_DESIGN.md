@@ -79,6 +79,10 @@ end
   /imports/new              取り込み（CSV or 手動まとめ入力）
   /imports                  取り込み履歴一覧
   /imports/:id              取り込み詳細・取り消し
+  /imports/:id/cancel_confirm  取り消し確認ページ
+
+API
+  /transactions/summary     ダッシュボード用集計 JSON（GET）
 
 設定
   /payment_methods          支払方法一覧・管理
@@ -327,6 +331,10 @@ CSV 原本は変更不可。編集できる項目のみフォームを表示。
 │  [保存]  [削除]                      │
 └─────────────────────────────────────┘
 ```
+
+- 保存後 → `/transactions?month=YYYY-MM`（`effective_date` の月）へ遷移
+- 削除後 → `/transactions?month=YYYY-MM`（削除前の `effective_date` の月）へ遷移
+- キャンセル → 遷移前のページへ戻る（`redirect_back` fallback: `/transactions`）
 
 ---
 
