@@ -54,7 +54,7 @@ Database:   PostgreSQL
 Frontend:   Hotwire (Turbo + Stimulus)
 JS:         importmap
 CSS:        Tailwind CSS
-Charts:     Chartkick + Chart.js
+Charts:     Chart.js（Stimulus + fetch で直接描画）
 Container:  Docker + docker-compose
 Hosting:    Fly.io（スケールゼロ → 採用活動時にアップグレード）
 CI/CD:      GitHub Actions
