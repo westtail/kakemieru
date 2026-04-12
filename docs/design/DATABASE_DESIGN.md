@@ -81,6 +81,24 @@ Transaction（明細）
 - 新規ユーザー登録時に `categories` にコピーされる
 - `category_key` は `merchant_classifications` との紐づけに使用
 
+**初期データ（`db/seeds.rb` で投入）**
+
+| category_key | name |
+|---|---|
+| `food` | 食費 |
+| `dining_out` | 外食 |
+| `transport` | 交通費 |
+| `daily` | 日用品 |
+| `entertainment` | 娯楽 |
+| `clothing` | 衣服・美容 |
+| `medical` | 医療・健康 |
+| `utilities` | 光熱費 |
+| `communication` | 通信費 |
+| `subscription` | サブスク |
+| `education` | 教育 |
+| `other` | その他 |
+| `uncategorized` | 未分類（システム用・削除不可） |
+
 ### payment_methods
 
 | カラム | 型 | 説明 |
