@@ -89,7 +89,7 @@ Transaction（明細）
 | user_id | bigint | FK → users |
 | name | string | 名称（例: "楽天カード" / "PayPay" / "現金"） |
 | payment_type | string | 種別（credit / debit / e_money / qr / cash） |
-| archived_at | datetime | ソフトデリート（NULL = 使用中） |
+| archived_at | datetime | ソフトデリート（NULL = 使用中）。datetime 精度で記録し、復元時の監査ログに活用 |
 | created_at | datetime | |
 | updated_at | datetime | |
 
@@ -101,7 +101,7 @@ Transaction（明細）
 - `cash`：現金
 
 ```ruby
-# モデル定義例
+# モデル定義例（実装時は config/constants/ に定数を一元管理すること）
 enum :payment_type, { credit: "credit", debit: "debit", e_money: "e_money", qr: "qr", cash: "cash" }
 validates :payment_type, presence: true
 ```
@@ -151,6 +151,8 @@ validates :payment_type, presence: true
 # モデル定義例
 enum :source_type, { csv: "csv", ocr: "ocr", api: "api", manual_bulk: "manual_bulk" }
 validates :source_type, presence: true
+validates :source_ref, presence: true, unless: -> { source_type == "manual_bulk" }
+# source_ref はファイル名相当。パストラバーサル防止のためアプリ層でサニタイズ必須
 ```
 
 **`import_id` の意味（Transaction 側）**
@@ -174,12 +176,16 @@ validates :source_type, presence: true
 **「未分類」カテゴリの扱い**
 - `transactions.category_id = NULL` が未分類を表す（専用カテゴリレコードは持たない）
 - `category_templates` には `category_key: "uncategorized"` を持たせ、ユーザー登録時に `categories` へコピーする
-- コピーされた「未分類」カテゴリは名前変更のみ可・削除不可（`category_key` が "uncategorized" のものは保護）
+- コピーされた「未分類」カテゴリは名前変更のみ可・削除不可
+- 削除禁止はアプリ層で `before_destroy` に実装する（`category_key == "uncategorized"` の場合に例外を上げる）
 - カテゴリ削除時に `SET NULL` されると `category_id = NULL`（= 未分類）に戻る
 
 **インデックス**
 - `UNIQUE (user_id, name)`
 - `UNIQUE (user_id, category_key)` WHERE category_key IS NOT NULL
+
+**category_templates のインデックス**
+- `UNIQUE (category_key)`（テンプレートキーの重複登録を防ぐ）
 
 ### transactions
 
@@ -203,27 +209,74 @@ validates :source_type, presence: true
 | updated_at | datetime | |
 
 **カラムの役割**
-- `date` / `amount` / `description`：CSV原本。取り込み後は変更しない（手動入力の場合、description は NULL）
-- `merchant_name`：自動生成 → ユーザー編集可。分類キーとして使用
-- `amount_override` / `date_override`：訂正が必要な場合のみ入れる
+- `date` / `amount`：原本。CSV取り込み時はCSVの値、手動入力時はユーザー入力値をそのまま格納
+- `description`：CSV原本の摘要テキスト。手動入力時は NULL
+- `merchant_name`：自動生成（description または店舗名から正規化） → ユーザー編集可。最大 255文字。全角→半角・前後スペース除去のみ行い、それ以上の正規化はアプリ層に委ねる
+- `amount_override` / `date_override`：訂正が必要な場合のみ入れる（NULL = 原本を使用）
 - `effective_amount` / `effective_date`：集計・グラフは必ずこちらを使う（DB生成カラム）
-- `import_id = NULL`：手動入力（現金・QRなど）
+- `import_id = NULL`：手動1件入力（現金・QRなど）
 - `user_id`：直接保持でマルチテナント分離を保証
 
+**手動入力時の date / amount の扱い**
+- 手動1件入力（`/transactions/new`）では、ユーザーが入力した日付・金額を `date` / `amount` に直接格納する
+- `date_override` / `amount_override` は NULL のまま（原本 = 入力値）
+- `import_id = NULL` でCSV由来でないことを示す
+
 **インデックス**
-- `user_id`（マルチテナント絞り込み用）
-- `(user_id, effective_date)`（月別集計用・複合）
-- `(user_id, category_id, effective_date)`（カテゴリ別集計用・複合）
-- `(user_id, payment_method_id)`（支払方法別絞り込み用・複合）
+- `(user_id, deleted_at, effective_date)`（月別絞り込み + 有効明細フィルタ・主クエリ用）
+- `(user_id, deleted_at, category_id, effective_date)`（カテゴリ別集計用）
+- `(user_id, deleted_at, payment_method_id)`（支払方法別絞り込み用）
 - `import_id`（取り込み単位の操作用）
-- `(user_id, merchant_name)`（キーワード検索用・複合 LIKE 検索に使用）
-- `deleted_at`（有効明細の絞り込み用）
+- `(user_id, merchant_name)`（キーワード検索用・前方一致 LIKE に有効）
+
+> **注**: `deleted_at` を複合インデックスの2列目に置くことで `WHERE user_id = ? AND deleted_at IS NULL` の絞り込みをインデックスで処理できる。`deleted_at` 単独インデックスは削除。
 
 **ON DELETE ポリシー**
 - `users` 削除 → CASCADE（退会時に全データ削除）
-- `payment_methods` 削除 → RESTRICT（archived_at によるソフトデリートで対応・物理削除は起きない）
+- `payment_methods` 削除 → RESTRICT（物理削除はアプリ層で制御。明細ゼロなら物理削除・明細ありなら archived_at のみセット）
 - `imports` 削除 → RESTRICT（Import を物理削除させない。取り込み取り消しは transactions.deleted_at でソフトデリート）
 - `categories` 削除 → SET NULL（カテゴリ削除時に transactions.category_id を NULL にする = 未分類扱い）
+
+**payment_methods 削除の実装方針（アプリ層）**
+
+```ruby
+class PaymentMethod < ApplicationRecord
+  before_destroy do
+    if transactions.exists?
+      update!(archived_at: Time.current)
+      throw :abort  # 物理削除を中断してアーカイブに切り替え
+    end
+    # transactions がなければ物理削除に進む
+  end
+end
+```
+
+**複合FK（user_id + category_id）**
+
+`transactions.(user_id, category_id)` に複合 FK を貼り、他ユーザーのカテゴリへの誤紐づけを DB 層で防ぐ。
+
+```sql
+ALTER TABLE transactions
+  ADD CONSTRAINT fk_tx_user_category
+  FOREIGN KEY (user_id, category_id) REFERENCES categories(user_id, id);
+```
+
+- フェーズ1から採用（マルチテナント分離の多層保護）
+- categories テーブルに `UNIQUE (user_id, id)` が必要（Rails は主キーのみ参照するため、複合UNIQUEを追加）
+
+**generated column のテスト要件**
+
+`effective_amount` / `effective_date` はマイグレーション追加時に以下を確認する。
+
+```sql
+-- 既存レコードとの整合性チェック
+SELECT COUNT(*) FROM transactions
+WHERE effective_amount <> COALESCE(amount_override, amount)
+   OR effective_date   <> COALESCE(date_override, date);
+-- → 0 件であること
+```
+
+- migration 実行後、staging で上記 SQL を必ず実行してから本番適用する
 
 ---
 
@@ -403,6 +456,9 @@ Carryover
 | created_at | datetime | |
 | updated_at | datetime | |
 
+**インデックス**
+- `UNIQUE (budget_template_id, category_id)`（同テンプレート内で同カテゴリの重複登録を防ぐ）
+
 #### monthly_budgets
 
 | カラム | 型 | 説明 |
@@ -416,7 +472,23 @@ Carryover
 | updated_at | datetime | |
 
 **インデックス**
-- `[user_id, year_month]`（ユニーク）
+- `UNIQUE (user_id, year_month)`
+
+**`confirmed_at` の状態遷移**
+
+```
+NULL（未確定）
+  ↓ 「差分を翌月へ持ち越す」ボタンを押す
+  ↓ Carryover レコードを生成
+datetime（確定済み）
+  ↓ ※確定後は原則変更不可
+  ↓ （管理機能で取り消す場合のみ NULL に戻す）
+NULL（再開放）
+```
+
+- `confirmed_at = NULL`：当月はまだ確定されていない。暫定値（リアルタイム計算）を「※暫定」バッジ付きで表示
+- `confirmed_at != NULL`：確定済み。Carryover レコードが存在し、翌月の有効予算に反映されている
+- 確定後に明細を追加・編集した場合、確定値は変わらない（再確定は管理画面の操作が必要）
 
 #### carryovers
 
@@ -428,6 +500,9 @@ Carryover
 | amount | integer | 持ち越し金額（正 = 余剰、負 = 超過） |
 | created_at | datetime | |
 | updated_at | datetime | |
+
+**インデックス**
+- `UNIQUE (monthly_budget_id, category_id)`（同月・同カテゴリの持ち越しレコードの重複登録を防ぐ）
 
 ### クエリ例
 

@@ -106,8 +106,8 @@ effective_amount GENERATED ALWAYS AS (COALESCE(amount_override, amount)) STORED
 |---------|---------|------|
 | users → 全テーブル | CASCADE | 退会時に全データ削除。データ残留は利用規約上アウト |
 | payment_methods → transactions | RESTRICT | ソフトデリートで対応するため物理削除は起きない |
-| imports → transactions | 検討中 | |
-| categories → transactions | 検討中 | |
+| imports → transactions | RESTRICT | Import を物理削除させない。取り込み取り消しは transactions.deleted_at でソフトデリート |
+| categories → transactions | SET NULL | カテゴリ削除時に transactions.category_id を NULL にする（= 未分類扱い） |
 
 ### payment_methods の削除ポリシー
 
