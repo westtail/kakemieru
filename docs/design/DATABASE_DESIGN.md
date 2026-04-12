@@ -180,6 +180,28 @@ validates :source_ref, presence: true, unless: -> { source_type == "manual_bulk"
 **インデックス**
 - `[user_id, file_hash]`（重複チェック用）
 
+### merchant_classifications
+
+店舗名とカテゴリキーのマッピングキャッシュ。フェーズ1ではテーブルのみ作成・中身は空。フェーズ2でバッチ AI 分類を実装する（ADR-0015 参照）。
+
+| カラム | 型 | 説明 |
+|---|---|---|
+| id | bigint | PK |
+| merchant_name | string | 店舗名（CSV の表記そのまま） |
+| category_key | string | カテゴリキー（categories.category_key と対応） |
+| source | string | マッピング元（`ai` / `user_manual`） |
+| classified_at | datetime | 分類日時 |
+| created_at | datetime | |
+| updated_at | datetime | |
+
+**`source` の値**
+- `ai`：バッチ処理で AI が自動分類（フェーズ2以降）
+- `user_manual`：ユーザーが手動で修正 → AI は上書きしない
+
+**インデックス**
+- `UNIQUE (merchant_name)`
+- `category_key`
+
 ### categories
 
 | カラム | 型 | 説明 |
