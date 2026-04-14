@@ -48,6 +48,18 @@
 - 押すと Carryover レコードが保存され、MonthlyBudget の confirmed_at に日時が記録される
 - 確定後はボタンが「確定済み」表示に変わり、金額の変更不可
 
+**冪等性・再実行時の挙動**
+
+| 状況 | 挙動 |
+|---|---|
+| 未確定 → 確定ボタン押下 | Carryover レコードを生成し `confirmed_at` をセット（正常フロー） |
+| 確定済み → 再押下（ユーザー操作） | noop。`confirmed_at != NULL` をアプリ層で確認し、何もせず 200 を返す。UI はボタンを disabled にして防止 |
+| 確定済み → API 多重送信 | 同上。アプリ層の `confirmed_at` チェックで弾く（DB UNIQUE 制約は二重防衛） |
+| 未確定 → 多重送信（同時並走） | `carryovers` の `UNIQUE (monthly_budget_id, category_id)` が重複 INSERT をブロック。後勝ちリクエストは 422 を返す |
+
+- 確定処理は `MonthlyBudget#confirmed_at` のセットと Carryover レコード群の生成を **1トランザクション** で実行する
+- 確定後に明細が追加・編集されても確定値は変わらない（再確定は管理操作のみ）
+
 ---
 
 ## 予算テンプレート管理 `/budget_templates`

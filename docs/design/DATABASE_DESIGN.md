@@ -180,7 +180,12 @@ validates :source_ref, presence: true, unless: -> { source_type == "manual_bulk"
 - `import_id = NULL`：ユーザーによる手動1件入力
 
 **インデックス**
-- `[user_id, file_hash]`（重複チェック用）
+- `[user_id, file_hash]`（UNIQUE 制約。重複取り込み防止）
+
+**file_hash の一意判定スコープ**
+- スコープは **`user_id + file_hash`**。異なるユーザーが同内容の CSV を取り込んでも別レコードとして扱う
+- `payment_method_id` はスコープに含めない。同一ファイルを別の支払方法で取り込むことは業務上発生しないため、より厳しい `user_id + file_hash` で防ぐ
+- ソフトデリート（`deleted_at` が NULL でないレコード）も UNIQUE 制約の対象に含まれる。取り消し後の同ファイル再取り込みは不可（管理画面で Import を物理削除しない限り再取り込みできない）
 
 ### merchant_classifications
 
@@ -376,7 +381,7 @@ diff = this_year - last_year
 - `memo`（text）：月単位のメモ（「今月は旅行で食費多め」など振り返り用）
 
 ### imports テーブル（将来）
-- レシート画像・OCR取り込み対応（`source_type`: csv / image / manual）
+- レシート画像・OCR取り込み対応（`source_type`: `ocr` を使用。既存 enum 値 `csv / ocr / api / manual_bulk` と整合）
 
 ---
 
@@ -531,6 +536,13 @@ NULL（再開放）
 - `confirmed_at = NULL`：当月はまだ確定されていない。暫定値（リアルタイム計算）を「※暫定」バッジ付きで表示
 - `confirmed_at != NULL`：確定済み。Carryover レコードが存在し、翌月の有効予算に反映されている
 - 確定後に明細を追加・編集した場合、確定値は変わらない（再確定は管理画面の操作が必要）
+
+**冪等性の保証（実装要件）**
+
+- 確定処理のエントリポイントで `confirmed_at != NULL` を確認し、セット済みなら noop で 200 を返す
+- Carryover の生成と `confirmed_at` のセットは **1トランザクション** で実行する
+- `carryovers` の `UNIQUE (monthly_budget_id, category_id)` が多重 INSERT に対する DB レベルの二重防衛となる
+- UI は `confirmed_at != NULL` のとき確定ボタンを disabled にし、フォーム再送信を防止する
 
 #### carryovers
 

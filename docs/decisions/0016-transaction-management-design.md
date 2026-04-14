@@ -105,7 +105,7 @@ imports
 
 ## 将来の拡張候補
 
-- レシート画像・OCR による取り込み（`imports.source_type` で csv / image / manual を区別）
+- レシート画像・OCR による取り込み（`imports.source_type` で `ocr` を使用。enum 定義は `csv / ocr / api / manual_bulk`）
 - 重複チェック: file_hash（完全一致）+ 日付範囲（同月データの存在確認）の2段階
 
 ---
