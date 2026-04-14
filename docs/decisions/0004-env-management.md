@@ -90,4 +90,4 @@ fly tokens create deploy  # FLY_API_TOKEN を取得
 
 ## 結果
 
-[docs/INITIAL_SETUP.md](../INITIAL_SETUP.md) にセットアップ手順として反映済み。
+[docs/infra/INITIAL_SETUP.md](../infra/INITIAL_SETUP.md) にセットアップ手順として反映済み。

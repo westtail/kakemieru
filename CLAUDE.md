@@ -45,7 +45,7 @@ docker compose run --rm web bundle exec rspec --format documentation
 
 Issue → ブランチ → 実装（TDD） → PR → マージ
 
-詳細は [docs/DEVELOPMENT_FLOW.md](docs/DEVELOPMENT_FLOW.md) を参照。
+詳細は [docs/DEVELOPMENT_GUIDE.md](docs/DEVELOPMENT_GUIDE.md) を参照。
 
 ---
 
