@@ -18,10 +18,9 @@ Claude Code がこのリポジトリで作業する際の指示書。
 Docker Compose で起動する。ローカルに Ruby/Rails は不要。
 
 ```bash
-docker compose up -d          # 起動
-docker compose run --rm web <コマンド>   # 任意のコマンド実行
-docker compose run --rm web bundle exec rspec   # テスト実行
-docker compose run --rm web bin/rails console   # コンソール
+docker compose up -d                              # 起動
+docker compose run --rm web bin/rails console     # コンソール
+docker compose run --rm web bin/rails db:migrate  # マイグレーション実行
 ```
 
 ---
