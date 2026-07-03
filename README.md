@@ -1,24 +1,44 @@
-# README
+# KakeMieru
 
-This README would normally document whatever steps are necessary to get the
-application up and running.
+クレジットカード明細 CSV をアップロードして収支を可視化する家計簿 Web アプリ。
 
-Things you may want to cover:
+## 前提条件
 
-* Ruby version
+- Docker / Docker Compose v2
 
-* System dependencies
+## 開発環境の起動
 
-* Configuration
+```bash
+# リポジトリをクローン
+git clone https://github.com/westtail/kakemieru.git
+cd kakemieru
 
-* Database creation
+# 環境変数ファイルを準備
+cp .env.example .env
+# .env を編集して POSTGRES_PASSWORD を設定
 
-* Database initialization
+# イメージをビルド
+docker compose build
 
-* How to run the test suite
+# 起動 + DB 初期化（初回のみ）
+docker compose up -d
+docker compose exec web bin/rails db:create db:migrate
+```
 
-* Services (job queues, cache servers, search engines, etc.)
+ブラウザで http://localhost:3000 を開く。
 
-* Deployment instructions
+## テスト
 
-* ...
+```bash
+docker compose exec web bundle exec rspec
+```
+
+## 停止
+
+```bash
+docker compose down
+```
+
+## 本番インフラのセットアップ
+
+Fly.io・GitHub Actions・ブランチ保護などの初回設定は [docs/infra/INITIAL_SETUP.md](docs/infra/INITIAL_SETUP.md) を参照。
