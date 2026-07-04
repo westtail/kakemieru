@@ -3,24 +3,25 @@
 - 日付: 2026-07-03
 - ステータス: 提案中
 - 関連: [ADR-0011 認証方式の選定](0011-authentication-strategy.md) / [ADR-0010 テストフレームワーク](0010-testing-framework.md)
-- 対象 Issue: #15 / #16 / #17 / #18
+- 対象 Issue: #16 / #17 / #18
+
+> テスト基盤（SimpleCov #15）は本 ADR の対象外。認証設計とは独立したテスト環境整備のため別途対応する。
 
 ---
 
 ## コンテキスト
 
-フェーズ1（MVP）の最初の実装単位 S1「基盤」に着手する。
-S1 は認証基盤一式であり、以下の 4 Issue で構成される。
+フェーズ1（MVP）の最初の実装単位 S1「基盤」のうち、認証基盤に着手する。
+認証基盤は以下の 3 Issue で構成される。
 
 | Issue | 内容 |
 |---|---|
-| #15 | SimpleCov 設定（カバレッジ目標 80%） |
 | #16 | [migration] users / sessions テーブル |
 | #17 | User モデル + spec |
 | #18 | 認証コントローラ・ビュー + spec（ログイン・ログアウト） |
 
 認証方式は ADR-0011 で **Rails 8 Built-in Authentication**（`bin/rails generate authentication`）を採用済み。
-本 ADR では S1 の「実装方針・分割単位・テスト方針」を確定させ、実装前の合意点とする。
+本 ADR では認証基盤の「実装方針・分割単位・テスト方針」を確定させ、実装前の合意点とする。
 
 ---
 
@@ -42,20 +43,18 @@ generator 出力の取り合いが発生し依存順序の管理が煩雑にな�
 
 ### 2. ブランチ・PR 分割方針（決定）
 
-依存関係に基づき、**3 PR** に分割する。
+依存関係に基づき、**2 PR** に分割する。
 
 ```
-PR-1  chore/15-simplecov         #15  … 独立（他に依存しない）
-PR-2  feat/16-auth-scaffold      #16 #17  … generator 実行 + データ層
-PR-3  feat/18-auth-sessions      #18      … PR-2 に依存（認証フロー）
+PR-1  feat/16-auth-scaffold      #16 #17  … generator 実行 + データ層
+PR-2  feat/18-auth-sessions      #18      … PR-1 に依存（認証フロー）
 ```
 
-- **PR-1（#15）**: SimpleCov は認証と無関係のテスト基盤。先行して独立マージ可能。
-- **PR-2（#16 + #17）**: `generate authentication` をここで実行し、
+- **PR-1（#16 + #17）**: `generate authentication` をここで実行し、
   マイグレーション（users/sessions）+ User モデルのカスタマイズ + モデル spec までを含める。
   generator が生成する `SessionsController` 等も同時に入るが、この PR では
-  **生成された既定状態のまま**とし、カスタマイズは PR-3 で行う。
-- **PR-3（#18）**: `SessionsController`・ビューのカスタマイズ（`/sign_in` 化・
+  **生成された既定状態のまま**とし、カスタマイズは PR-2 で行う。
+- **PR-2（#18）**: `SessionsController`・ビューのカスタマイズ（`/sign_in` 化・
   `require_authentication` による全画面保護・エラーメッセージ）+ リクエスト spec。
 
 > 「1 ブランチ = 1 Issue」の原則から #16 と #17 のみ束ねる。理由は generator 出力が
@@ -89,13 +88,6 @@ Issue #17 は `has_many :transactions, :payment_methods, :imports, :categories` 
 
 実装前に spec を先に書き（RED）、レビューで合意してから実装に入る。
 
-### #15 SimpleCov
-
-- `spec_helper.rb` 冒頭で SimpleCov 起動、`coverage/` 出力
-- `config/` `db/` `spec/` `bin/` 等を除外
-- カバレッジ 80% 未満で失敗する（`minimum_coverage 80`）
-- 検証: `bundle exec rspec` 後に `coverage/index.html` 生成
-
 ### #17 User モデル spec（`spec/models/user_spec.rb`）
 
 | 観点 | ケース |
@@ -121,15 +113,13 @@ Issue #17 は `has_many :transactions, :payment_methods, :imports, :categories` 
 ## 実装順序
 
 ```
-PR-1  #15 SimpleCov（RED: 設定 → GREEN: 既存 home_spec で緑）
-  ↓
-PR-2  #16 #17
+PR-1  #16 #17
    1. bin/rails generate authentication
    2. マイグレーション修正（admin 追加・email_address 一意インデックス確認）
    3. migrate / rollback / migrate:redo 確認・schema.rb レビュー
    4. User モデル spec（RED）→ バリデーション・関連の実装（GREEN）
   ↓
-PR-3  #18
+PR-2  #18
    1. Sessions リクエスト spec（RED）
    2. ルート /sign_in 化・SessionsController/ビュー調整・require_authentication（GREEN）
 ```
