@@ -9,7 +9,7 @@ Claude Code がこのリポジトリで作業する際の指示書。
 **KakeMieru（家計見える）** — クレジットカード明細 CSV をアップロードして収支をグラフで可視化する家計簿 Web アプリ。
 
 - Rails 8 / PostgreSQL / Hotwire / Docker / Fly.io
-- 詳細は [docs/PROJECT_OVERVIEW.md](docs/PROJECT_OVERVIEW.md) を参照
+- 詳細は [docs/PROJECT_ABOUT.md](docs/PROJECT_ABOUT.md) を参照
 
 ---
 
@@ -19,9 +19,9 @@ Docker Compose で起動する。ローカルに Ruby/Rails は不要。
 
 ```bash
 docker compose up -d          # 起動
-docker compose run --rm web <コマンド>   # 任意のコマンド実行
-docker compose run --rm web bundle exec rspec   # テスト実行
-docker compose run --rm web bin/rails console   # コンソール
+docker compose exec web <コマンド>        # 任意のコマンド実行
+docker compose exec web bundle exec rspec   # テスト実行
+docker compose exec web bin/rails console   # コンソール
 ```
 
 ---
@@ -34,9 +34,9 @@ docker compose run --rm web bin/rails console   # コンソール
 - テストファイルは `spec/` 配下に配置
 
 ```bash
-docker compose run --rm web bundle exec rspec                       # 全テスト
-docker compose run --rm web bundle exec rspec spec/requests/        # 特定ディレクトリ
-docker compose run --rm web bundle exec rspec --format documentation
+docker compose exec web bundle exec rspec                       # 全テスト
+docker compose exec web bundle exec rspec spec/requests/        # 特定ディレクトリ
+docker compose exec web bundle exec rspec --format documentation
 ```
 
 ---
@@ -63,8 +63,12 @@ chore:    その他
 
 ---
 
-## 意思決定記録（ADR）
+## 設計ドキュメント
 
-`decisions/` に保存。技術方針を変更するときは先に ADR を書く。
+実装時は以下を参照すること。
 
-- [ADR-001](decisions/ADR-001-testing-framework.md) — テストフレームワーク（RSpec 採用）
+- [PROJECT_ABOUT.md](docs/PROJECT_ABOUT.md) — 全体像・技術スタック・機能要件・非機能要件
+- [DEVELOPMENT_GUIDE.md](docs/DEVELOPMENT_GUIDE.md) — 開発フロー詳細
+- [DATABASE_DESIGN.md](docs/design/DATABASE_DESIGN.md) — DB設計
+- [SCREEN_DESIGN.md](docs/design/SCREEN_DESIGN.md) — 画面設計
+- [AUTHENTICATION.md](docs/design/AUTHENTICATION.md) — 認証設計
