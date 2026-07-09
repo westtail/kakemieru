@@ -38,5 +38,8 @@
 
 # Ignore SimpleCov coverage reports.
 /coverage/
+
+# Ignore E2E failure screenshots.
+/tmp/screenshots/
 # Ignore local Claude Code settings.
 /.claude/

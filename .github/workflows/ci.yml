@@ -86,4 +86,6 @@ jobs:
           DATABASE_URL: postgres://postgres:password@localhost:5432/kakemieru_test
         run: |
           bin/rails db:create db:schema:load
-          bundle exec rspec
+          # feature spec（E2E）は Chrome コンテナが必要なため CI では除外する。
+          # CI で E2E を回すには chrome サービスの追加が必要（ADR-0023 参照・後続対応）。
+          bundle exec rspec --exclude-pattern "spec/features/**/*_spec.rb"
