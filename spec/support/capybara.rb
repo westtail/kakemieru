@@ -37,7 +37,7 @@ Capybara.register_driver(:cuprite) do |app|
     app,
     # 別コンテナの Chrome にリモート接続する（プロセスを自前起動しない）
     url: REMOTE_CHROME_URL,
-    window_size: [1200, 800],
+    window_size: [ 1200, 800 ],
     process_timeout: 20,
     timeout: 20,
     # CI やコンテナでの安定動作用フラグ
