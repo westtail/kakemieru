@@ -54,6 +54,9 @@ end
 group :test do
   gem "shoulda-matchers"
   gem "simplecov", require: false
+  # E2E（システム spec）: Capybara + Cuprite（Ferrum 経由で Chrome を CDP 操作）
+  gem "capybara"
+  gem "cuprite"
 end
 
 group :development do
