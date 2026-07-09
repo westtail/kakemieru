@@ -30,6 +30,7 @@
 !/tmp/storage/.keep
 
 /public/assets
+/coverage
 
 # Ignore master key for decrypting credentials and more.
 /config/master.key
@@ -40,3 +41,5 @@
 
 # Ignore E2E failure screenshots.
 /tmp/screenshots/
+# Ignore local Claude Code settings.
+/.claude/
