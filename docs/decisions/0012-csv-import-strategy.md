@@ -86,4 +86,4 @@
 ## 参考ソース
 
 - [弥生会計 CSV取り込み対応フォーマット](https://support.yayoi-kk.co.jp/subcontents.html?page_id=25756)
-- 各カード会社CSV調査結果: [MARKET_RESEARCH.md](../MARKET_RESEARCH.md)
+- 各カード会社CSV調査結果: [docs/research/market/](../research/market/README.md)

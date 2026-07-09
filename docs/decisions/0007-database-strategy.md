@@ -87,4 +87,4 @@ AWS案件を意識したポートフォリオを作るなら、意図的にMySQL
 
 ## 結果
 
-[docs/PROJECT_OVERVIEW.md](../PROJECT_OVERVIEW.md) の技術スタックに反映済み。
+[docs/PROJECT_ABOUT.md](../PROJECT_ABOUT.md) の技術スタックに反映済み。
