@@ -61,7 +61,7 @@ Transaction（明細）
 | カラム | 型 | 説明 |
 |---|---|---|
 | id | bigint | PK |
-| email | string | メールアドレス |
+| email_address | string | メールアドレス（一意・Rails 8 認証ジェネレータ準拠。ADR-0022） |
 | password_digest | string | bcrypt ハッシュ |
 | admin | boolean | 管理者フラグ（default: false） |
 | created_at | datetime | |
