@@ -9,4 +9,8 @@ class User < ApplicationRecord
   validates :email_address, presence: true,
                             uniqueness: true,
                             format: { with: URI::MailTo::EMAIL_REGEXP }
+
+  # has_secure_password は presence と72バイト上限のみ検証するため最小長を補う。
+  # allow_nil: true で「パスワード未変更の更新」を許容する（作成時の presence は has_secure_password が担保）。
+  validates :password, length: { minimum: 8 }, allow_nil: true
 end

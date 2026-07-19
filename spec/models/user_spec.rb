@@ -33,6 +33,18 @@ RSpec.describe User, type: :model do
     it "パスワードが空だと無効" do
       user = build(:user, password: nil)
       expect(user).not_to be_valid
+      expect(user.errors[:password]).to be_present
+    end
+
+    it "パスワードが8文字未満だと無効" do
+      user = build(:user, password: "short12")
+      expect(user).not_to be_valid
+      expect(user.errors[:password]).to be_present
+    end
+
+    it "パスワードが8文字以上なら有効" do
+      user = build(:user, password: "password")
+      expect(user).to be_valid
     end
   end
 
