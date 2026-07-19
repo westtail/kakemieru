@@ -126,6 +126,16 @@ PR-2  #18
 
 ---
 
+## セキュリティ引き継ぎ事項（レビュー指摘・後続対応）
+
+PR-1 のブランチレビュー（security-reviewer / code-reviewer）で挙がった、後続 Issue で必ず対応する項目。
+
+- **#18/#21: `admin` の権限昇格対策（HIGH）** — ユーザー作成/更新の strong parameters で `admin` を**絶対に permit しない**。加えて `attr_readonly :admin` 等でモデル層でも防御し、リクエスト spec で「admin=true を送っても昇格しない」を検証する。
+- **#19: パスワードリセットのレート制限** — `PasswordsController#create` に `rate_limit`（例: 5回/3分）を追加（email bombing 対策）。
+- **#19: パスワードリセットのメール正規化** — `PasswordsController` の `find_by(email_address:)` は `normalizes` が効かないため、`params[:email_address]&.strip&.downcase` で引く（大文字メールでリセットが届かない機能バグの回避）。
+- **#18 以降: セッション有効期限** — 現状は permanent cookie で実質無期限。`sessions` に `last_active_at`/`expires_at` を追加し、アイドルタイムアウト/絶対有効期限を検討。
+- **インフラ: `trusted_proxies`** — Fly.io 配下で `request.remote_ip` を監査保存するため、`config.action_dispatch.trusted_proxies` の確認（IP 偽装対策）。
+
 ## 未決・保留
 
 - S1-S2 の Fly.io 実機確認（#20）は S2 完了後にまとめて実施

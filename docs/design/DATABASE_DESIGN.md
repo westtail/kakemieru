@@ -67,6 +67,22 @@ Transaction（明細）
 | created_at | datetime | |
 | updated_at | datetime | |
 
+### sessions
+
+Rails 8 認証（`has_secure_password` + セッショントークン）で使用（ADR-0011 / ADR-0022）。
+
+| カラム | 型 | 説明 |
+|---|---|---|
+| id | bigint | PK |
+| user_id | bigint | FK → users（NOT NULL） |
+| ip_address | string | 接続元 IP（監査用） |
+| user_agent | string | User-Agent（監査用） |
+| created_at | datetime | |
+| updated_at | datetime | |
+
+- インデックス: `user_id`
+- `users` 削除時に CASCADE（`has_many :sessions, dependent: :destroy` + DB FK）
+
 ### category_templates
 
 | カラム | 型 | 説明 |
