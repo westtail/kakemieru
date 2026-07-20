@@ -126,6 +126,30 @@ PR-2  #18
 
 ---
 
+## セキュリティ引き継ぎ事項（レビュー指摘・後続対応）
+
+PR-1 のブランチレビュー（security-reviewer / code-reviewer）で挙がった、後続 Issue で必ず対応する項目。
+
+- **#18/#21: `admin` の権限昇格対策（HIGH）** — ユーザー作成/更新の strong parameters で `admin` を**絶対に permit しない**。加えて `attr_readonly :admin` 等でモデル層でも防御し、リクエスト spec で「admin=true を送っても昇格しない」を検証する。
+- **#19: パスワードリセットのレート制限** — `PasswordsController#create` に `rate_limit`（例: 5回/3分）を追加（email bombing 対策）。
+- **#19: パスワードリセットのメール正規化** — `PasswordsController` の `find_by(email_address:)` は `normalizes` が効かないため、`params[:email_address]&.strip&.downcase` で引く（大文字メールでリセットが届かない機能バグの回避）。
+- **#19: `PasswordsController#update` のエラー表示** — 生成デフォルトは失敗時に `redirect_to ..., alert: "Passwords did not match."` で、実際のバリデーションエラー（短すぎ・空など）と乖離し `@user.errors` も失われる。PR-1 で追加した最小長バリデーション（`password` minimum: 8）でこの乖離が顕在化。`render :edit, status: :unprocessable_entity` に変更し、`passwords/edit.html.erb` で `@user.errors.full_messages` を表示する。あわせて flash/エラー表示を部分テンプレート（例 `shared/_flash`）に寄せる。
+- **#19: `PasswordsController#set_user_by_token` の例外未処理** — `find_by_password_reset_token!`（Rails 8.0.4 では内部で `find(id)` を使用）は、トークン署名が有効でもユーザーが削除済みだと `ActiveRecord::RecordNotFound` を送出する。現状は `ActiveSupport::MessageVerifier::InvalidSignature` のみ rescue のため 500 になる。rescue に `ActiveRecord::RecordNotFound` を追加し、無効リンクと同じ扱い（`new_password_path` へリダイレクト）にする。CodeRabbit 指摘・Rails ソースで確認済み。
+- **#18 以降: セッション有効期限** — 現状は permanent cookie で実質無期限。`sessions` に `last_active_at`/`expires_at` を追加し、アイドルタイムアウト/絶対有効期限を検討。
+- **インフラ: `trusted_proxies`** — Fly.io 配下で `request.remote_ip` を監査保存するため、`config.action_dispatch.trusted_proxies` の確認（IP 偽装対策）。
+
+## リリース条件（セキュリティゲート）
+
+上記「引き継ぎ事項」は**実装順序**の話であり、本番公開の可否は本節のゲートで管理する。
+以下は **#20（初回 Fly.io デプロイ・本番での認証有効化）の必須ブロッカー**とし、
+満たさない場合はデプロイを見送る。CodeRabbit のセキュリティ指摘（レート制限なしでの
+出荷・無期限セッション）への対応方針。
+
+- **[ブロッカー] パスワードリセットのレート制限（#19）** — 未実装のまま本番で認証フローを公開しない。
+- **[ブロッカー] セッションの最低限の失効** — 最低限 cookie の有効期間を permanent から妥当な長さに短縮する（アイドルタイムアウト等の作り込みは後続可）。盗難セッションの有効期間を限定する。
+- **検証**: #20 の実機確認チェックリストに上記2点を含め、リリース前に確認する。
+- リスク受容者: #20 デプロイ実施者（リポジトリメンテナ）。
+
 ## 未決・保留
 
 - S1-S2 の Fly.io 実機確認（#20）は S2 完了後にまとめて実施

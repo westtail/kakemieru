@@ -61,11 +61,27 @@ Transaction（明細）
 | カラム | 型 | 説明 |
 |---|---|---|
 | id | bigint | PK |
-| email | string | メールアドレス |
+| email_address | string | メールアドレス（一意・Rails 8 認証ジェネレータ準拠。ADR-0022） |
 | password_digest | string | bcrypt ハッシュ |
 | admin | boolean | 管理者フラグ（default: false） |
 | created_at | datetime | |
 | updated_at | datetime | |
+
+### sessions
+
+Rails 8 認証（`has_secure_password` + セッショントークン）で使用（ADR-0011 / ADR-0022）。
+
+| カラム | 型 | 説明 |
+|---|---|---|
+| id | bigint | PK |
+| user_id | bigint | FK → users（NOT NULL） |
+| ip_address | string | 接続元 IP（監査用） |
+| user_agent | string | User-Agent（監査用） |
+| created_at | datetime | |
+| updated_at | datetime | |
+
+- インデックス: `user_id`
+- `users` 削除時に CASCADE（`has_many :sessions, dependent: :destroy` + DB FK）
 
 ### category_templates
 
