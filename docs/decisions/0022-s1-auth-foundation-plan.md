@@ -133,6 +133,7 @@ PR-1 のブランチレビュー（security-reviewer / code-reviewer）で挙が
 - **#18/#21: `admin` の権限昇格対策（HIGH）** — ユーザー作成/更新の strong parameters で `admin` を**絶対に permit しない**。加えて `attr_readonly :admin` 等でモデル層でも防御し、リクエスト spec で「admin=true を送っても昇格しない」を検証する。
 - **#19: パスワードリセットのレート制限** — `PasswordsController#create` に `rate_limit`（例: 5回/3分）を追加（email bombing 対策）。
 - **#19: パスワードリセットのメール正規化** — `PasswordsController` の `find_by(email_address:)` は `normalizes` が効かないため、`params[:email_address]&.strip&.downcase` で引く（大文字メールでリセットが届かない機能バグの回避）。
+- **#19: `PasswordsController#update` のエラー表示** — 生成デフォルトは失敗時に `redirect_to ..., alert: "Passwords did not match."` で、実際のバリデーションエラー（短すぎ・空など）と乖離し `@user.errors` も失われる。PR-1 で追加した最小長バリデーション（`password` minimum: 8）でこの乖離が顕在化。`render :edit, status: :unprocessable_entity` に変更し、`passwords/edit.html.erb` で `@user.errors.full_messages` を表示する。あわせて flash/エラー表示を部分テンプレート（例 `shared/_flash`）に寄せる。
 - **#18 以降: セッション有効期限** — 現状は permanent cookie で実質無期限。`sessions` に `last_active_at`/`expires_at` を追加し、アイドルタイムアウト/絶対有効期限を検討。
 - **インフラ: `trusted_proxies`** — Fly.io 配下で `request.remote_ip` を監査保存するため、`config.action_dispatch.trusted_proxies` の確認（IP 偽装対策）。
 
