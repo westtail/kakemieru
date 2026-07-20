@@ -1,7 +1,14 @@
 Rails.application.routes.draw do
-  resource :session
+  # 認証（ログイン/ログアウト）。URL は /sign_in・/sign_out にしつつ、
+  # generator が使う既存ヘルパー名を as: で温存し、concern/passwords_controller の
+  # 参照（new_session_path）を変えずに済ませる。対応表:
+  #   new_session_path → GET  /sign_in （ログイン画面）
+  #   session_path     → POST /sign_in （ログイン送信先）
+  #   sign_out_path    → DELETE /sign_out （ログアウト）
+  get    "sign_in",  to: "sessions#new",     as: :new_session
+  post   "sign_in",  to: "sessions#create",  as: :session
+  delete "sign_out", to: "sessions#destroy", as: :sign_out
   resources :passwords, param: :token
-  get "home/index"
   # Define your application routes per the DSL in https://guides.rubyonrails.org/routing.html
 
   # Reveal health status on /up that returns 200 if the app boots with no exceptions, otherwise 500.
