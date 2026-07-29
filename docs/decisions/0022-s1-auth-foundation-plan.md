@@ -131,10 +131,12 @@ PR-2  #18
 PR-1 のブランチレビュー（security-reviewer / code-reviewer）で挙がった、後続 Issue で必ず対応する項目。
 
 - **#18/#21: `admin` の権限昇格対策（HIGH）** — ユーザー作成/更新の strong parameters で `admin` を**絶対に permit しない**。加えて `attr_readonly :admin` 等でモデル層でも防御し、リクエスト spec で「admin=true を送っても昇格しない」を検証する。
-- **#19: パスワードリセットのレート制限** — `PasswordsController#create` に `rate_limit`（例: 5回/3分）を追加（email bombing 対策）。
-- **#19: パスワードリセットのメール正規化** — `PasswordsController` の `find_by(email_address:)` は `normalizes` が効かないため、`params[:email_address]&.strip&.downcase` で引く（大文字メールでリセットが届かない機能バグの回避）。
-- **#19: `PasswordsController#update` のエラー表示** — 生成デフォルトは失敗時に `redirect_to ..., alert: "Passwords did not match."` で、実際のバリデーションエラー（短すぎ・空など）と乖離し `@user.errors` も失われる。PR-1 で追加した最小長バリデーション（`password` minimum: 8）でこの乖離が顕在化。`render :edit, status: :unprocessable_entity` に変更し、`passwords/edit.html.erb` で `@user.errors.full_messages` を表示する。あわせて flash/エラー表示を部分テンプレート（例 `shared/_flash`）に寄せる。
-- **#19: `PasswordsController#set_user_by_token` の例外未処理** — `find_by_password_reset_token!`（Rails 8.0.4 では内部で `find(id)` を使用）は、トークン署名が有効でもユーザーが削除済みだと `ActiveRecord::RecordNotFound` を送出する。現状は `ActiveSupport::MessageVerifier::InvalidSignature` のみ rescue のため 500 になる。rescue に `ActiveRecord::RecordNotFound` を追加し、無効リンクと同じ扱い（`new_password_path` へリダイレクト）にする。CodeRabbit 指摘・Rails ソースで確認済み。
+- **[#19 で対応済み] パスワードリセットのレート制限** — `PasswordsController#create` に `rate_limit 5回/3分` を追加（email bombing 対策）。
+- **[#19 で確認・訂正] パスワードリセットのメール正規化** — 当初「`find_by(email_address:)` は `normalizes` が効かない」と記載したが**誤り**。Rails 7.1+ の `normalizes` は finder（`find_by`）のキーワード引数にも適用されるため、大文字/空白混じりのメールでも該当ユーザーを引ける（#19 の request spec で実証）。手動 `.strip.downcase` は不要で、追加対応なし。
+- **[#19 で対応済み] `PasswordsController#update` のエラー表示** — 失敗時に `redirect_to ..., alert: "Passwords did not match."` だと実バリデーションエラーと乖離し `@user.errors` も失われる問題を、`render :edit, status: :unprocessable_entity` + `passwords/edit.html.erb` での `@user.errors.full_messages` 表示に変更。
+- **[#19 で対応済み] `PasswordsController#set_user_by_token` の例外未処理** — `find_by_password_reset_token!` はユーザー削除済みだと `ActiveRecord::RecordNotFound` を送出し 500 になる問題を、rescue に `ActiveRecord::RecordNotFound` を追加して無効リンク扱い（`new_password_path` へリダイレクト）に修正。
+- **[#19 で対応済み] パスワードリセット成功時のセッション無効化** — `update` 成功時に `@user.sessions.destroy_all` で既存セッション（攻撃者端末含む）を失効。乗っ取り復旧の目的を満たす（request spec で検証）。
+- **横断（別 Issue 化推奨）: i18n 未整備** — `default_locale` が `:en` で `@user.errors.full_messages` 等が英語表示（日本語UIに混在）。password リセットに限らず登録/ログイン全画面に影響するため、`config/locales/ja.yml`（`activerecord.attributes`・`errors.messages`）追加と `default_locale = :ja` を横断タスクとして実施する。
 - **#18 以降: セッション有効期限** — 現状は permanent cookie で実質無期限。`sessions` に `last_active_at`/`expires_at` を追加し、アイドルタイムアウト/絶対有効期限を検討。
 - **インフラ: `trusted_proxies`** — Fly.io 配下で `request.remote_ip` を監査保存するため、`config.action_dispatch.trusted_proxies` の確認（IP 偽装対策）。
 
