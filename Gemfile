@@ -62,4 +62,8 @@ end
 group :development do
   # Use console on exceptions pages [https://github.com/rails/web-console]
   gem "web-console"
+
+  # 開発環境で送信メールをブラウザで確認する（/letter_opener で閲覧）。
+  # Docker はヘッドレスでブラウザ自動起動ができないため web 版を使う。
+  gem "letter_opener_web"
 end
