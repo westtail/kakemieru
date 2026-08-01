@@ -85,13 +85,26 @@ RSpec.describe "Passwords", type: :request do
       expect(user.reload.authenticate(password)).to be_truthy
     end
 
-    it "パスワード未送信なら更新もセッション破棄もせず edit を再描画する（空更新の防止）" do
+    it "パスワードが空文字なら更新もセッション破棄もせず edit を再描画する" do
       user.sessions.create!(ip_address: "127.0.0.1", user_agent: "old-device")
       token = user.password_reset_token
 
-      patch "/passwords/#{token}"
+      patch "/passwords/#{token}", params: { password: "", password_confirmation: "" }
 
       expect(response).to have_http_status(:unprocessable_entity)
+      expect(response.body).to include("error-messages")
+      expect(user.reload.authenticate(password)).to be_truthy
+      expect(user.sessions.count).to eq(1)
+    end
+
+    it "確認欄が未送信なら更新もセッション破棄もせず edit を再描画する" do
+      user.sessions.create!(ip_address: "127.0.0.1", user_agent: "old-device")
+      token = user.password_reset_token
+
+      patch "/passwords/#{token}", params: { password: "brandnew1" }
+
+      expect(response).to have_http_status(:unprocessable_entity)
+      expect(response.body).to include("error-messages")
       expect(user.reload.authenticate(password)).to be_truthy
       expect(user.sessions.count).to eq(1)
     end
