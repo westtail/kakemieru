@@ -1,14 +1,6 @@
 <h1>新しいパスワードの設定</h1>
 
-<% if @user.errors.any? %>
-  <div class="error-messages" style="color:red">
-    <ul>
-      <% @user.errors.full_messages.each do |message| %>
-        <li><%= message %></li>
-      <% end %>
-    </ul>
-  </div>
-<% end %>
+<%= render "shared/error_messages", record: @user %>
 
 <%= form_with url: password_path(params[:token]), method: :put do |form| %>
   <div>
