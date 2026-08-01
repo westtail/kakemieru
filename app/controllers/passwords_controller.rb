@@ -1,7 +1,14 @@
 class PasswordsController < ApplicationController
   allow_unauthenticated_access
-  # リセットメールの大量送信（email bombing）を抑止する。
-  rate_limit to: 5, within: 3.minutes, only: :create,
+  # IP 単位: 連打の一次抑止。
+  rate_limit to: 5, within: 3.minutes, only: :create, name: "reset-ip",
+             with: -> { redirect_to new_password_url, alert: "しばらく待ってから再度お試しください。" }
+  # メールアドレス単位: IP を分散されても、特定アドレスへのメール爆撃を抑止する。
+  # 正規化キー（strip+downcase＝User の normalizes と同じ）で大文字/空白違いの回避を防ぐ。
+  # 存在有無に関わらず一律に効くためユーザー列挙は漏れない。
+  # トレードオフ: 攻撃者が枠を消費して正規ユーザーのリセットを一時的に妨げ得るため、緩めの上限にする。
+  rate_limit to: 5, within: 1.hour, only: :create, name: "reset-email",
+             by: -> { params[:email_address].to_s.strip.downcase },
              with: -> { redirect_to new_password_url, alert: "しばらく待ってから再度お試しください。" }
   before_action :set_user_by_token, only: %i[ edit update ]
 
