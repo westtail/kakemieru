@@ -29,7 +29,12 @@ class PasswordsController < ApplicationController
   end
 
   def update
-    if @user.update(params.permit(:password, :password_confirmation))
+    # has_secure_password はパスワード未送信（nil）だと既存 digest を保持したまま
+    # update が成功扱いになる。空パスワードでの「成功」を防ぐため presence を明示チェックする。
+    if params[:password].blank?
+      @user.errors.add(:password, :blank)
+      render :edit, status: :unprocessable_entity
+    elsif @user.update(params.permit(:password, :password_confirmation))
       # 乗っ取り復旧のため、既存の全セッション（攻撃者の端末を含む）を無効化する。
       @user.sessions.destroy_all
       redirect_to new_session_path, notice: "パスワードを更新しました。改めてログインしてください。"
