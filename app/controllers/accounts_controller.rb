@@ -29,9 +29,7 @@ class AccountsController < ApplicationController
       return render :show, status: :unprocessable_entity
     end
 
-    if Current.user.update(password_params)
-      # 現在のセッションは維持し、他端末のセッションを失効させる。
-      Current.user.sessions.where.not(id: Current.session.id).destroy_all
+    if change_password(password_params)
       redirect_to account_path, notice: "パスワードを変更しました。"
     else
       render :show, status: :unprocessable_entity
@@ -48,12 +46,16 @@ class AccountsController < ApplicationController
       return render :confirm_deletion, status: :unprocessable_entity
     end
 
-    if params[:confirmation] == "退会する"
-      Current.user.destroy
+    unless params[:confirmation] == "退会する"
+      Current.user.errors.add(:base, "確認の文字列が一致しません。")
+      return render :confirm_deletion, status: :unprocessable_entity
+    end
+
+    if Current.user.destroy
       cookies.delete(:session_id)
       redirect_to new_session_path, notice: "退会しました。ご利用ありがとうございました。"
     else
-      Current.user.errors.add(:base, "確認の文字列が一致しません。")
+      Current.user.errors.add(:base, "退会処理に失敗しました。時間をおいて再度お試しください。")
       render :confirm_deletion, status: :unprocessable_entity
     end
   end
@@ -61,6 +63,19 @@ class AccountsController < ApplicationController
   private
     def authenticated_with_current_password?
       Current.user.authenticate(params[:current_password].to_s)
+    end
+
+    # パスワード更新と他セッションの失効を原子的に行う。
+    # 途中で失敗したら両方ロールバックし、「パスワードは変わったが他セッションが残る」不整合を防ぐ。
+    def change_password(password_params)
+      ActiveRecord::Base.transaction do
+        Current.user.update!(password_params)
+        # 現在のセッションは維持し、他端末のセッションを失効させる。
+        Current.user.sessions.where.not(id: Current.session.id).destroy_all
+      end
+      true
+    rescue ActiveRecord::RecordInvalid
+      false
     end
 
     def render_show_with_current_password_error

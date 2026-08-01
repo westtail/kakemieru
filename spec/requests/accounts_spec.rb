@@ -19,6 +19,8 @@ RSpec.describe "Accounts", type: :request do
       delete "/account", params: { current_password: password, confirmation: "退会する" }
       expect(response).to redirect_to("/sign_in")
       expect(User.exists?(user.id)).to be(true)
+      get "/account/delete"
+      expect(response).to redirect_to("/sign_in")
     end
   end
 
@@ -124,12 +126,15 @@ RSpec.describe "Accounts", type: :request do
     end
 
     it "現在のパスワードと確認文字列が一致するとユーザーと全セッションが削除される" do
+      other_session = user.sessions.create!(ip_address: "10.0.0.1", user_agent: "other-device")
+
       expect do
         delete "/account", params: { current_password: password, confirmation: "退会する" }
       end.to change(User, :count).by(-1)
 
       expect(response).to redirect_to("/sign_in")
       expect(User.exists?(user.id)).to be(false)
+      expect(Session.exists?(other_session.id)).to be(false)
     end
 
     it "確認文字列が不一致なら退会しない" do
