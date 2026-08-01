@@ -32,10 +32,10 @@ RSpec.describe "Passwords", type: :request do
       end.to have_enqueued_mail(PasswordsMailer, :reset)
     end
 
-    it "同一メール・IP から6回目の申請は遮断され、メールを送らず申請画面へ戻る" do
-      5.times do
-        post "/passwords", params: { email_address: user.email_address }
-      end
+    it "最初の5回は許可され、6回目の申請が遮断される" do
+      expect do
+        5.times { post "/passwords", params: { email_address: user.email_address } }
+      end.to have_enqueued_mail(PasswordsMailer, :reset).exactly(5).times
 
       expect do
         post "/passwords", params: { email_address: user.email_address }
@@ -43,6 +43,17 @@ RSpec.describe "Passwords", type: :request do
 
       expect(response).to redirect_to("/passwords/new")
       expect(flash[:alert]).to be_present
+    end
+
+    it "時間窓を過ぎると再びリセット申請できる（永久ブロックにならない）" do
+      6.times { post "/passwords", params: { email_address: user.email_address } }
+
+      # IP 5回/3分・メール 5回/1時間の両方を超える時間だけ進める
+      travel(1.hour + 1.minute) do
+        expect do
+          post "/passwords", params: { email_address: user.email_address }
+        end.to have_enqueued_mail(PasswordsMailer, :reset)
+      end
     end
   end
 
