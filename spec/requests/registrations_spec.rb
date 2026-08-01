@@ -85,9 +85,11 @@ RSpec.describe "Registrations", type: :request do
     end
 
     context "レート制限" do
-      it "同一IPから11回目の登録は遮断される" do
+      it "先頭10回は許可され、11回目の登録が遮断される" do
         10.times do
           post "/sign_up", params: { email_address: "x@example.com", password: "short12", password_confirmation: "short12" }
+          # バリデーション失敗（422）であって、遮断（リダイレクト）ではないことを確認する。
+          expect(response).to have_http_status(:unprocessable_entity)
         end
 
         post "/sign_up", params: valid_params

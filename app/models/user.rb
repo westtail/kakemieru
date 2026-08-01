@@ -1,8 +1,10 @@
 class User < ApplicationRecord
-  # 権限昇格の多層防御: strong parameters で admin を permit しないことに加え、
-  # 作成後の AR 経由での admin 変更を禁止する。
-  # 注意: Rails 8（load_defaults 8.0）では readonly 属性への代入は例外（ReadonlyAttributeError）。
-  # 管理者への昇格が必要なときは `user.update_column(:admin, true)`（バリデーション/コールバック無し）で行う。
+  # 権限昇格の多層防御（認可制御そのものではなく「うっかり更新」の防止）:
+  # - 作成時: strong parameters が admin を permit しない（create 経路の唯一の砦）。
+  # - 更新時: attr_readonly により、通常のモデル更新（update / update! / update_column）で
+  #   admin を変更しようとすると ReadonlyAttributeError（Rails 8: raise_on_assign_to_attr_readonly=true）。
+  # 意図的な昇格は relation 経由の一括更新（例: `User.where(id: id).update_all(admin: true)`）で行う
+  # （update_all / 生 SQL は attr_readonly を経由しないため）。
   attr_readonly :admin
 
   has_secure_password
