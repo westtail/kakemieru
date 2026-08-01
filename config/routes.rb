@@ -9,6 +9,13 @@ Rails.application.routes.draw do
   post   "sign_in",  to: "sessions#create",  as: :session
   delete "sign_out", to: "sessions#destroy", as: :sign_out
   resources :passwords, param: :token
+
+  # アカウント設定（メール変更・パスワード変更・退会）
+  get    "account",          to: "accounts#show",             as: :account
+  patch  "account/email",    to: "accounts#update_email",     as: :account_email
+  patch  "account/password", to: "accounts#update_password",  as: :account_password
+  get    "account/delete",   to: "accounts#confirm_deletion", as: :confirm_account_deletion
+  delete "account",          to: "accounts#destroy"
   # Define your application routes per the DSL in https://guides.rubyonrails.org/routing.html
 
   # Reveal health status on /up that returns 200 if the app boots with no exceptions, otherwise 500.
