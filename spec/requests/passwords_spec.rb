@@ -31,6 +31,19 @@ RSpec.describe "Passwords", type: :request do
         post "/passwords", params: { email_address: "  USER@Example.COM " }
       end.to have_enqueued_mail(PasswordsMailer, :reset)
     end
+
+    it "同一メール・IP から6回目の申請は遮断され、メールを送らず申請画面へ戻る" do
+      5.times do
+        post "/passwords", params: { email_address: user.email_address }
+      end
+
+      expect do
+        post "/passwords", params: { email_address: user.email_address }
+      end.not_to have_enqueued_mail(PasswordsMailer, :reset)
+
+      expect(response).to redirect_to("/passwords/new")
+      expect(flash[:alert]).to be_present
+    end
   end
 
   describe "PATCH /passwords/:token（再設定）" do
