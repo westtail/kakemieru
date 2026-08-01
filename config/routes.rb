@@ -8,6 +8,10 @@ Rails.application.routes.draw do
   get    "sign_in",  to: "sessions#new",     as: :new_session
   post   "sign_in",  to: "sessions#create",  as: :session
   delete "sign_out", to: "sessions#destroy", as: :sign_out
+
+  # サインアップ（ユーザー登録）
+  get    "sign_up",  to: "registrations#new",    as: :new_registration
+  post   "sign_up",  to: "registrations#create", as: :registration
   resources :passwords, param: :token
 
   # アカウント設定（メール変更・パスワード変更・退会）
