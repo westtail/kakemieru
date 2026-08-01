@@ -19,6 +19,11 @@ Rails.application.routes.draw do
   # get "manifest" => "rails/pwa#manifest", as: :pwa_manifest
   # get "service-worker" => "rails/pwa#service_worker", as: :pwa_service_worker
 
+  # 開発環境のみ: 送信メールをブラウザで確認する（http://localhost:3000/letter_opener）
+  if Rails.env.development?
+    mount LetterOpenerWeb::Engine, at: "/letter_opener"
+  end
+
   # Defines the root path route ("/")
   root "home#index"
 end
