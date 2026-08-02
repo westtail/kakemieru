@@ -11,6 +11,8 @@ services:
       POSTGRES_HOST: db
       POSTGRES_USER: postgres
       POSTGRES_PASSWORD: password
+      # system spec は別コンテナの Chrome にリモート接続する（この env の有無でリモート判定）。
+      CHROME_HOST: chrome
     volumes:
       # ソースコードをマウント（コード変更を即時反映）
       - .:/rails

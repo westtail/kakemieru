@@ -76,7 +76,10 @@ Chrome コンテナがそこへアクセスする。Docker 越しに疎通させ
 - 追加 gem（test グループ）: `capybara` / `cuprite`
 - 追加ファイル: `docker-compose.override.yml`（chrome サービス）/ `spec/support/capybara.rb` /
   `spec/support/helpers/authentication_helper.rb` / `spec/features/` / `.gitignore`（tmp/screenshots）
-- CI で system spec を回す場合は GitHub Actions に chrome サービスコンテナの追加が別途必要（本 ADR では未対応・後続で検討）
+- CI（GitHub Actions）でも system spec を実行する（#54 で対応）。CI はネイティブ実行で
+  ubuntu-latest にプリインストールされた Chrome を Cuprite が**ローカル起動**する方式にした。
+  `spec/support/capybara.rb` は `CHROME_HOST`（docker-compose.override が付与）の有無で
+  「リモート（ローカル Docker・別コンテナ Chrome）/ ローカル（CI・同一ホスト Chrome）」を切り替える。
 
 ---
 
