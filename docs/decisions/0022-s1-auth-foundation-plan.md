@@ -148,10 +148,22 @@ PR-1 のブランチレビュー（security-reviewer / code-reviewer）で挙が
 満たさない場合はデプロイを見送る。CodeRabbit のセキュリティ指摘（レート制限なしでの
 出荷・無期限セッション）への対応方針。
 
-- **[ブロッカー] パスワードリセットのレート制限（#19）** — 未実装のまま本番で認証フローを公開しない。
-- **[ブロッカー] セッションの最低限の失効** — 最低限 cookie の有効期間を permanent から妥当な長さに短縮する（アイドルタイムアウト等の作り込みは後続可）。盗難セッションの有効期間を限定する。
+- **[対応済み #19] パスワードリセットのレート制限** — IP + メールアドレス単位の `rate_limit` を実装。
+- **[対応済み #20] セッションの最低限の失効** — cookie を `permanent` から **3日**（`Authentication::SESSION_DURATION`）に短縮。
 - **検証**: #20 の実機確認チェックリストに上記2点を含め、リリース前に確認する。
 - リスク受容者: #20 デプロイ実施者（リポジトリメンテナ）。
+
+### Fly.io デプロイ前の準備（#20）
+
+コード/設定（本ブランチで対応済み）:
+- `production.rb`: Resend の SMTP 配線（`ENV["RESEND_API_KEY"]`）・`default_url_options host: "kakemieru.fly.dev"`・`config.hosts`（/up 除外）。
+- セッション cookie 3日失効。
+
+デプロイ実施者が行うこと:
+- Fly secrets を登録: `RAILS_MASTER_KEY`、`RESEND_API_KEY`、DB 接続（`fly postgres attach` 等）。
+- Resend でドメイン検証（`kakemieru.fly.dev` からの送信元設定）。
+- `develop → main` マージで自動デプロイ（`fly-deploy.yml`）。
+- 本番で実機確認: 登録 → ログイン → パスワードリセット（メール受信・再設定）→ ログアウト → 退会。
 
 ## 未決・保留
 
