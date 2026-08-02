@@ -75,6 +75,13 @@ RSpec.describe User, type: :model do
     it "trait :admin で true になる" do
       expect(create(:user, :admin).admin).to be(true)
     end
+
+    it "作成済みユーザーの通常更新では admin を変更できない（attr_readonly）" do
+      user = create(:user)
+      # Rails 8（raise_on_assign_to_attr_readonly=true）では readonly 属性への代入は例外。
+      expect { user.update!(admin: true) }.to raise_error(ActiveRecord::ReadonlyAttributeError)
+      expect(user.reload.admin).to be(false)
+    end
   end
 
   describe "関連" do

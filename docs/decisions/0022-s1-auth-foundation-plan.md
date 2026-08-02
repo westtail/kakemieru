@@ -130,7 +130,8 @@ PR-2  #18
 
 PR-1 のブランチレビュー（security-reviewer / code-reviewer）で挙がった、後続 Issue で必ず対応する項目。
 
-- **#18/#21: `admin` の権限昇格対策（HIGH）** — ユーザー作成/更新の strong parameters で `admin` を**絶対に permit しない**。加えて `attr_readonly :admin` 等でモデル層でも防御し、リクエスト spec で「admin=true を送っても昇格しない」を検証する。
+- **[#21 で対応済み] `admin` の権限昇格対策（HIGH）** — `RegistrationsController` の strong parameters は `email_address / password / password_confirmation` のみ permit し `admin` を含めない。加えて `User` に `attr_readonly :admin` を追加し、**通常のモデル更新（update / update! / update_column）**で admin を変更しようとすると `ReadonlyAttributeError`（Rails 8: `raise_on_assign_to_attr_readonly=true`）。これは認可制御ではなく「うっかり更新」の防止で、`update_all`/生 SQL は対象外（意図的な昇格はそちらで行う）。request spec で「`admin=true` を送っても false のまま作成される」こと、model spec で「作成済みユーザーの通常更新で admin を変更できない」ことを検証。#22 の更新系も admin を permit していない。
+- **[#21 → S3/S4 に後回し] 登録時の自動生成** — サインアップ時に `PaymentMethod`「現金」と `category_templates` からの `categories` コピーを自動生成する要件（Issue #21）は、対象テーブル/モデルが S3（categories）/S4（payment_methods）で作られるため**当該実装時に登録後コールバックとして追加**する。#21 本体は登録フォーム + User 作成 + 自動ログインまで。
 - **[#19 で対応済み] パスワードリセットのレート制限** — `PasswordsController#create` に `rate_limit 5回/3分` を追加（email bombing 対策）。
 - **[#19 で確認・訂正] パスワードリセットのメール正規化** — 当初「`find_by(email_address:)` は `normalizes` が効かない」と記載したが**誤り**。Rails 7.1+ の `normalizes` は finder（`find_by`）のキーワード引数にも適用されるため、大文字/空白混じりのメールでも該当ユーザーを引ける（#19 の request spec で実証）。手動 `.strip.downcase` は不要で、追加対応なし。
 - **[#19 で対応済み] `PasswordsController#update` のエラー表示** — 失敗時に `redirect_to ..., alert: "Passwords did not match."` だと実バリデーションエラーと乖離し `@user.errors` も失われる問題を、`render :edit, status: :unprocessable_entity` + `passwords/edit.html.erb` での `@user.errors.full_messages` 表示に変更。
