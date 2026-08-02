@@ -1,48 +1,53 @@
 # Capybara + Cuprite（Ferrum 経由で Chrome を CDP 操作）の設定。
 # 詳細な方針は docs/decisions/0023-e2e-test-environment.md を参照。
+#
+# 2 モード:
+# - リモート: 別コンテナの Chrome に CDP 接続（ローカル Docker。web コンテナに Chrome が無い）。
+#   docker-compose.override.yml が CHROME_HOST を渡すことで有効化される。
+# - ローカル: 同一ホストの Chrome を Cuprite が起動（CI 等・Chrome が入っている環境）。
 require "capybara/rspec"
 require "capybara/cuprite"
 require "resolv"
 
-# テストプロセス（web コンテナ）内で Capybara が Puma を起動し、
-# 別コンテナの Chrome からアクセスさせるためのネットワーク設定。
-# - server_host: 全 IF で待受け、chrome コンテナから到達可能にする
-# - app_host:    chrome から web コンテナ名で解決させる
-CAPYBARA_SERVER_PORT = Integer(ENV.fetch("CAPYBARA_SERVER_PORT", "4444"))
-CAPYBARA_APP_HOST = ENV.fetch("CAPYBARA_APP_HOST", "web")
-
-# Chrome は DNS リバインディング対策でホスト名の CDP アクセスを拒否する
-# （"Host header is not an IP address or localhost"）。そのため接続先を IP に解決する。
-CHROME_HOST = ENV.fetch("CHROME_HOST", "chrome")
-CHROME_PORT = ENV.fetch("CHROME_PORT", "9222")
-REMOTE_CHROME_URL = ENV.fetch("CHROME_URL") do
-  ip = begin
-    Resolv.getaddress(CHROME_HOST)
-  rescue Resolv::ResolvError
-    CHROME_HOST
-  end
-  "http://#{ip}:#{CHROME_PORT}"
-end
+remote_chrome = ENV["CHROME_URL"].presence || ENV["CHROME_HOST"].presence
 
 Capybara.server = :puma, { Silent: true }
-Capybara.server_host = "0.0.0.0"
-Capybara.server_port = CAPYBARA_SERVER_PORT
-Capybara.app_host = "http://#{CAPYBARA_APP_HOST}:#{CAPYBARA_SERVER_PORT}"
-# 失敗時のデバッグに便利な待機・保存設定
 Capybara.default_max_wait_time = 5
 Capybara.save_path = Rails.root.join("tmp/screenshots")
 
-Capybara.register_driver(:cuprite) do |app|
-  Capybara::Cuprite::Driver.new(
-    app,
-    # 別コンテナの Chrome にリモート接続する（プロセスを自前起動しない）
-    url: REMOTE_CHROME_URL,
-    window_size: [ 1200, 800 ],
-    process_timeout: 20,
-    timeout: 20,
-    # CI やコンテナでの安定動作用フラグ
-    browser_options: { "no-sandbox" => nil }
-  )
+cuprite_options = {
+  window_size: [ 1200, 800 ],
+  process_timeout: 20,
+  timeout: 20,
+  browser_options: { "no-sandbox" => nil, "disable-dev-shm-usage" => nil }
+}
+
+if remote_chrome
+  # テストプロセスの Puma を全 IF で待受けし、Chrome からコンテナ名で解決させる。
+  # Chrome は DNS リバインディング対策でホスト名の CDP を拒否するため、接続先は IP に解決する。
+  server_port = Integer(ENV.fetch("CAPYBARA_SERVER_PORT", "4444"))
+  Capybara.server_host = "0.0.0.0"
+  Capybara.server_port = server_port
+  Capybara.app_host = "http://#{ENV.fetch('CAPYBARA_APP_HOST', 'web')}:#{server_port}"
+
+  chrome_url = ENV.fetch("CHROME_URL") do
+    host = ENV.fetch("CHROME_HOST", "chrome")
+    ip = begin
+      Resolv.getaddress(host)
+    rescue Resolv::ResolvError
+      host
+    end
+    "http://#{ip}:#{ENV.fetch('CHROME_PORT', '9222')}"
+  end
+
+  Capybara.register_driver(:cuprite) do |app|
+    Capybara::Cuprite::Driver.new(app, url: chrome_url, **cuprite_options)
+  end
+else
+  # 同一ホストで Cuprite が Chrome を起動する（server_host/app_host は Capybara 既定の localhost）。
+  Capybara.register_driver(:cuprite) do |app|
+    Capybara::Cuprite::Driver.new(app, **cuprite_options)
+  end
 end
 
 Capybara.default_driver = :cuprite
