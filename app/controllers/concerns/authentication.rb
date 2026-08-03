@@ -26,7 +26,19 @@ module Authentication
     end
 
     def find_session_by_cookie
-      Session.find_by(id: cookies.signed[:session_id]) if cookies.signed[:session_id]
+      return unless cookies.signed[:session_id]
+
+      session = Session.find_by(id: cookies.signed[:session_id])
+      return unless session
+
+      # cookie の expires はクライアント任せなので、サーバー側でも期限切れを拒否する
+      # （盗難 cookie の有効期間を実効的に SESSION_DURATION に限定する）。
+      if session.created_at < SESSION_DURATION.ago
+        session.destroy
+        return
+      end
+
+      session
     end
 
     def request_authentication

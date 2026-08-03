@@ -31,7 +31,8 @@ Rails.application.configure do
   config.force_ssl = true
 
   # Skip http-to-https redirect for the default health check endpoint.
-  # config.ssl_options = { redirect: { exclude: ->(request) { request.path == "/up" } } }
+  # Fly のヘルスチェックが HTTP で /up を叩いても force_ssl のリダイレクトで落ちないようにする。
+  config.ssl_options = { redirect: { exclude: ->(request) { request.path == "/up" } } }
 
   # Log to STDOUT with the current request id as a default log tag.
   config.log_tags = [ :request_id ]
@@ -57,7 +58,9 @@ Rails.application.configure do
   # 送信失敗は本番ログに残す。
   config.action_mailer.raise_delivery_errors = true
 
-  # メール本文のリンク（パスワードリセット等）に使うホスト。
+  # メール本文の【リンク】に使うアプリのホスト（送信元アドレスとは別物）。
+  # 送信元（from）は ApplicationMailer の MAIL_FROM で、Resend で検証済みの独自ドメインを指定する。
+  # fly.dev は DNS を管理できず送信元ドメインには使えないため、ここ（リンク用）とは分けて設定する。
   config.action_mailer.default_url_options = { host: "kakemieru.fly.dev" }
 
   # Resend の SMTP 設定。API キーは Fly secrets（RESEND_API_KEY）から取得する。

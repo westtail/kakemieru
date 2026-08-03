@@ -71,4 +71,20 @@ RSpec.describe "Sessions", type: :request do
       expect(response).to redirect_to("/?month=2026-01")
     end
   end
+
+  describe "セッションの有効期限（サーバー側）" do
+    it "SESSION_DURATION を過ぎたセッションは cookie が提示されてもサーバー側で拒否・破棄される" do
+      post "/sign_in", params: { email_address: user.email_address, password: password }
+      get "/"
+      expect(response).to have_http_status(:ok)
+
+      # 作成時刻だけを過去にする（cookie は有効なまま＝盗難 cookie の再生を模す）。
+      Session.last.update_column(:created_at, (Authentication::SESSION_DURATION + 1.day).ago)
+
+      expect do
+        get "/"
+      end.to change(Session, :count).by(-1)
+      expect(response).to redirect_to("/sign_in")
+    end
+  end
 end

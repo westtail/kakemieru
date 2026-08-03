@@ -156,14 +156,19 @@ PR-1 のブランチレビュー（security-reviewer / code-reviewer）で挙が
 ### Fly.io デプロイ前の準備（#20）
 
 コード/設定（本ブランチで対応済み）:
-- `production.rb`: Resend の SMTP 配線（`ENV["RESEND_API_KEY"]`）・`default_url_options host: "kakemieru.fly.dev"`・`config.hosts`（/up 除外）。
-- セッション cookie 3日失効。
+- `production.rb`: Resend の SMTP 配線（`ENV["RESEND_API_KEY"]`）・`default_url_options host`（メールのリンク用。送信元は `MAIL_FROM`）・`config.hosts`・force_ssl の `/up` 除外。
+- セッション cookie 3日失効（クライアント）+ サーバー側でも `created_at` 超過を拒否・破棄。
 
 デプロイ実施者が行うこと:
-- Fly secrets を登録: `RAILS_MASTER_KEY`、`RESEND_API_KEY`、DB 接続（`fly postgres attach` 等）。
-- Resend でドメイン検証（`kakemieru.fly.dev` からの送信元設定）。
+- Fly secrets を登録: `RAILS_MASTER_KEY`、`RESEND_API_KEY`、`MAIL_FROM`（検証済みドメイン）、DB 接続（`fly postgres attach` 等）。
+- Resend で**独自ドメイン**を検証（`kakemieru.fly.dev` は DNS 管理不可のため送信元に使えない）。
 - `develop → main` マージで自動デプロイ（`fly-deploy.yml`）。
-- 本番で実機確認: 登録 → ログイン → パスワードリセット（メール受信・再設定）→ ログアウト → 退会。
+
+本番の実機確認チェックリスト（機能 + セキュリティゲート実測）:
+- [ ] 登録 → ログイン → パスワードリセット（メール受信・再設定）→ ログアウト → 退会。
+- [ ] パスワードリセット申請をレート制限超過まで繰り返すと拒否される（#19）。
+- [ ] ログイン時の `Set-Cookie` に約3日後の `expires` が付く。
+- [ ] 期限切れセッション（`created_at` が3日超）は cookie を提示しても拒否される（サーバー側・#20 で実装）。
 
 ## 未決・保留
 
