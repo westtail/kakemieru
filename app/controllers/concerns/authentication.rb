@@ -26,7 +26,19 @@ module Authentication
     end
 
     def find_session_by_cookie
-      Session.find_by(id: cookies.signed[:session_id]) if cookies.signed[:session_id]
+      return unless cookies.signed[:session_id]
+
+      session = Session.find_by(id: cookies.signed[:session_id])
+      return unless session
+
+      # cookie の expires はクライアント任せなので、サーバー側でも期限切れを拒否する
+      # （盗難 cookie の有効期間を実効的に SESSION_DURATION に限定する）。
+      if session.created_at < SESSION_DURATION.ago
+        session.destroy
+        return
+      end
+
+      session
     end
 
     def request_authentication
@@ -38,10 +50,16 @@ module Authentication
       session.delete(:return_to_after_authenticating) || root_url
     end
 
+    # セッション cookie の有効期間。permanent（実質無期限）だと盗難 cookie の有効期間が
+    # 長期化するため、妥当な期間で失効させる（ADR-0022 リリースゲート）。
+    SESSION_DURATION = 3.days
+
     def start_new_session_for(user)
       user.sessions.create!(user_agent: request.user_agent, ip_address: request.remote_ip).tap do |session|
         Current.session = session
-        cookies.signed.permanent[:session_id] = { value: session.id, httponly: true, same_site: :lax }
+        cookies.signed[:session_id] = {
+          value: session.id, httponly: true, same_site: :lax, expires: SESSION_DURATION.from_now
+        }
       end
     end
 

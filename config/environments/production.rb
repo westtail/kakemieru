@@ -31,7 +31,8 @@ Rails.application.configure do
   config.force_ssl = true
 
   # Skip http-to-https redirect for the default health check endpoint.
-  # config.ssl_options = { redirect: { exclude: ->(request) { request.path == "/up" } } }
+  # Fly のヘルスチェックが HTTP で /up を叩いても force_ssl のリダイレクトで落ちないようにする。
+  config.ssl_options = { redirect: { exclude: ->(request) { request.path == "/up" } } }
 
   # Log to STDOUT with the current request id as a default log tag.
   config.log_tags = [ :request_id ]
@@ -53,21 +54,25 @@ Rails.application.configure do
   config.active_job.queue_adapter = :solid_queue
   config.solid_queue.connects_to = { database: { writing: :queue } }
 
-  # Ignore bad email addresses and do not raise email delivery errors.
-  # Set this to true and configure the email server for immediate delivery to raise delivery errors.
-  # config.action_mailer.raise_delivery_errors = false
+  # メール送信は Resend（SMTP）。Fly.io は SMTP ポート25をブロックするため外部サービスを使う（ADR-0021）。
+  # 送信失敗は本番ログに残す。
+  config.action_mailer.raise_delivery_errors = true
 
-  # Set host to be used by links generated in mailer templates.
-  config.action_mailer.default_url_options = { host: "example.com" }
+  # メール本文の【リンク】に使うアプリのホスト（送信元アドレスとは別物）。
+  # 送信元（from）は ApplicationMailer の MAIL_FROM で、Resend で検証済みの独自ドメインを指定する。
+  # fly.dev は DNS を管理できず送信元ドメインには使えないため、ここ（リンク用）とは分けて設定する。
+  config.action_mailer.default_url_options = { host: "kakemieru.fly.dev" }
 
-  # Specify outgoing SMTP server. Remember to add smtp/* credentials via rails credentials:edit.
-  # config.action_mailer.smtp_settings = {
-  #   user_name: Rails.application.credentials.dig(:smtp, :user_name),
-  #   password: Rails.application.credentials.dig(:smtp, :password),
-  #   address: "smtp.example.com",
-  #   port: 587,
-  #   authentication: :plain
-  # }
+  # Resend の SMTP 設定。API キーは Fly secrets（RESEND_API_KEY）から取得する。
+  config.action_mailer.delivery_method = :smtp
+  config.action_mailer.smtp_settings = {
+    address: "smtp.resend.com",
+    port: 587,
+    user_name: "resend",
+    password: ENV["RESEND_API_KEY"],
+    authentication: :plain,
+    enable_starttls_auto: true
+  }
 
   # Enable locale fallbacks for I18n (makes lookups for any locale fall back to
   # the I18n.default_locale when a translation cannot be found).
@@ -79,12 +84,8 @@ Rails.application.configure do
   # Only use :id for inspections in production.
   config.active_record.attributes_for_inspect = [ :id ]
 
-  # Enable DNS rebinding protection and other `Host` header attacks.
-  # config.hosts = [
-  #   "example.com",     # Allow requests from example.com
-  #   /.*\.example\.com/ # Allow requests from subdomains like `www.example.com`
-  # ]
-  #
-  # Skip DNS rebinding protection for the default health check endpoint.
-  # config.host_authorization = { exclude: ->(request) { request.path == "/up" } }
+  # DNS リバインディング/Host ヘッダ攻撃対策。許可ホストを明示する。
+  config.hosts = [ "kakemieru.fly.dev" ]
+  # ヘルスチェック（/up）はホスト認可から除外する。
+  config.host_authorization = { exclude: ->(request) { request.path == "/up" } }
 end
