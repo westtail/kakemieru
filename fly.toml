@@ -7,6 +7,10 @@ app = 'kakemieru'
 primary_region = 'nrt'
 console_command = '/rails/bin/rails console'
 
+[env]
+  # solid_queue のワーカーを Puma プロセス内で動かす（別マシン不要）。
+  SOLID_QUEUE_IN_PUMA = 'true'
+
 [build]
 
 [http_service]
@@ -14,7 +18,9 @@ console_command = '/rails/bin/rails console'
   force_https = true
   auto_stop_machines = 'stop'
   auto_start_machines = true
-  min_machines_running = 0
+  # solid_queue のワーカーを Puma 内で常時動かすため 1台は落とさない。
+  # 0 だとアイドル停止中にジョブ（パスワードリセットメール等）が処理されず遅延する。
+  min_machines_running = 1
   processes = ['app']
 
 [[vm]]
