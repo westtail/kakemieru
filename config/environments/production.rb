@@ -50,10 +50,10 @@ Rails.application.configure do
   # キャッシュは solid_cache（primary DB の solid_cache_entries を使用。rate_limit 等）。
   config.cache_store = :solid_cache_store
 
-  # ジョブは当面 :async（プロセス内スレッド実行・テーブル不要）。
-  # solid_queue を durable に使う場合は queue 用テーブルを別途整備してから戻す。
-  config.active_job.queue_adapter = :async
-  # config.solid_queue.connects_to = { database: { writing: :queue } }
+  # ジョブは solid_queue（primary DB の solid_queue_* を使用）。
+  # ワーカーは Puma 内で動かす（SOLID_QUEUE_IN_PUMA=true。fly.toml の [env] で有効化）。
+  config.active_job.queue_adapter = :solid_queue
+  config.solid_queue.connects_to = { database: { writing: :queue } }
 
   # メール送信は Resend（SMTP）。Fly.io は SMTP ポート25をブロックするため外部サービスを使う（ADR-0021）。
   # 送信失敗は本番ログに残す。
