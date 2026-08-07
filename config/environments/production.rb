@@ -47,10 +47,11 @@ Rails.application.configure do
   # Don't log any deprecations.
   config.active_support.report_deprecations = false
 
-  # Replace the default in-process memory cache store with a durable alternative.
+  # キャッシュは solid_cache（primary DB の solid_cache_entries を使用。rate_limit 等）。
   config.cache_store = :solid_cache_store
 
-  # Replace the default in-process and non-durable queuing backend for Active Job.
+  # ジョブは solid_queue（primary DB の solid_queue_* を使用）。
+  # ワーカーは Puma 内で動かす（SOLID_QUEUE_IN_PUMA=true。fly.toml の [env] で有効化）。
   config.active_job.queue_adapter = :solid_queue
   config.solid_queue.connects_to = { database: { writing: :queue } }
 
