@@ -18,7 +18,7 @@ class PasswordsController < ApplicationController
   def create
     # normalizes は find_by にも適用されるため、大文字/空白混じりのメールでも該当ユーザーを引ける。
     if user = User.find_by(email_address: params[:email_address])
-      PasswordsMailer.reset(user).deliver_later
+      send_reset_email(user)
     end
 
     # ユーザーの存在有無を漏らさないため、常に同じメッセージを返す。
@@ -49,6 +49,21 @@ class PasswordsController < ApplicationController
   end
 
   private
+    # メールは deliver_now で同期送信する（バックグラウンドジョブを持たない方針）。
+    # 送信が失敗（Resend 障害等）しても、存在するユーザーだけ 500 になるとレスポンス差で
+    # ユーザー列挙が漏れるため、rescue して応答は常に同一にする。
+    # ただし恒常障害（API キー欠落・テンプレエラー等）を無言で握り潰すと「メール全断」に
+    # 気づけないため、backtrace まで error ログに残す（監視で拾えるようにする）。
+    # 補足: deliver_now は送信を同期実行するため、存在ユーザー（送信あり=遅い）と
+    # 非存在（即リダイレクト=速い）でレイテンシ差が残る（タイミング列挙）。SMTP タイムアウトで
+    # 上限を絞りつつ、主防御は IP 単位の rate_limit とする（受容リスク）。
+    def send_reset_email(user)
+      PasswordsMailer.reset(user).deliver_now
+    rescue => e
+      Rails.logger.error("Password reset email delivery failed: #{e.class}: #{e.message}")
+      Rails.logger.error(e.backtrace.first(10).join("\n")) if e.backtrace
+    end
+
     def set_user_by_token
       @user = User.find_by_password_reset_token!(params[:token])
     rescue ActiveSupport::MessageVerifier::InvalidSignature, ActiveRecord::RecordNotFound

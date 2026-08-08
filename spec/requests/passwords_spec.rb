@@ -11,7 +11,7 @@ RSpec.describe "Passwords", type: :request do
     it "既知のメールにはリセットメールを送り、汎用メッセージでログイン画面へ戻る" do
       expect do
         post "/passwords", params: { email_address: user.email_address }
-      end.to have_enqueued_mail(PasswordsMailer, :reset)
+      end.to change { ActionMailer::Base.deliveries.size }.by(1)
 
       expect(response).to redirect_to("/sign_in")
       expect(flash[:notice]).to eq(RESET_NOTICE)
@@ -20,7 +20,7 @@ RSpec.describe "Passwords", type: :request do
     it "未知のメールではメールを送らず、既知の場合と同一のメッセージ・遷移を返す（ユーザー列挙防止）" do
       expect do
         post "/passwords", params: { email_address: "nobody@example.com" }
-      end.not_to have_enqueued_mail(PasswordsMailer, :reset)
+      end.not_to change { ActionMailer::Base.deliveries.size }
 
       expect(response).to redirect_to("/sign_in")
       expect(flash[:notice]).to eq(RESET_NOTICE)
@@ -29,17 +29,27 @@ RSpec.describe "Passwords", type: :request do
     it "大文字・空白混じりのメールでも正規化して該当ユーザーに送る" do
       expect do
         post "/passwords", params: { email_address: "  USER@Example.COM " }
-      end.to have_enqueued_mail(PasswordsMailer, :reset)
+      end.to change { ActionMailer::Base.deliveries.size }.by(1)
+    end
+
+    it "メール送信が失敗しても 500 にせず、成功時と同一の文言・遷移を返す（列挙防止）" do
+      # deliver_now が Resend 障害等で例外を投げても、存在ユーザーだけ 500 になると列挙が漏れる。
+      allow(PasswordsMailer).to receive(:reset).and_raise(StandardError, "smtp down")
+
+      post "/passwords", params: { email_address: user.email_address }
+
+      expect(response).to redirect_to("/sign_in")
+      expect(flash[:notice]).to eq(RESET_NOTICE)
     end
 
     it "最初の5回は許可され、6回目の申請が遮断される" do
       expect do
         5.times { post "/passwords", params: { email_address: user.email_address } }
-      end.to have_enqueued_mail(PasswordsMailer, :reset).exactly(5).times
+      end.to change { ActionMailer::Base.deliveries.size }.by(5)
 
       expect do
         post "/passwords", params: { email_address: user.email_address }
-      end.not_to have_enqueued_mail(PasswordsMailer, :reset)
+      end.not_to change { ActionMailer::Base.deliveries.size }
 
       expect(response).to redirect_to("/passwords/new")
       expect(flash[:alert]).to be_present
@@ -52,7 +62,7 @@ RSpec.describe "Passwords", type: :request do
       travel(1.hour + 1.minute) do
         expect do
           post "/passwords", params: { email_address: user.email_address }
-        end.to have_enqueued_mail(PasswordsMailer, :reset)
+        end.to change { ActionMailer::Base.deliveries.size }.by(1)
       end
     end
   end
