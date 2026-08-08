@@ -50,10 +50,10 @@ Rails.application.configure do
   # キャッシュは solid_cache（primary DB の solid_cache_entries を使用。rate_limit 等）。
   config.cache_store = :solid_cache_store
 
-  # ジョブは solid_queue（primary DB の solid_queue_* を使用）。
-  # ワーカーは Puma 内で動かす（SOLID_QUEUE_IN_PUMA=true。fly.toml の [env] で有効化）。
-  config.active_job.queue_adapter = :solid_queue
-  config.solid_queue.connects_to = { database: { writing: :queue } }
+  # バックグラウンドジョブは持たない方針（唯一の非同期処理だったリセットメールは deliver_now に変更）。
+  # 常駐ワーカーを不要にすることで小さいインスタンスでも OOM せず、scale-to-zero も可能になる。
+  # 将来 deliver_later 等が紛れても :inline なら同期実行され、再起動でジョブが消えることはない。
+  config.active_job.queue_adapter = :inline
 
   # メール送信は Resend（SMTP）。Fly.io は SMTP ポート25をブロックするため外部サービスを使う（ADR-0021）。
   # 送信失敗は本番ログに残す。
@@ -66,13 +66,18 @@ Rails.application.configure do
 
   # Resend の SMTP 設定。API キーは Fly secrets（RESEND_API_KEY）から取得する。
   config.action_mailer.delivery_method = :smtp
+  # deliver_now は送信をリクエストスレッド内で同期実行するため、Resend がハング/遅延すると
+  # Puma ワーカーが長時間ブロックされる。open/read timeout を短めに明示して上限を絞る
+  # （併せてタイミング列挙で漏れる遅延の最大値も抑える）。
   config.action_mailer.smtp_settings = {
     address: "smtp.resend.com",
     port: 587,
     user_name: "resend",
     password: ENV["RESEND_API_KEY"],
     authentication: :plain,
-    enable_starttls_auto: true
+    enable_starttls_auto: true,
+    open_timeout: 5,
+    read_timeout: 10
   }
 
   # Enable locale fallbacks for I18n (makes lookups for any locale fall back to
