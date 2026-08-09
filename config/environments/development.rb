@@ -34,6 +34,9 @@ Rails.application.configure do
   # Don't care if the mailer can't send.
   config.action_mailer.raise_delivery_errors = false
 
+  # 送信メールは letter_opener_web に溜め、/letter_opener でブラウザ確認する。
+  config.action_mailer.delivery_method = :letter_opener_web
+
   # Make template changes take effect immediately.
   config.action_mailer.perform_caching = false
 

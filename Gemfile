@@ -1,7 +1,7 @@
 source "https://rubygems.org"
 
 # Bundle edge Rails instead: gem "rails", github: "rails/rails", branch: "main"
-gem "rails", "= 8.0.4"
+gem "rails", "8.1.3"
 # The modern asset pipeline for Rails [https://github.com/rails/propshaft]
 gem "propshaft"
 # Use postgresql as the database for Active Record
@@ -18,7 +18,7 @@ gem "stimulus-rails"
 gem "jbuilder"
 
 # Use Active Model has_secure_password [https://guides.rubyonrails.org/active_model_basics.html#securepassword]
-# gem "bcrypt", "~> 3.1.7"
+gem "bcrypt", "~> 3.1.7"
 
 # Windows does not include zoneinfo files, so bundle the tzinfo-data gem
 gem "tzinfo-data", platforms: %i[ windows jruby ]
@@ -53,9 +53,17 @@ end
 
 group :test do
   gem "shoulda-matchers"
+  gem "simplecov", require: false
+  # E2E（システム spec）: Capybara + Cuprite（Ferrum 経由で Chrome を CDP 操作）
+  gem "capybara"
+  gem "cuprite"
 end
 
 group :development do
   # Use console on exceptions pages [https://github.com/rails/web-console]
   gem "web-console"
+
+  # 開発環境で送信メールをブラウザで確認する（/letter_opener で閲覧）。
+  # Docker はヘッドレスでブラウザ自動起動ができないため web 版を使う。
+  gem "letter_opener_web"
 end

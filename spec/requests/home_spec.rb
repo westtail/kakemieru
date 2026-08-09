@@ -2,25 +2,35 @@ require "rails_helper"
 
 RSpec.describe "Home", type: :request do
   describe "GET /" do
-    before { get root_path }
-
-    it "returns 200" do
-      expect(response).to have_http_status(:success)
+    context "未認証のとき" do
+      it "ログイン画面にリダイレクトする" do
+        get root_path
+        expect(response).to redirect_to("/sign_in")
+      end
     end
 
-    it "displays app title" do
-      expect(response.body).to include("掛け見える - 家計簿アプリ")
-    end
+    context "認証済みのとき" do
+      let(:password) { "password123" }
+      let(:user) { create(:user, password: password) }
 
-    it "shows running status" do
-      expect(response.body).to match(/アプリケーション稼働中/)
-    end
-  end
+      before do
+        post "/sign_in", params: { email_address: user.email_address, password: password }
+      end
 
-  describe "GET /home/index" do
-    it "returns 200" do
-      get home_index_path
-      expect(response).to have_http_status(:success)
+      it "ダッシュボードを表示する" do
+        get root_path
+        expect(response).to have_http_status(:success)
+      end
+
+      it "アプリタイトルを表示する" do
+        get root_path
+        expect(response.body).to include("掛け見える - 家計簿アプリ")
+      end
+
+      it "稼働中ステータスを表示する" do
+        get root_path
+        expect(response.body).to match(/アプリケーション稼働中/)
+      end
     end
   end
 end
