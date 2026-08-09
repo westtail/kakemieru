@@ -116,6 +116,24 @@ ci/8-github-actions-setup
 - 本文: 背景・目的・完了条件を記載
 - ラベル・Projectを設定する
 
+#### Issue の種類（タグ）
+
+| タグ | 内容 |
+|---|---|
+| （なし） | 機能実装 + ユニット/リクエスト spec |
+| `[migration]` | マイグレーション実装 + `db:migrate` / `db:rollback` / `db:migrate:redo` 確認 |
+| `[e2e]` | Capybara + Cuprite によるブラウザ自動テスト |
+| `[deploy]` | Fly.io デプロイ + 手動動作確認 |
+
+#### `[migration]` Issue 共通チェックリスト
+
+```
+- [ ] rails db:migrate が正常完了すること
+- [ ] rails db:rollback で down が正常動作すること
+- [ ] rails db:migrate:redo (up→down→up) が通ること
+- [ ] db/schema.rb のレビュー（カラム・インデックス・制約を確認）
+```
+
 ### 2. ADR作成（任意）
 
 以下に該当する場合はADRを先に書く：

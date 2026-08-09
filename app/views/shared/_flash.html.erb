@@ -1,0 +1,11 @@
+<%# フラッシュ表示の共通パーシャル。notice=緑 / alert=赤。 %>
+<%# turbo-stream で差し替えられるよう id="flash" のコンテナで囲む。 %>
+<%# style は暫定。CSS 導入時に class（flash-notice/alert）へ寄せて削除する。 %>
+<div id="flash">
+  <% if flash[:notice].present? %>
+    <%= tag.div flash[:notice], class: "flash flash-notice", style: "color:green" %>
+  <% end %>
+  <% if flash[:alert].present? %>
+    <%= tag.div flash[:alert], class: "flash flash-alert", style: "color:red" %>
+  <% end %>
+</div>

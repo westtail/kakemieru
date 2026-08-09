@@ -1,0 +1,15 @@
+<h1>新しいパスワードの設定</h1>
+
+<%= render "shared/error_messages", record: @user %>
+
+<%= form_with url: password_path(params[:token]), method: :put do |form| %>
+  <div>
+    <%= form.label :password, "新しいパスワード" %><br>
+    <%= form.password_field :password, required: true, autocomplete: "new-password", placeholder: "8文字以上", maxlength: 72 %>
+  </div>
+  <div>
+    <%= form.label :password_confirmation, "新しいパスワード（確認）" %><br>
+    <%= form.password_field :password_confirmation, required: true, autocomplete: "new-password", placeholder: "もう一度入力", maxlength: 72 %>
+  </div>
+  <%= form.submit "パスワードを更新" %>
+<% end %>
