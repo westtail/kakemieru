@@ -322,11 +322,6 @@ GEM
       simplecov_json_formatter (~> 0.1)
     simplecov-html (0.13.2)
     simplecov_json_formatter (0.1.4)
-    solid_cable (3.0.12)
-      actioncable (>= 7.2)
-      activejob (>= 7.2)
-      activerecord (>= 7.2)
-      railties (>= 7.2)
     solid_cache (1.0.10)
       activejob (>= 7.2)
       activerecord (>= 7.2)
@@ -391,9 +386,7 @@ DEPENDENCIES
   rubocop-rails-omakase
   shoulda-matchers
   simplecov
-  solid_cable
   solid_cache
-  solid_queue
   stimulus-rails
   thruster
   turbo-rails
