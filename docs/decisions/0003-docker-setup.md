@@ -8,7 +8,7 @@
 ## コンテキスト
 
 ローカル開発環境と本番環境の構成方法を決定する必要があった。
-PROJECT_OVERVIEW.mdでDocker化は既に決定済みだが、具体的な構成を定義する。
+PROJECT_ABOUT.mdでDocker化は既に決定済みだが、具体的な構成を定義する。
 
 ---
 
@@ -218,4 +218,4 @@ docker build --target production .
 
 ## 結果
 
-[docs/INITIAL_SETUP.md](../INITIAL_SETUP.md) に構築手順として反映済み。
+[docs/infra/INITIAL_SETUP.md](../infra/INITIAL_SETUP.md) に構築手順として反映済み。

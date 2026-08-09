@@ -1,0 +1,11 @@
+<%# モデルのバリデーションエラーを表示する共通パーシャル。record: にモデルを渡す。 %>
+<%# style は暫定（CSS 導入時に class へ寄せる）。 %>
+<% if record.errors.any? %>
+  <div class="error-messages" style="color:red">
+    <ul>
+      <% record.errors.full_messages.each do |message| %>
+        <li><%= message %></li>
+      <% end %>
+    </ul>
+  </div>
+<% end %>
