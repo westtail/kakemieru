@@ -18,6 +18,10 @@ require "action_cable/engine"
 # you've limited to :test, :development, or :production.
 Bundler.require(*Rails.groups)
 
+# アプリ定数（オートロード対象外のため明示 require）。
+# マイグレーション・seed・実行時から共通で参照する。
+require_relative "constants/categories"
+
 module Kakemieru
   class Application < Rails::Application
     # Initialize configuration defaults for originally generated Rails version.
