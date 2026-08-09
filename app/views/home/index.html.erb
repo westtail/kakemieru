@@ -8,4 +8,6 @@
       <p>環境: <%= Rails.env %></p>
     <% end %>
   </div>
+
+  <%= button_to "ログアウト", sign_out_path, method: :delete %>
 </div>

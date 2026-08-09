@@ -126,6 +126,50 @@ PR-2  #18
 
 ---
 
+## セキュリティ引き継ぎ事項（レビュー指摘・後続対応）
+
+PR-1 のブランチレビュー（security-reviewer / code-reviewer）で挙がった、後続 Issue で必ず対応する項目。
+
+- **[#21 で対応済み] `admin` の権限昇格対策（HIGH）** — `RegistrationsController` の strong parameters は `email_address / password / password_confirmation` のみ permit し `admin` を含めない。加えて `User` に `attr_readonly :admin` を追加し、**通常のモデル更新（update / update! / update_column）**で admin を変更しようとすると `ReadonlyAttributeError`（Rails 8: `raise_on_assign_to_attr_readonly=true`）。これは認可制御ではなく「うっかり更新」の防止で、`update_all`/生 SQL は対象外（意図的な昇格はそちらで行う）。request spec で「`admin=true` を送っても false のまま作成される」こと、model spec で「作成済みユーザーの通常更新で admin を変更できない」ことを検証。#22 の更新系も admin を permit していない。
+- **[#21 → S3/S4 に後回し] 登録時の自動生成** — サインアップ時に `PaymentMethod`「現金」と `category_templates` からの `categories` コピーを自動生成する要件（Issue #21）は、対象テーブル/モデルが S3（categories）/S4（payment_methods）で作られるため**当該実装時に登録後コールバックとして追加**する。#21 本体は登録フォーム + User 作成 + 自動ログインまで。
+- **[#19 で対応済み] パスワードリセットのレート制限** — `PasswordsController#create` に `rate_limit 5回/3分` を追加（email bombing 対策）。
+- **[#19 で確認・訂正] パスワードリセットのメール正規化** — 当初「`find_by(email_address:)` は `normalizes` が効かない」と記載したが**誤り**。Rails 7.1+ の `normalizes` は finder（`find_by`）のキーワード引数にも適用されるため、大文字/空白混じりのメールでも該当ユーザーを引ける（#19 の request spec で実証）。手動 `.strip.downcase` は不要で、追加対応なし。
+- **[#19 で対応済み] `PasswordsController#update` のエラー表示** — 失敗時に `redirect_to ..., alert: "Passwords did not match."` だと実バリデーションエラーと乖離し `@user.errors` も失われる問題を、`render :edit, status: :unprocessable_entity` + `passwords/edit.html.erb` での `@user.errors.full_messages` 表示に変更。
+- **[#19 で対応済み] `PasswordsController#set_user_by_token` の例外未処理** — `find_by_password_reset_token!` はユーザー削除済みだと `ActiveRecord::RecordNotFound` を送出し 500 になる問題を、rescue に `ActiveRecord::RecordNotFound` を追加して無効リンク扱い（`new_password_path` へリダイレクト）に修正。
+- **[#19 で対応済み] パスワードリセット成功時のセッション無効化** — `update` 成功時に `@user.sessions.destroy_all` で既存セッション（攻撃者端末含む）を失効。乗っ取り復旧の目的を満たす（request spec で検証）。
+- **横断（別 Issue 化推奨）: i18n 未整備** — `default_locale` が `:en` で `@user.errors.full_messages` 等が英語表示（日本語UIに混在）。password リセットに限らず登録/ログイン全画面に影響するため、`config/locales/ja.yml`（`activerecord.attributes`・`errors.messages`）追加と `default_locale = :ja` を横断タスクとして実施する。
+- **#18 以降: セッション有効期限** — 現状は permanent cookie で実質無期限。`sessions` に `last_active_at`/`expires_at` を追加し、アイドルタイムアウト/絶対有効期限を検討。
+- **インフラ: `trusted_proxies`** — Fly.io 配下で `request.remote_ip` を監査保存するため、`config.action_dispatch.trusted_proxies` の確認（IP 偽装対策）。
+
+## リリース条件（セキュリティゲート）
+
+上記「引き継ぎ事項」は**実装順序**の話であり、本番公開の可否は本節のゲートで管理する。
+以下は **#20（初回 Fly.io デプロイ・本番での認証有効化）の必須ブロッカー**とし、
+満たさない場合はデプロイを見送る。CodeRabbit のセキュリティ指摘（レート制限なしでの
+出荷・無期限セッション）への対応方針。
+
+- **[対応済み #19] パスワードリセットのレート制限** — IP + メールアドレス単位の `rate_limit` を実装。
+- **[対応済み #20] セッションの最低限の失効** — cookie を `permanent` から **3日**（`Authentication::SESSION_DURATION`）に短縮。
+- **検証**: #20 の実機確認チェックリストに上記2点を含め、リリース前に確認する。
+- リスク受容者: #20 デプロイ実施者（リポジトリメンテナ）。
+
+### Fly.io デプロイ前の準備（#20）
+
+コード/設定（本ブランチで対応済み）:
+- `production.rb`: Resend の SMTP 配線（`ENV["RESEND_API_KEY"]`）・`default_url_options host`（メールのリンク用。送信元は `MAIL_FROM`）・`config.hosts`・force_ssl の `/up` 除外。
+- セッション cookie 3日失効（クライアント）+ サーバー側でも `created_at` 超過を拒否・破棄。
+
+デプロイ実施者が行うこと:
+- Fly secrets を登録: `RAILS_MASTER_KEY`、`RESEND_API_KEY`、`MAIL_FROM`（検証済みドメイン）、DB 接続（`fly postgres attach` 等）。
+- Resend で**独自ドメイン**を検証（`kakemieru.fly.dev` は DNS 管理不可のため送信元に使えない）。
+- `develop → main` マージで自動デプロイ（`fly-deploy.yml`）。
+
+本番の実機確認チェックリスト（機能 + セキュリティゲート実測）:
+- [ ] 登録 → ログイン → パスワードリセット（メール受信・再設定）→ ログアウト → 退会。
+- [ ] パスワードリセット申請をレート制限超過まで繰り返すと拒否される（#19）。
+- [ ] ログイン時の `Set-Cookie` に約3日後の `expires` が付く。
+- [ ] 期限切れセッション（`created_at` が3日超）は cookie を提示しても拒否される（サーバー側・#20 で実装）。
+
 ## 未決・保留
 
 - S1-S2 の Fly.io 実機確認（#20）は S2 完了後にまとめて実施
