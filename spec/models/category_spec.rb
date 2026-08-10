@@ -2,18 +2,18 @@ require "rails_helper"
 
 RSpec.describe Category, type: :model do
   describe "バリデーション・関連" do
-    it "name が必須" do
-      category = build(:category, name: nil)
-      expect(category).not_to be_valid
-      expect(category.errors[:name]).to be_present
+    subject { build(:category) }
+
+    it "factory が有効" do
+      is_expected.to be_valid
     end
 
-    it "user が必須" do
-      category = build(:category, user: nil)
-      expect(category).not_to be_valid
-      expect(category.errors[:user]).to be_present
-    end
+    it { is_expected.to belong_to(:user) }
+    it { is_expected.to validate_presence_of(:name) }
 
+    # scoped_to(:user_id) の一意性は、user_id が FK のため shoulda の
+    # validate_uniqueness_of が非存在 user_id で検証しようとして誤検知する
+    # （user_spec.rb の email 一意性と同じ事情）。ここは明示テストで担保する。
     it "同一ユーザー内で name 重複はエラー" do
       user = create(:user)
       create(:category, user: user, name: "食費")
@@ -22,7 +22,7 @@ RSpec.describe Category, type: :model do
       expect(duplicate.errors[:name]).to be_present
     end
 
-    it "異なるユーザーなら同名でも OK" do
+    it "異なるユーザーなら同名でも OK（scoped_to の確認）" do
       create(:category, user: create(:user), name: "食費")
       other = build(:category, user: create(:user), name: "食費")
       expect(other).to be_valid
