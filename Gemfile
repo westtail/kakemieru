@@ -7,7 +7,7 @@ gem "propshaft"
 # Use postgresql as the database for Active Record
 gem "pg", "~> 1.1"
 # Use the Puma web server [https://github.com/puma/puma]
-gem "puma", "~> 7.0"
+gem "puma", "~> 8.0"
 # Use JavaScript with ESM import maps [https://github.com/rails/importmap-rails]
 gem "importmap-rails"
 # Hotwire's SPA-like page accelerator [https://turbo.hotwired.dev]
@@ -18,15 +18,14 @@ gem "stimulus-rails"
 gem "jbuilder"
 
 # Use Active Model has_secure_password [https://guides.rubyonrails.org/active_model_basics.html#securepassword]
-# gem "bcrypt", "~> 3.1.7"
+gem "bcrypt", "~> 3.1.7"
 
 # Windows does not include zoneinfo files, so bundle the tzinfo-data gem
 gem "tzinfo-data", platforms: %i[ windows jruby ]
 
-# Use the database-backed adapters for Rails.cache, Active Job, and Action Cable
+# Rails.cache は solid_cache（rate_limit で使用）。
+# Active Job は :inline、Action Cable は async のため solid_queue / solid_cable は不使用。
 gem "solid_cache"
-gem "solid_queue"
-gem "solid_cable"
 
 # Reduces boot times through caching; required in config/boot.rb
 gem "bootsnap", require: false
@@ -53,9 +52,17 @@ end
 
 group :test do
   gem "shoulda-matchers"
+  gem "simplecov", require: false
+  # E2E（システム spec）: Capybara + Cuprite（Ferrum 経由で Chrome を CDP 操作）
+  gem "capybara"
+  gem "cuprite"
 end
 
 group :development do
   # Use console on exceptions pages [https://github.com/rails/web-console]
   gem "web-console"
+
+  # 開発環境で送信メールをブラウザで確認する（/letter_opener で閲覧）。
+  # Docker はヘッドレスでブラウザ自動起動ができないため web 版を使う。
+  gem "letter_opener_web"
 end
