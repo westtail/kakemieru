@@ -9,5 +9,10 @@
     <% end %>
   </div>
 
+  <nav>
+    <%= link_to "カテゴリ管理", categories_path %>
+    <%= link_to "アカウント設定", account_path %>
+  </nav>
+
   <%= button_to "ログアウト", sign_out_path, method: :delete %>
 </div>

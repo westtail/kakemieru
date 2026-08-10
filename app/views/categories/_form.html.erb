@@ -1,0 +1,13 @@
+<%# 新規追加・名前変更で共有するフォーム。submit ラベルのみ呼び出し側から渡す。 %>
+<%# url/method は form_with が @category の状態（新規=POST / 既存=PATCH）から自動決定する。 %>
+<%= render "shared/error_messages", record: @category %>
+
+<%= form_with model: @category do |form| %>
+  <div>
+    <%= form.label :name, "カテゴリ名" %><br>
+    <%= form.text_field :name, required: true, autofocus: true %>
+  </div>
+  <%= form.submit submit_label %>
+<% end %>
+
+<p><%= link_to "カテゴリ一覧に戻る", categories_path %></p>

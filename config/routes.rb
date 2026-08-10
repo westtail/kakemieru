@@ -20,6 +20,9 @@ Rails.application.routes.draw do
   patch  "account/password", to: "accounts#update_password",  as: :account_password
   get    "account/delete",   to: "accounts#confirm_deletion", as: :confirm_account_deletion
   delete "account",          to: "accounts#destroy"
+
+  # カテゴリ管理（一覧・追加・名前変更・削除）。show は使わない。
+  resources :categories, except: %i[show]
   # Define your application routes per the DSL in https://guides.rubyonrails.org/routing.html
 
   # Reveal health status on /up that returns 200 if the app boots with no exceptions, otherwise 500.
