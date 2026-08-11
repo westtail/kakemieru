@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.0].define(version: 2026_08_09_150454) do
+ActiveRecord::Schema[8.0].define(version: 2026_08_11_074455) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "pg_catalog.plpgsql"
 
@@ -31,6 +31,19 @@ ActiveRecord::Schema[8.0].define(version: 2026_08_09_150454) do
     t.datetime "created_at", null: false
     t.datetime "updated_at", null: false
     t.index ["category_key"], name: "index_category_templates_on_category_key", unique: true
+  end
+
+  create_table "payment_methods", force: :cascade do |t|
+    t.bigint "user_id", null: false
+    t.string "name", null: false
+    t.string "payment_type", null: false
+    t.datetime "archived_at"
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.index ["user_id", "archived_at"], name: "index_payment_methods_on_user_id_and_archived_at"
+    t.index ["user_id", "id"], name: "index_payment_methods_on_user_id_and_id", unique: true
+    t.index ["user_id", "name"], name: "index_payment_methods_on_user_id_and_name", unique: true
+    t.check_constraint "payment_type::text = ANY (ARRAY['credit'::character varying, 'debit'::character varying, 'e_money'::character varying, 'qr'::character varying, 'cash'::character varying]::text[])", name: "payment_methods_payment_type_check"
   end
 
   create_table "sessions", force: :cascade do |t|
@@ -63,5 +76,6 @@ ActiveRecord::Schema[8.0].define(version: 2026_08_09_150454) do
   end
 
   add_foreign_key "categories", "users"
+  add_foreign_key "payment_methods", "users"
   add_foreign_key "sessions", "users"
 end
