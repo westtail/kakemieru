@@ -1,0 +1,82 @@
+require "csv"
+
+module CsvParser
+  # 楽天カードの利用明細CSV（Shift-JIS）をパースし、Transaction 属性ハッシュの配列を返す。
+  # レコードは生成しない（保存は S7）。日付か金額が不正な行はスキップしてエラーに収集する。
+  #
+  # 使い方: CsvParser::RakutenCard.parse(csv_bytes) #=> Result(rows:, errors:)
+  # ActiveSupport に依存しない（素の Ruby / plain ruby でも動く）よう標準ライブラリのみ使用。
+  class RakutenCard
+    Result = Struct.new(:rows, :errors, keyword_init: true)
+
+    HEADER_MARKER = "利用日"            # このマーカーを含む行をヘッダーとみなす
+    COL_DATE = "利用日"
+    COL_DESCRIPTION = "利用店名・商品名"
+    COL_AMOUNT = "利用金額"
+
+    MERCHANT_NAME_LIMIT = 255
+
+    def self.parse(content)
+      new(content).parse
+    end
+
+    def initialize(content)
+      @content = content
+    end
+
+    def parse
+      begin
+        csv_table = table
+      rescue StandardError => e
+        # ヘッダー未検出・エンコーディング不正など、ファイル全体の解析失敗。
+        return Result.new(rows: [], errors: [ e.message ])
+      end
+
+      rows = []
+      errors = []
+      csv_table.each_with_index do |csv_row, index|
+        attributes = row_to_attributes(csv_row)
+        rows << attributes if attributes
+      rescue StandardError => e
+        errors << "#{index + 1}行目: #{e.message}"
+      end
+      Result.new(rows: rows, errors: errors)
+    end
+
+    private
+
+    # Shift-JIS を UTF-8 に変換し、「利用日」を含むヘッダー行以降だけを CSV としてパースする。
+    # 先頭に口座サマリー行が入る場合があるためヘッダーを自動検出する。
+    def table
+      utf8 = @content.to_s.dup.force_encoding("Shift_JIS").encode("UTF-8", invalid: :replace, undef: :replace)
+      lines = utf8.lines
+      header_index = lines.index { |line| line.include?(HEADER_MARKER) }
+      raise "ヘッダー行（#{HEADER_MARKER}）が見つかりません" if header_index.nil?
+
+      CSV.parse(lines[header_index..].join, headers: true)
+    end
+
+    def row_to_attributes(csv_row)
+      date = csv_row[COL_DATE].to_s.strip
+      amount = csv_row[COL_AMOUNT].to_s.strip
+      description = csv_row[COL_DESCRIPTION].to_s.strip
+      # 空行・合計行など、日付か金額が無い行はスキップ（エラーにはしない）。
+      return nil if date.empty? || amount.empty?
+
+      {
+        date: Date.parse(date),
+        amount: amount.delete(",").to_i,
+        description: description,
+        merchant_name: normalize_merchant(description)
+      }
+    end
+
+    # 摘要を店舗名キーに正規化（NFKC で全角→半角・前後空白除去・上限文字数）。
+    def normalize_merchant(text)
+      normalized = text.to_s.unicode_normalize(:nfkc).strip
+      return nil if normalized.empty?
+
+      normalized[0, MERCHANT_NAME_LIMIT]
+    end
+  end
+end
