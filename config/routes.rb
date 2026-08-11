@@ -23,6 +23,9 @@ Rails.application.routes.draw do
 
   # カテゴリ管理（一覧・追加・名前変更・削除）。show は使わない。
   resources :categories, except: %i[show]
+
+  # 支払方法管理（一覧・追加・名前/種別変更・削除）。show は使わない。
+  resources :payment_methods, except: %i[show]
   # Define your application routes per the DSL in https://guides.rubyonrails.org/routing.html
 
   # Reveal health status on /up that returns 200 if the app boots with no exceptions, otherwise 500.

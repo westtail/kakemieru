@@ -11,7 +11,7 @@ class RegistrationsController < ApplicationController
   def create
     @user = User.new(registration_params)
 
-    if create_user_with_default_categories
+    if create_user_with_defaults
       # 登録後に自動ログインし、ダッシュボードへ。
       start_new_session_for @user
       redirect_to root_path, notice: "アカウントを作成しました。"
@@ -21,13 +21,14 @@ class RegistrationsController < ApplicationController
   end
 
   private
-    # ユーザー作成と初期カテゴリのコピーを1トランザクションで原子的に行う。
-    # 途中で失敗したら両方ロールバックし、「ユーザーはいるがカテゴリが空」を防ぐ。
+    # ユーザー作成と初期データ（カテゴリ12件・現金の支払方法）の生成を1トランザクションで
+    # 原子的に行う。途中で失敗したら全部ロールバックし、「ユーザーはいるが付随データが空」を防ぐ。
     # バリデーションエラー時は false を返し（save が false）、:new を再描画させる。
-    def create_user_with_default_categories
+    def create_user_with_defaults
       ActiveRecord::Base.transaction do
         next false unless @user.save
         Category.copy_templates_to(@user)
+        PaymentMethod.create_default_for(@user)
         true
       end
     end

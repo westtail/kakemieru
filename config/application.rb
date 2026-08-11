@@ -21,6 +21,7 @@ Bundler.require(*Rails.groups)
 # アプリ定数（オートロード対象外のため明示 require）。
 # マイグレーション・seed・実行時から共通で参照する。
 require_relative "constants/categories"
+require_relative "constants/payment_methods"
 
 module Kakemieru
   class Application < Rails::Application

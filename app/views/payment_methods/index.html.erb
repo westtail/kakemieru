@@ -1,0 +1,18 @@
+<h1>支払方法</h1>
+
+<ul>
+  <% @payment_methods.each do |payment_method| %>
+    <li>
+      <%= payment_method.name %>（<%= PaymentMethodCatalog::LABELS[payment_method.payment_type] %>）
+      <%= link_to "名前変更", edit_payment_method_path(payment_method) %>
+      <% unless payment_method.cash? %>
+        <%= button_to "削除", payment_method_path(payment_method), method: :delete,
+              form: { data: { turbo_confirm: "「#{payment_method.name}」を削除します。よろしいですか？" } } %>
+      <% end %>
+    </li>
+  <% end %>
+</ul>
+
+<p>「現金」は自動で用意され、削除できません（名前は変更できます）。</p>
+
+<%= link_to "支払方法を追加", new_payment_method_path %>
