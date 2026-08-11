@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.0].define(version: 2026_08_11_074455) do
+ActiveRecord::Schema[8.0].define(version: 2026_08_11_141411) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "pg_catalog.plpgsql"
 
@@ -33,6 +33,33 @@ ActiveRecord::Schema[8.0].define(version: 2026_08_11_074455) do
     t.index ["category_key"], name: "index_category_templates_on_category_key", unique: true
   end
 
+  create_table "imports", force: :cascade do |t|
+    t.bigint "user_id", null: false
+    t.bigint "payment_method_id", null: false
+    t.string "source_type", null: false
+    t.string "source_ref"
+    t.string "file_hash", null: false
+    t.integer "row_count", default: 0, null: false
+    t.datetime "imported_at"
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.index ["payment_method_id"], name: "index_imports_on_payment_method_id"
+    t.index ["user_id", "file_hash"], name: "index_imports_on_user_id_and_file_hash", unique: true
+    t.check_constraint "source_type::text = ANY (ARRAY['csv'::character varying, 'ocr'::character varying, 'api'::character varying, 'manual_bulk'::character varying]::text[])", name: "imports_source_type_check"
+  end
+
+  create_table "merchant_classifications", force: :cascade do |t|
+    t.string "merchant_name", null: false
+    t.string "category_key", null: false
+    t.string "source", null: false
+    t.datetime "classified_at"
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.index ["category_key"], name: "index_merchant_classifications_on_category_key"
+    t.index ["merchant_name"], name: "index_merchant_classifications_on_merchant_name", unique: true
+    t.check_constraint "source::text = ANY (ARRAY['ai'::character varying, 'user_manual'::character varying]::text[])", name: "merchant_classifications_source_check"
+  end
+
   create_table "payment_methods", force: :cascade do |t|
     t.bigint "user_id", null: false
     t.string "name", null: false
@@ -43,7 +70,7 @@ ActiveRecord::Schema[8.0].define(version: 2026_08_11_074455) do
     t.index ["user_id", "archived_at"], name: "index_payment_methods_on_user_id_and_archived_at"
     t.index ["user_id", "id"], name: "index_payment_methods_on_user_id_and_id", unique: true
     t.index ["user_id", "name"], name: "index_payment_methods_on_user_id_and_name", unique: true
-    t.check_constraint "payment_type::text = ANY (ARRAY['credit'::character varying, 'debit'::character varying, 'e_money'::character varying, 'qr'::character varying, 'cash'::character varying]::text[])", name: "payment_methods_payment_type_check"
+    t.check_constraint "payment_type::text = ANY (ARRAY['credit'::character varying::text, 'debit'::character varying::text, 'e_money'::character varying::text, 'qr'::character varying::text, 'cash'::character varying::text])", name: "payment_methods_payment_type_check"
   end
 
   create_table "sessions", force: :cascade do |t|
@@ -76,6 +103,8 @@ ActiveRecord::Schema[8.0].define(version: 2026_08_11_074455) do
   end
 
   add_foreign_key "categories", "users"
+  add_foreign_key "imports", "payment_methods"
+  add_foreign_key "imports", "users"
   add_foreign_key "payment_methods", "users"
   add_foreign_key "sessions", "users"
 end

@@ -22,6 +22,7 @@ Bundler.require(*Rails.groups)
 # マイグレーション・seed・実行時から共通で参照する。
 require_relative "constants/categories"
 require_relative "constants/payment_methods"
+require_relative "constants/imports"
 
 module Kakemieru
   class Application < Rails::Application
