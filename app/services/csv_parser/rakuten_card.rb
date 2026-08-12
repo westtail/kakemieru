@@ -64,11 +64,26 @@ module CsvParser
       return nil if date.empty? || amount.empty?
 
       {
-        date: Date.parse(date),
-        amount: amount.delete(",").to_i,
+        date: parse_date(date),
+        amount: parse_amount(amount),
         description: description,
         merchant_name: normalize_merchant(description)
       }
+    end
+
+    # 楽天CSVの利用日は YYYY/MM/DD 固定。strptime で厳密に解釈し、フォーマット逸脱は
+    # 例外にして per-row エラーへ回す（Date.parse は曖昧入力を推測解釈するため使わない）。
+    def parse_date(text)
+      Date.strptime(text, "%Y/%m/%d")
+    end
+
+    # 金額はカンマ除去後に符号付き整数として厳密に検証する。to_i は不正値を無音で 0 や
+    # 部分値に変換してしまい、家計簿の金額整合性を壊すため使わない。
+    def parse_amount(text)
+      digits = text.delete(",")
+      raise "利用金額が不正です: #{text.inspect}" unless /\A-?\d+\z/.match?(digits)
+
+      Integer(digits, 10)
     end
 
     # 摘要を店舗名キーに正規化（NFKC で全角→半角・前後空白除去・上限文字数）。

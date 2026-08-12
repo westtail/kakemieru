@@ -56,4 +56,12 @@ RSpec.describe Import, type: :model do
       expect(other).to be_valid
     end
   end
+
+  describe "テナント整合（payment_method の所有者）" do
+    it "payment_method が別ユーザーのものだと無効" do
+      import = build(:import, user: create(:user), payment_method: create(:payment_method, user: create(:user)))
+      expect(import).not_to be_valid
+      expect(import.errors[:payment_method]).to be_present
+    end
+  end
 end

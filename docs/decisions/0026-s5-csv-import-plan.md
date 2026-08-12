@@ -106,3 +106,10 @@ Shift-JIS 文字列をテスト内で `"...".encode("Shift_JIS")` で生成。�
 - アップロード画面 `/imports/new`・file_hash 計算・重複エラー表示 → **S6**
 - transactions 生成・`Import has_many :transactions` → **S7**
 - merchant_classifications の中身投入・分類ロジック → S6 以降（フェーズ1は空）
+
+### S6 の受入基準に必ず引き継ぐこと（S5 レビュー指摘の繰り延べ分）
+本スライスには CSV を受け取る入口が無いため以下は S6 で対応する。Issue 化して取りこぼさないこと。
+- **ファイルサイズ / 行数の上限**（DoS 対策）。パーサーにも防御的な行数上限を検討。
+- **`source_ref`（ファイル名）のサニタイズ**: 表示・保存のみに使い、パス結合に使わない。`File.basename` 化・`../`/制御文字除去。
+- **コントローラの current_user スコープ**: `current_user.payment_methods.find(...)` / `current_user.imports.build(...)` を徹底し、`payment_method_id` を生 params から Import に渡さない（Import のテナント整合バリデーションは多層防御として実装済み）。
+- 将来 CSV エクスポート機能を作る場合の **CSV インジェクション**対策（先頭 `= + - @` のエスケープ）。

@@ -11,4 +11,14 @@ class Import < ApplicationRecord
   validates :file_hash, presence: true, uniqueness: { scope: :user_id }
   # ファイル由来（csv/ocr/api）は取り込み元参照が必須。手動一括入力のみ省略可。
   validates :source_ref, presence: true, unless: -> { manual_bulk? }
+  # 支払方法が同じユーザーのものであることをモデル層でも担保する（S6 のコントローラが
+  # current_user スコープを取りこぼしても他ユーザーの payment_method に紐づけさせない）。
+  validate :payment_method_belongs_to_user
+
+  private
+    def payment_method_belongs_to_user
+      return if payment_method.nil? || user_id.nil?
+
+      errors.add(:payment_method, :invalid) if payment_method.user_id != user_id
+    end
 end

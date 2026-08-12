@@ -49,4 +49,14 @@ RSpec.describe CsvParser::RakutenCard do
     expect(result.rows).to be_empty
     expect(result.errors).not_to be_empty
   end
+
+  it "利用金額が数値でない行はスキップしてエラーに収集する（金額整合性）" do
+    csv = <<~CSV.encode("Shift_JIS")
+      利用日,利用店名・商品名,利用者,支払方法,利用金額,支払手数料,支払総額
+      2026/02/01,店,本人,1回払い,1200yen,0,0
+    CSV
+    result = described_class.parse(csv)
+    expect(result.rows).to be_empty
+    expect(result.errors.size).to eq(1)
+  end
 end
