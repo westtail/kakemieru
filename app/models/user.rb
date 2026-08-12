@@ -10,6 +10,9 @@ class User < ApplicationRecord
   has_secure_password
   has_many :sessions, dependent: :destroy
   has_many :categories, dependent: :destroy
+  # imports は payment_methods より先に destroy されるよう先に宣言する（退会時のカスケードで
+  # payment_methods の restrict にかからないようにするため）。
+  has_many :imports, dependent: :destroy
   has_many :payment_methods, dependent: :destroy
 
   normalizes :email_address, with: ->(e) { e.strip.downcase }

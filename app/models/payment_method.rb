@@ -12,6 +12,9 @@ class PaymentMethod < ApplicationRecord
   validates :name, presence: true, uniqueness: { scope: :user_id }
   validates :payment_type, presence: true
 
+  # 取り込み履歴を持つ支払方法は物理削除させない（履歴保護。DATABASE_DESIGN の RESTRICT）。
+  has_many :imports, dependent: :restrict_with_exception
+
   scope :active, -> { where(archived_at: nil) }
   scope :archived, -> { where.not(archived_at: nil) }
 
