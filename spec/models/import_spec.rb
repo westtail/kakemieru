@@ -64,4 +64,15 @@ RSpec.describe Import, type: :model do
       expect(import.errors[:payment_method]).to be_present
     end
   end
+
+  describe "退会時のカスケード削除" do
+    # users 削除は CASCADE（DATABASE_DESIGN）。imports を持つユーザーも例外なく削除でき、
+    # imports も一緒に消える（payment_methods の restrict にかからない宣言順であることの担保）。
+    it "imports を持つユーザーを destroy しても例外にならず imports も消える" do
+      user = create(:user)
+      create(:import, user: user)
+      expect { user.destroy }.to change(Import, :count).by(-1)
+      expect(user).to be_destroyed
+    end
+  end
 end

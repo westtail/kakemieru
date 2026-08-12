@@ -9,10 +9,12 @@ module CsvParser
   class RakutenCard
     Result = Struct.new(:rows, :errors, keyword_init: true)
 
-    HEADER_MARKER = "利用日"            # このマーカーを含む行をヘッダーとみなす
     COL_DATE = "利用日"
     COL_DESCRIPTION = "利用店名・商品名"
     COL_AMOUNT = "利用金額"
+    # ヘッダー行の判定。必須列がすべて揃っている行だけをヘッダーとみなす。
+    # 「利用日」を含むだけのサマリー行を誤検出しないようにする。
+    REQUIRED_HEADERS = [ COL_DATE, COL_DESCRIPTION, COL_AMOUNT ].freeze
 
     MERCHANT_NAME_LIMIT = 255
 
@@ -50,8 +52,8 @@ module CsvParser
     def table
       utf8 = @content.to_s.dup.force_encoding("Shift_JIS").encode("UTF-8", invalid: :replace, undef: :replace)
       lines = utf8.lines
-      header_index = lines.index { |line| line.include?(HEADER_MARKER) }
-      raise "ヘッダー行（#{HEADER_MARKER}）が見つかりません" if header_index.nil?
+      header_index = lines.index { |line| REQUIRED_HEADERS.all? { |header| line.include?(header) } }
+      raise "ヘッダー行（#{REQUIRED_HEADERS.join('/')}）が見つかりません" if header_index.nil?
 
       CSV.parse(lines[header_index..].join, headers: true)
     end

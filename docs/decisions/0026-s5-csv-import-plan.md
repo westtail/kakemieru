@@ -29,6 +29,7 @@
 ## テーブル設計（#33・決定）
 
 ### imports
+
 | カラム | 型 | 制約 |
 |---|---|---|
 | id | bigint | PK |
@@ -45,6 +46,7 @@
 - 複合FK `(user_id, id)` は**不要**（transactions の複合FKは category のみ・DATABASE_DESIGN L317）。
 
 ### merchant_classifications（全ユーザー共通・フェーズ1は空）
+
 | カラム | 型 | 制約 |
 |---|---|---|
 | id | bigint | PK |
@@ -68,7 +70,10 @@ CHECK 制約の値はマイグレーションにインライン（履歴を不�
 - `validates :file_hash, presence: true, uniqueness: { scope: :user_id }`（DB UNIQUE と二重。scoped_to は FK のため spec は明示テスト）
 - `validates :source_ref, presence: true, unless: -> { manual_bulk? }`
 - **`has_many :transactions` は S7 へ繰り延べ**（transactions テーブル未作成。ADR-0022/0025 の方針）
-- `User` / `PaymentMethod` に `has_many :imports, dependent: :restrict_with_exception`（Import は物理削除させない = DATABASE_DESIGN の RESTRICT ポリシー）を追加
+- 関連の dependent（DATABASE_DESIGN の ON DELETE ポリシーに整合させる）:
+  - `User` → `has_many :imports, dependent: :destroy`。**users 削除は CASCADE**（退会時に全データ削除）なので、imports もユーザーと一緒に消す。`payment_methods` より先に宣言し、退会カスケードで payment_methods の restrict にかからないようにする。
+  - `PaymentMethod` → `has_many :imports, dependent: :restrict_with_exception`。取り込み履歴を持つ支払方法の物理削除を防ぐ。
+  - 「imports 削除 → RESTRICT」（DATABASE_DESIGN）は transactions→imports の関係（直接の物理削除禁止）であり、S7 で `Import has_many :transactions, dependent: :restrict_with_exception` として実装する。退会の CASCADE とは別レイヤ。
 
 ---
 
@@ -89,7 +94,8 @@ Shift-JIS 文字列をテスト内で `"...".encode("Shift_JIS")` で生成。�
 ---
 
 ## 実装順序（TDD）
-```
+
+```text
 1. ADR + ブランチ + Gemfile に gem "csv" 追加・bundle
 2. config/constants/imports.rb + application.rb require
 3. #33 migration ×2（imports / merchant_classifications）→ 可逆性・schema 確認
