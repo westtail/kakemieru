@@ -1,7 +1,7 @@
 source "https://rubygems.org"
 
 # Bundle edge Rails instead: gem "rails", github: "rails/rails", branch: "main"
-gem "rails", "= 8.0.4"
+gem "rails", "8.1.3.1"
 # The modern asset pipeline for Rails [https://github.com/rails/propshaft]
 gem "propshaft"
 # Use postgresql as the database for Active Record
@@ -10,7 +10,7 @@ gem "pg", "~> 1.1"
 # Gemfile 宣言が必須（require "csv" が LoadError になる）。Ruby 3.4.9 同梱の 3.3.2 に固定。
 gem "csv", "3.3.2"
 # Use the Puma web server [https://github.com/puma/puma]
-gem "puma", "~> 7.0"
+gem "puma", "~> 8.0"
 # Use JavaScript with ESM import maps [https://github.com/rails/importmap-rails]
 gem "importmap-rails"
 # Hotwire's SPA-like page accelerator [https://turbo.hotwired.dev]
