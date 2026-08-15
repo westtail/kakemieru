@@ -23,6 +23,38 @@ RSpec.describe Transaction, type: :model do
       expect(build(:transaction, amount: 0)).to be_valid
       expect(build(:transaction, amount: -500)).to be_valid
     end
+
+    it "merchant_name は255文字超で無効" do
+      expect(build(:transaction, merchant_name: "あ" * 256)).not_to be_valid
+    end
+
+    it "amount_override は整数・int4範囲（nil可）、date_override は正しい日付（nil可）" do
+      expect(build(:transaction, amount_override: "abc")).not_to be_valid
+      expect(build(:transaction, amount_override: 2_147_483_648)).not_to be_valid
+      expect(build(:transaction, amount_override: nil)).to be_valid
+      expect(build(:transaction, amount_override: 800)).to be_valid
+      expect(build(:transaction, date_override: "not-a-date")).not_to be_valid
+      expect(build(:transaction, date_override: nil)).to be_valid
+      expect(build(:transaction, date_override: Date.new(2026, 2, 1))).to be_valid
+    end
+  end
+
+  describe "原本の不変性（attr_readonly）" do
+    it "永続化後に date/amount を更新しようとすると ReadonlyAttributeError" do
+      tx = create(:transaction, amount: 1000, date: Date.new(2026, 1, 10))
+      expect { tx.update!(amount: 9999) }.to raise_error(ActiveRecord::ReadonlyAttributeError)
+      expect { tx.update!(date: Date.new(2026, 2, 1)) }.to raise_error(ActiveRecord::ReadonlyAttributeError)
+    end
+  end
+
+  describe "テナント整合（import）" do
+    it "別ユーザーの import は紐づけられない" do
+      other = create(:user)
+      others_import = create(:import, user: other, payment_method: create(:payment_method, user: other))
+      tx = build(:transaction, import: others_import)
+      expect(tx).not_to be_valid
+      expect(tx.errors[:import]).to be_present
+    end
   end
 
   describe "生成カラム effective_amount / effective_date" do
@@ -100,7 +132,7 @@ RSpec.describe Transaction, type: :model do
       import = create(:import, user: user, payment_method: payment_method)
       create(:transaction, user: user, payment_method: payment_method, import: import)
 
-      expect { user.destroy }.to change(Transaction, :count).by(-1)
+      expect { user.destroy }.to change(Transaction, :count).by(-1).and change(Import, :count).by(-1)
       expect(user).to be_destroyed
     end
   end

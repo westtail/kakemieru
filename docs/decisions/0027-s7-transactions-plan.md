@@ -21,9 +21,9 @@ S7 は、これまで各スライスで **transactions 未作成のため繰り�
 |---|---|---|
 | id | bigint | PK |
 | user_id | bigint | NOT NULL / FK → users（マルチテナント直接保持） |
-| payment_method_id | bigint | NOT NULL / 複合FK → payment_methods(user_id, id) |
+| payment_method_id | bigint | NOT NULL / FK → payment_methods（テナント整合はアプリ層で担保・#113） |
 | import_id | bigint | nullable / FK → imports（NULL = 手動入力） |
-| category_id | bigint | nullable / 複合FK → categories(user_id, id)（NULL = 未分類） |
+| category_id | bigint | nullable / FK → categories（on_delete: :nullify・NULL = 未分類） |
 | date | date | NOT NULL・原本（不変） |
 | amount | integer | NOT NULL・原本（円・不変） |
 | description | string | nullable（CSV摘要原本。手動入力時は NULL） |
@@ -91,7 +91,7 @@ transactions ができたことで、各スライスで保留していた配線�
 - `scope :not_deleted, -> { where(deleted_at: nil) }`
 - `scope :in_month, ->(year, month) { ... }`（**effective_date で月初〜月末**。`Date.new(year, month, 1)` 〜 翌月初 未満）
 - `belongs_to :import/:category` は optional
-- テナント整合バリデーション（category / payment_method が同じ user か）は DB 複合FKで担保されるが、分かりやすいエラーのためモデルにも軽く入れるか検討（複合FK があるので必須ではない）
+- テナント整合バリデーション（category / payment_method / import が同じ user か）を**モデルに実装**（複合FKを張らない代替。コントローラの current_user スコープと二層）
 - effective_amount / effective_date は**読み取り専用**（generated。Rails からは書かない）
 
 FactoryBot: `spec/factories/transactions.rb`。
@@ -103,7 +103,7 @@ FactoryBot: `spec/factories/transactions.rb`。
 - `GET /transactions/new` … 日付・金額・店舗名・カテゴリ（任意=未分類）・支払方法のフォーム
 - `POST /transactions` … `Current.user.transactions.new(...)`。`import_id = NULL`（手動）。`date`/`amount` に入力値を直接、override は NULL
 - strong params は `date, amount, merchant_name, category_id, payment_method_id` のみ（user_id/override/effective_* は不可）
-- category_id / payment_method_id は `Current.user` のものだけ選べる（セレクトを current_user スコープで生成）+ 複合FKで DB 担保
+- category_id / payment_method_id は `Current.user` のものだけ選べる（セレクトを current_user スコープで生成）+ モデルのテナント整合バリデーションで担保
 - 保存後 `/transactions?month=YYYY-MM` へリダイレクト（一覧は S8 だが遷移先だけ用意。当面は暫定表示 or 最小 index）
 - 一覧（index）は S8（#43）。S7 では new/create を中心にし、リダイレクト先の最小 index を用意するか、S8 まで new/create のみに絞るかは実装時に決める（**#39 の受入は new/create + リダイレクト**）
 
@@ -111,7 +111,7 @@ FactoryBot: `spec/factories/transactions.rb`。
 
 ## テスト方針（TDD）
 
-- **#40 migration**: migrate / rollback / redo。生成カラムの整合（`effective_amount = COALESCE(amount_override, amount)`）を実データで確認。複合FKで他ユーザーの category/payment_method を弾くこと。
+- **#40 migration**: migrate / rollback / redo。生成カラムの整合（`effective_amount = COALESCE(amount_override, amount)`）を実データで確認。モデルのテナント整合バリデーションで他ユーザーの category/payment_method/import を弾くこと。
 - **#38 モデル spec**: 必須バリデーション、`not_deleted`、`in_month`（月初・月末の境界値）、override 時に effective_* が切り替わること、category 削除で category_id が NULL 化（nullify）、import ありの Import 物理削除が restrict されること、PaymentMethod の明細あり→アーカイブ。
 - **#39 リクエスト spec**: 手動入力で `import_id=NULL` の Transaction 生成、未ログイン、他ユーザーの category/payment_method を弾く、バリデーションエラー再描画、保存後リダイレクト。
 
@@ -120,7 +120,7 @@ FactoryBot: `spec/factories/transactions.rb`。
 ## 実装順序（TDD）
 
 1. ADR + ブランチ（本コミット）
-2. #40 migration（テーブル + 生成カラム + 複合FK + 5インデックス）→ 可逆性・生成カラム整合確認
+2. #40 migration（テーブル + 生成カラム + 単一FK + 5インデックス）→ 可逆性・生成カラム整合確認
 3. #38 Transaction spec(RED) → モデル + 各既存モデルの繰り延べ関連配線(GREEN)
 4. #39 request spec(RED) → TransactionsController + フォーム + routes(GREEN)
 5. 全スイート + rubocop + brakeman → ruby/security レビュー → 分割コミット → PR
@@ -139,4 +139,4 @@ FactoryBot: `spec/factories/transactions.rb`。
 ## 未決・確認したい点
 
 - **開発環境**: develop が Rails 8.1.3.1（dependabot）に更新され、ローカルコンテナの gem が旧版。`bundle install`（またはイメージ再ビルド）が必要。実装・テスト前に解消する。
-- 複合FK・生成カラムは Rails 8.1 / PG16 で `t.virtual` + `execute` により実装するが、rollback の書き方（`def up/down`）を実装時に検証する。
+- 生成カラムは Rails 8.1 / PG16 で `t.virtual ... stored: true` により実装（schema.rb 表現可・`def change` で可逆）。DB 層の複合FKは #113 でフォローアップ。

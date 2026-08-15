@@ -105,7 +105,7 @@ ActiveRecord::Schema[8.1].define(version: 2026_08_14_135612) do
     t.virtual "effective_amount", type: :integer, as: "COALESCE(amount_override, amount)", stored: true
     t.virtual "effective_date", type: :date, as: "COALESCE(date_override, date)", stored: true
     t.bigint "import_id"
-    t.string "merchant_name", null: false
+    t.string "merchant_name", limit: 255, null: false
     t.bigint "payment_method_id", null: false
     t.datetime "updated_at", null: false
     t.bigint "user_id", null: false

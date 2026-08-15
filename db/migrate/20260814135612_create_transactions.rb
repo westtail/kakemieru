@@ -11,8 +11,8 @@ class CreateTransactions < ActiveRecord::Migration[8.1]
 
       t.date :date, null: false            # 原本（不変）
       t.integer :amount, null: false       # 原本・円（不変）
-      t.string :description                 # CSV摘要原本。手動入力時は NULL
-      t.string :merchant_name, null: false # 正規化店舗名（編集可・分類キー）
+      t.string :description                            # CSV摘要原本。手動入力時は NULL
+      t.string :merchant_name, null: false, limit: 255 # 正規化店舗名（編集可・分類キー・最大255）
       t.integer :amount_override           # 訂正値（NULL = 原本を使用）
       t.date :date_override                # 訂正値（NULL = 原本を使用）
 

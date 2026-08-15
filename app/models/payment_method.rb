@@ -24,8 +24,10 @@ class PaymentMethod < ApplicationRecord
   # 明細を持つ支払方法は物理削除せずアーカイブする（DATABASE_DESIGN の削除ポリシー）。
   # before_destroy 内で update! + throw :abort すると destroy のトランザクションごと
   # ロールバックされ archived_at が保存されないため、削除/アーカイブの分岐はコントローラで行う。
+  # 履歴（明細 or 取り込み）を持つ支払方法は物理削除でなくアーカイブする。
+  # imports も restrict のため、transactions が無くても imports があれば削除は失敗する。
   def archivable?
-    transactions.exists?
+    transactions.exists? || imports.exists?
   end
 
   def archive!
