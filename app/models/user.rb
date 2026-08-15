@@ -9,9 +9,11 @@ class User < ApplicationRecord
 
   has_secure_password
   has_many :sessions, dependent: :destroy
+  # 退会カスケードの順序が重要: transactions を最初に destroy する。
+  # transactions を持つ imports(restrict) / payment_methods(明細あり→アーカイブ) が
+  # 先に評価されると退会が失敗・アーカイブ化してしまうため、transactions を先に消す。
+  has_many :transactions, dependent: :destroy
   has_many :categories, dependent: :destroy
-  # imports は payment_methods より先に destroy されるよう先に宣言する（退会時のカスケードで
-  # payment_methods の restrict にかからないようにするため）。
   has_many :imports, dependent: :destroy
   has_many :payment_methods, dependent: :destroy
 

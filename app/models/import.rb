@@ -7,6 +7,9 @@ class Import < ApplicationRecord
 
   enum :source_type, ImportCatalog::SOURCE_TYPES.index_with(&:itself), validate: true
 
+  # 取り込み済みの明細を持つ Import は物理削除させない（取り消しは transactions のソフトデリート）。
+  has_many :transactions, dependent: :restrict_with_exception
+
   validates :source_type, presence: true
   validates :file_hash, presence: true, uniqueness: { scope: :user_id }
   # ファイル由来（csv/ocr/api）は取り込み元参照が必須。手動一括入力のみ省略可。

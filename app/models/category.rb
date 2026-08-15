@@ -7,6 +7,9 @@ class Category < ApplicationRecord
 
   validates :name, presence: true, uniqueness: { scope: :user_id }
 
+  # カテゴリ削除時に紐づく明細の category_id を NULL（未分類）にする。DB の FK on_delete: :nullify と二層。
+  has_many :transactions, dependent: :nullify
+
   scope :initial, -> { where.not(category_key: nil) }
   scope :custom, -> { where(category_key: nil) }
 

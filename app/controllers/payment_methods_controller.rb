@@ -39,11 +39,23 @@ class PaymentMethodsController < ApplicationController
 
   def destroy
     # 現金（登録時に自動生成される特別枠）は削除不可。UI に削除ボタンを出さず、直接リクエストも拒否。
-    # S4 は transactions が無いため、現金以外は常に物理削除（明細あり→アーカイブは S7）。
-    if @payment_method.cash?
-      redirect_to payment_methods_path, alert: "現金は削除できません。"
+    return redirect_to payment_methods_path, alert: "現金は削除できません。" if @payment_method.cash?
+
+    # 判定（archivable?）と削除/アーカイブを行ロックで原子的に行う。並行リクエストが間に
+    # 明細/取り込みを追加しても、RESTRICT による FK 例外 500 にならないようにする。
+    archived = @payment_method.with_lock do
+      if @payment_method.archivable?
+        @payment_method.archive!
+        true
+      else
+        @payment_method.destroy!
+        false
+      end
+    end
+
+    if archived
+      redirect_to payment_methods_path, notice: "明細があるため支払方法をアーカイブしました。"
     else
-      @payment_method.destroy
       redirect_to payment_methods_path, notice: "支払方法を削除しました。"
     end
   end
