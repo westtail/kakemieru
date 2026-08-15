@@ -1,22 +1,9 @@
 <div class="container">
   <h1>掛け見える - 家計簿アプリ</h1>
-  <p>シンプルな家計簿管理アプリケーションです。</p>
+  <p>クレジットカード明細をアップロードして収支を可視化する家計簿アプリです。</p>
 
-  <div class="status">
-    <p>✅ アプリケーション稼働中</p>
-    <% unless Rails.env.production? %>
-      <p>環境: <%= Rails.env %></p>
-    <% end %>
+  <div class="home-actions">
+    <%= link_to "明細を見る", transactions_path, class: "button" %>
+    <%= link_to "取り込む", new_import_path, class: "button" %>
   </div>
-
-  <nav>
-    <%= link_to "明細", transactions_path %>
-    <%= link_to "明細を追加", new_transaction_path %>
-    <%= link_to "CSV取り込み", new_import_path %>
-    <%= link_to "カテゴリ管理", categories_path %>
-    <%= link_to "支払方法管理", payment_methods_path %>
-    <%= link_to "アカウント設定", account_path %>
-  </nav>
-
-  <%= button_to "ログアウト", sign_out_path, method: :delete %>
 </div>

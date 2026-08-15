@@ -8,3 +8,68 @@
  *
  * Consider organizing styles into separate files for maintainability.
  */
+
+/* グローバルナビ（全ページ共通ヘッダー） */
+#global-nav {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  flex-wrap: wrap;
+  padding: 0.75rem 1rem;
+  border-bottom: 1px solid #ddd;
+  background: #f7f7f7;
+}
+
+#global-nav .brand {
+  font-weight: bold;
+  text-decoration: none;
+  color: #333;
+}
+
+#global-nav .nav-links {
+  display: flex;
+  gap: 1rem;
+  flex-wrap: wrap;
+}
+
+#global-nav .nav-links a {
+  text-decoration: none;
+  color: #0366d6;
+}
+
+#global-nav .nav-links a:hover {
+  text-decoration: underline;
+}
+
+/* ログアウトを右端へ寄せる（button_to は form を生成するので form 自体を対象にする） */
+#global-nav form.button_to {
+  margin-left: auto;
+}
+
+/* ページ本文の基本レイアウト */
+.container {
+  max-width: 960px;
+  margin: 0 auto;
+  padding: 1rem;
+}
+
+.home-actions {
+  display: flex;
+  gap: 1rem;
+  margin-top: 1rem;
+}
+
+/* 主要導線ボタン */
+.button {
+  display: inline-block;
+  padding: 0.5rem 1rem;
+  border: 1px solid #0366d6;
+  border-radius: 4px;
+  color: #0366d6;
+  text-decoration: none;
+}
+
+.button:hover {
+  background: #0366d6;
+  color: #fff;
+}

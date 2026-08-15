@@ -27,9 +27,9 @@ RSpec.describe "Home", type: :request do
         expect(response.body).to include("掛け見える - 家計簿アプリ")
       end
 
-      it "稼働中ステータスを表示する" do
+      it "主要導線（明細・取り込み）へのリンクを表示する" do
         get root_path
-        expect(response.body).to match(/アプリケーション稼働中/)
+        expect(response.body).to include(transactions_path, new_import_path)
       end
     end
   end
