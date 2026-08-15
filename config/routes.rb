@@ -26,6 +26,9 @@ Rails.application.routes.draw do
 
   # 支払方法管理（一覧・追加・名前/種別変更・削除）。show は使わない。
   resources :payment_methods, except: %i[show]
+
+  # 明細。S7 は月別一覧（最小）・手動1件入力のみ。編集/絞り込みは S8。
+  resources :transactions, only: %i[index new create]
   # Define your application routes per the DSL in https://guides.rubyonrails.org/routing.html
 
   # Reveal health status on /up that returns 200 if the app boots with no exceptions, otherwise 500.

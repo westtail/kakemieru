@@ -1,0 +1,20 @@
+<%# S7 では最小の月別一覧。絞り込み・編集などの本格的な一覧は S8（#43/#41）で作る。 %>
+<h1><%= @month.strftime("%Y年%-m月") %> の明細</h1>
+
+<p><%= link_to "明細を追加", new_transaction_path %></p>
+
+<% if @transactions.any? %>
+  <ul>
+    <% @transactions.each do |transaction| %>
+      <li>
+        <%= transaction.effective_date.strftime("%-m/%-d") %>
+        <%= transaction.merchant_name %>
+        <%= number_to_currency(transaction.effective_amount, unit: "¥", precision: 0) %>
+        <%= transaction.category&.name || "未分類" %>
+        （<%= transaction.payment_method.name %>）
+      </li>
+    <% end %>
+  </ul>
+<% else %>
+  <p>この月の明細はまだありません。</p>
+<% end %>

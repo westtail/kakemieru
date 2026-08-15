@@ -1,0 +1,28 @@
+<%= render "shared/error_messages", record: @transaction %>
+
+<%= form_with model: @transaction do |form| %>
+  <div>
+    <%= form.label :date, "利用日" %><br>
+    <%= form.date_field :date, required: true %>
+  </div>
+  <div>
+    <%= form.label :amount, "金額（円）" %><br>
+    <%= form.number_field :amount, required: true %>
+  </div>
+  <div>
+    <%= form.label :merchant_name, "店舗名" %><br>
+    <%= form.text_field :merchant_name, required: true %>
+  </div>
+  <div>
+    <%= form.label :payment_method_id, "支払方法" %><br>
+    <%# 本人のアクティブな支払方法のみ選択させる（テナント整合）。 %>
+    <%= form.collection_select :payment_method_id, Current.user.payment_methods.active.order(:id), :id, :name %>
+  </div>
+  <div>
+    <%= form.label :category_id, "カテゴリ" %><br>
+    <%# 未分類（空）を先頭に。本人のカテゴリのみ。 %>
+    <%= form.collection_select :category_id, Current.user.categories.order(:id), :id, :name,
+          { include_blank: "未分類" } %>
+  </div>
+  <%= form.submit submit_label %>
+<% end %>
