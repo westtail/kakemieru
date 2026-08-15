@@ -89,6 +89,17 @@ RSpec.describe "PaymentMethods", type: :request do
       expect(flash[:alert]).to be_present
     end
 
+    it "明細を持つ支払方法は削除でなくアーカイブされる（物理削除しない）" do
+      payment_method = create(:payment_method, user: user, name: "楽天カード")
+      create(:transaction, user: user, payment_method: payment_method)
+
+      expect do
+        delete "/payment_methods/#{payment_method.id}"
+      end.not_to change { user.payment_methods.count }
+      expect(payment_method.reload.archived_at).to be_present
+      expect(response).to redirect_to("/payment_methods")
+    end
+
     it "現金の種別変更で削除ガードを回避できない（種別は変わらず削除も不可）" do
       cash = create(:payment_method, :cash, user: user)
       # 種別を credit に変えて cash? を false にしようとしても、サーバー側で種別変更を拒否する。
