@@ -23,6 +23,7 @@
   </head>
 
   <body>
+    <%= render "shared/header" %>
     <%# フラッシュは turbo-frame の外（body 直下）に置くことで Turbo Drive 後も表示される %>
     <%= render "shared/flash" %>
     <%= yield %>

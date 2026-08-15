@@ -1,0 +1,14 @@
+<%# ログイン時のみ表示する全ページ共通のグローバルナビ。 %>
+<% if authenticated? %>
+  <header id="global-nav">
+    <%= link_to "掛け見える", root_path, class: "brand" %>
+    <nav class="nav-links">
+      <%= link_to "明細", transactions_path %>
+      <%= link_to "取り込み", new_import_path %>
+      <%= link_to "カテゴリ", categories_path %>
+      <%= link_to "支払方法", payment_methods_path %>
+      <%= link_to "アカウント", account_path %>
+    </nav>
+    <%= button_to "ログアウト", sign_out_path, method: :delete, class: "logout" %>
+  </header>
+<% end %>
