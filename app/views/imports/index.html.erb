@@ -1,0 +1,19 @@
+<%# S6 では最小の取り込み履歴一覧（重複エラーのリンク先）。詳細・取り消しは S9（#47/#46）。 %>
+<h1>取り込み履歴</h1>
+
+<p><%= link_to "CSVを取り込む", new_import_path %></p>
+
+<% if @imports.any? %>
+  <ul>
+    <% @imports.each do |import| %>
+      <li>
+        <%= import.created_at.strftime("%Y-%m-%d %H:%M") %>
+        <%= import.payment_method.name %>
+        <%= import.row_count %>件
+        <% if import.source_ref.present? %>（<%= import.source_ref %>）<% end %>
+      </li>
+    <% end %>
+  </ul>
+<% else %>
+  <p>取り込み履歴はまだありません。</p>
+<% end %>

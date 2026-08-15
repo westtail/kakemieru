@@ -1,0 +1,25 @@
+<h1>CSV取り込み</h1>
+
+<% if @errors.present? %>
+  <div class="error-messages" style="color:red">
+    <ul>
+      <% @errors.each do |error| %>
+        <li><%= error %></li>
+      <% end %>
+    </ul>
+  </div>
+<% end %>
+
+<%= form_with url: imports_path, method: :post, scope: :import, html: { multipart: true } do |form| %>
+  <div>
+    <%= form.label :payment_method_id, "支払方法" %><br>
+    <%= form.collection_select :payment_method_id, @payment_methods, :id, :name %>
+  </div>
+  <div>
+    <%= form.label :file, "CSVファイル（楽天カード・Shift-JIS）" %><br>
+    <%= form.file_field :file, accept: ".csv" %>
+  </div>
+  <%= form.submit "取り込む" %>
+<% end %>
+
+<p><%= link_to "取り込み履歴", imports_path %></p>
