@@ -67,13 +67,23 @@ RSpec.describe Imports::ManualBulkImporter do
     expect(result.errors).to be_empty
   end
 
-  it "他ユーザーの支払方法/カテゴリは拒否してロールバック" do
+  it "他ユーザーの支払方法は拒否してロールバック" do
     other = create(:user)
     others_pm = create(:payment_method, user: other)
     result = run([ row(payment_method_id: others_pm.id) ])
 
     expect(result.import).to be_nil
     expect(user.imports.count).to eq(0)
+  end
+
+  it "他ユーザーのカテゴリは拒否してロールバック" do
+    other = create(:user)
+    others_category = create(:category, user: other, category_key: "food", name: "食費")
+    result = run([ row(category_id: others_category.id) ])
+
+    expect(result.import).to be_nil
+    expect(user.imports.count).to eq(0)
+    expect(user.transactions.count).to eq(0)
   end
 
   it "file_hash は毎回一意で、同じ内容でも重複保存できる" do

@@ -32,10 +32,10 @@
   <h2>手動でまとめて入力</h2>
   <%= form_with url: manual_import_path, method: :post do %>
     <div>
-      <label>デフォルト支払方法（各行で個別指定も可）</label><br>
+      <%= label_tag "manual_payment_method_id", "デフォルト支払方法（各行で個別指定も可）" %><br>
       <%= select_tag "manual[payment_method_id]",
             options_from_collection_for_select(@payment_methods, :id, :name),
-            prompt: "支払方法を選択してください", required: true %>
+            prompt: "支払方法を選択してください", required: true, id: "manual_payment_method_id" %>
     </div>
 
     <table>
