@@ -4,6 +4,9 @@
 class MerchantClassification < ApplicationRecord
   SOURCES = %w[ai user_manual].freeze
 
+  # CategoryClassifier と同じ正規化で保存・照合する（大文字小文字/全角/空白違いを吸収）。
+  normalizes :merchant_name, with: ->(value) { CategoryClassifier.normalize(value) }
+
   validates :merchant_name, presence: true, uniqueness: true
   validates :category_key, presence: true
   validates :source, presence: true, inclusion: { in: SOURCES }

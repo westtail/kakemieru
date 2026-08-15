@@ -69,6 +69,14 @@ RSpec.describe "Imports", type: :request do
       expect(response.body).to include("error-messages")
     end
 
+    it "支払方法未選択では取り込めず、案内へ戻す" do
+      expect do
+        post "/imports", params: { import: { payment_method_id: "", file: csv_upload(valid_csv) } }
+      end.not_to change(Import, :count)
+      expect(response).to redirect_to("/imports/new")
+      expect(flash[:alert]).to be_present
+    end
+
     it "他ユーザーの支払方法では取り込めない" do
       other_pm = create(:payment_method, user: create(:user), name: "他人カード")
       expect do

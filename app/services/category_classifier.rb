@@ -19,8 +19,10 @@ class CategoryClassifier
     key_by_name.transform_values { |category_key| id_by_key[category_key] }
   end
 
-  # パーサーと同じ正規化（NFKC で全角→半角・前後空白除去）で照合キーを揃える。
+  # 照合キーの正規化: NFKC（全角→半角）+ 前後空白除去 + 小文字化。
+  # "Amazon" と "amazon"、全角/半角/空白違いを同一キーに揃える。
+  # MerchantClassification も同じ正規化で保存する（normalizes）。
   def self.normalize(merchant_name)
-    merchant_name.to_s.unicode_normalize(:nfkc).strip
+    merchant_name.to_s.unicode_normalize(:nfkc).strip.downcase
   end
 end

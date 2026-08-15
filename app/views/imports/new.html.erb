@@ -13,7 +13,8 @@
 <%= form_with url: imports_path, method: :post, scope: :import, html: { multipart: true } do |form| %>
   <div>
     <%= form.label :payment_method_id, "支払方法" %><br>
-    <%= form.collection_select :payment_method_id, @payment_methods, :id, :name %>
+    <%= form.collection_select :payment_method_id, @payment_methods, :id, :name,
+          { prompt: "支払方法を選択してください" }, { required: true } %>
   </div>
   <div>
     <%= form.label :file, "CSVファイル（楽天カード・Shift-JIS）" %><br>

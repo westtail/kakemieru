@@ -39,12 +39,14 @@ module CsvParser
       rows = []
       errors = []
       csv_table.each_with_index do |csv_row, index|
+        attributes = row_to_attributes(csv_row)
+        next if attributes.nil? # 空行・集計行はスキップ（上限にカウントしない）
+
         if rows.size >= MAX_ROWS
           errors << "明細が上限（#{MAX_ROWS}件）を超えたため、以降の行を打ち切りました。"
           break
         end
-        attributes = row_to_attributes(csv_row)
-        rows << attributes if attributes
+        rows << attributes
       rescue StandardError => e
         errors << "#{index + 1}行目: #{e.message}"
       end

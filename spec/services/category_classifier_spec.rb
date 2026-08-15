@@ -21,6 +21,14 @@ RSpec.describe CategoryClassifier do
     expect(CategoryClassifier.category_id_for(user, " Ａｍａｚｏｎ ")).to eq(category.id)
   end
 
+  it "大文字小文字が違っても一致する（正規化で吸収）" do
+    create(:merchant_classification, merchant_name: "Amazon", category_key: "food")
+    category = create(:category, user: user, category_key: "food", name: "食費")
+
+    expect(CategoryClassifier.category_id_for(user, "amazon")).to eq(category.id)
+    expect(CategoryClassifier.category_id_for(user, "AMAZON")).to eq(category.id)
+  end
+
   it "分類キーはあるが user にそのカテゴリが無ければ nil" do
     create(:merchant_classification, merchant_name: "X", category_key: "food")
     expect(CategoryClassifier.category_id_for(user, "X")).to be_nil

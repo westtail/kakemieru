@@ -57,6 +57,19 @@ RSpec.describe CsvParser::RakutenCard do
     expect(result.errors.join).to include("上限")
   end
 
+  it "上限ちょうどの有効行の後に空行/集計行があっても打ち切りエラーにしない" do
+    stub_const("CsvParser::RakutenCard::MAX_ROWS", 2)
+    csv = <<~CSV.encode("Shift_JIS")
+      利用日,利用店名・商品名,利用者,支払方法,利用金額,支払手数料,支払総額
+      2026/01/01,A,本人,1回払い,100,0,100
+      2026/01/02,B,本人,1回払い,200,0,200
+      ,,,,,,
+    CSV
+    result = described_class.parse(csv)
+    expect(result.rows.size).to eq(2)
+    expect(result.errors).to be_empty
+  end
+
   it "ヘッダー行が無ければエラーを1件返す" do
     result = described_class.parse("summary,only\n1,2".encode("Shift_JIS"))
     expect(result.rows).to be_empty
