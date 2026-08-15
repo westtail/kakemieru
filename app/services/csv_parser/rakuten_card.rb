@@ -17,6 +17,8 @@ module CsvParser
     REQUIRED_HEADERS = [ COL_DATE, COL_DESCRIPTION, COL_AMOUNT ].freeze
 
     MERCHANT_NAME_LIMIT = 255
+    # 明細行の上限（DoS 対策の防御的上限。カード明細1ファイルには十分・超過は打ち切る）。
+    MAX_ROWS = 10_000
 
     def self.parse(content)
       new(content).parse
@@ -37,6 +39,10 @@ module CsvParser
       rows = []
       errors = []
       csv_table.each_with_index do |csv_row, index|
+        if rows.size >= MAX_ROWS
+          errors << "明細が上限（#{MAX_ROWS}件）を超えたため、以降の行を打ち切りました。"
+          break
+        end
         attributes = row_to_attributes(csv_row)
         rows << attributes if attributes
       rescue StandardError => e
