@@ -1,4 +1,4 @@
-<h1>CSV取り込み</h1>
+<h1>取り込み</h1>
 
 <% if @errors.present? %>
   <div class="error-messages" style="color:red">
@@ -10,17 +10,53 @@
   </div>
 <% end %>
 
-<%= form_with url: imports_path, method: :post, scope: :import, html: { multipart: true } do |form| %>
-  <div>
-    <%= form.label :payment_method_id, "支払方法" %><br>
-    <%= form.collection_select :payment_method_id, @payment_methods, :id, :name,
-          { prompt: "支払方法を選択してください" }, { required: true } %>
-  </div>
-  <div>
-    <%= form.label :file, "CSVファイル（楽天カード・Shift-JIS）" %><br>
-    <%= form.file_field :file, accept: ".csv" %>
-  </div>
-  <%= form.submit "取り込む" %>
-<% end %>
+<section>
+  <h2>CSVから取り込む</h2>
+  <%= form_with url: imports_path, method: :post, scope: :import, html: { multipart: true } do |form| %>
+    <div>
+      <%= form.label :payment_method_id, "支払方法" %><br>
+      <%= form.collection_select :payment_method_id, @payment_methods, :id, :name,
+            { prompt: "支払方法を選択してください" }, { required: true } %>
+    </div>
+    <div>
+      <%= form.label :file, "CSVファイル（楽天カード・Shift-JIS）" %><br>
+      <%= form.file_field :file, accept: ".csv" %>
+    </div>
+    <%= form.submit "取り込む" %>
+  <% end %>
+</section>
+
+<hr>
+
+<section data-controller="bulk-entry" data-bulk-entry-max-value="50">
+  <h2>手動でまとめて入力</h2>
+  <%= form_with url: manual_import_path, method: :post do %>
+    <div>
+      <%= label_tag "manual_payment_method_id", "デフォルト支払方法（各行で個別指定も可）" %><br>
+      <%= select_tag "manual[payment_method_id]",
+            options_from_collection_for_select(@payment_methods, :id, :name),
+            prompt: "支払方法を選択してください", required: true, id: "manual_payment_method_id" %>
+    </div>
+
+    <table>
+      <thead>
+        <tr><th>利用日</th><th>店舗名</th><th>金額</th><th>カテゴリ</th><th>支払方法</th><th></th></tr>
+      </thead>
+      <tbody data-bulk-entry-target="list">
+        <% @manual_rows.each do |row| %>
+          <%= render "manual_row", row: row, payment_methods: @payment_methods, categories: @categories %>
+        <% end %>
+      </tbody>
+    </table>
+
+    <%# Stimulus が addRow でこの中身を複製して行を追加する %>
+    <template data-bulk-entry-target="template">
+      <%= render "manual_row", row: {}, payment_methods: @payment_methods, categories: @categories %>
+    </template>
+
+    <button type="button" data-action="bulk-entry#addRow" data-bulk-entry-target="addButton">行を追加</button>
+    <%= submit_tag "保存する" %>
+  <% end %>
+</section>
 
 <p><%= link_to "取り込み履歴", imports_path %></p>

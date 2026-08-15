@@ -35,7 +35,7 @@ RSpec.describe "Imports", type: :request do
       sign_in
       get "/imports/new"
       expect(response).to have_http_status(:ok)
-      expect(response.body).to include("CSV取り込み", "支払方法")
+      expect(response.body).to include("CSVから取り込む", "支払方法")
     end
   end
 
@@ -83,6 +83,55 @@ RSpec.describe "Imports", type: :request do
         post "/imports", params: { import: { payment_method_id: other_pm.id, file: csv_upload(valid_csv) } }
       end.not_to change(Import, :count)
       expect(response).to redirect_to("/imports/new")
+    end
+  end
+
+  describe "GET /imports/new（手動セクション）" do
+    it "手動まとめ入力のセクションを表示する" do
+      sign_in
+      get "/imports/new"
+      expect(response.body).to include("手動でまとめて入力", "デフォルト支払方法")
+    end
+  end
+
+  describe "POST /imports/manual（手動まとめ入力）" do
+    before { sign_in }
+
+    it "複数行を Import(manual_bulk) + 明細として保存し、月別一覧へ遷移する" do
+      expect do
+        post "/imports/manual", params: { manual: {
+          payment_method_id: payment_method.id,
+          transactions: [
+            { date: "2026-01-15", merchant_name: "ローソン", amount: "300", category_id: "", payment_method_id: "" },
+            { date: "2026-01-20", merchant_name: "自販機", amount: "150", category_id: "", payment_method_id: "" }
+          ]
+        } }
+      end.to change { user.transactions.count }.by(2).and change { user.imports.count }.by(1)
+
+      expect(user.imports.last.source_type).to eq("manual_bulk")
+      expect(response).to redirect_to("/transactions?month=2026-01")
+      follow_redirect!
+      expect(flash[:notice]).to include("2件")
+    end
+
+    it "入力不備は 422 で再描画する（Import は作らない）" do
+      expect do
+        post "/imports/manual", params: { manual: {
+          payment_method_id: payment_method.id,
+          transactions: [ { date: "2026-01-15", merchant_name: "", amount: "", category_id: "", payment_method_id: "" } ]
+        } }
+      end.not_to change { user.imports.count }
+      expect(response).to have_http_status(:unprocessable_entity)
+      expect(response.body).to include("error-messages")
+    end
+
+    it "デフォルト支払方法未選択では案内へ戻す" do
+      post "/imports/manual", params: { manual: {
+        payment_method_id: "",
+        transactions: [ { date: "2026-01-15", merchant_name: "X", amount: "100" } ]
+      } }
+      expect(response).to redirect_to("/imports/new")
+      expect(flash[:alert]).to be_present
     end
   end
 
