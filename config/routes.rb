@@ -32,6 +32,8 @@ Rails.application.routes.draw do
 
   # CSV取り込み。S6 は new/create（保存）と最小の履歴一覧。詳細/取り消しは S9。
   resources :imports, only: %i[index new create]
+  # 手動まとめ入力（複数行を manual_bulk として一括保存）。
+  post "imports/manual", to: "imports#create_manual", as: :manual_import
   # Define your application routes per the DSL in https://guides.rubyonrails.org/routing.html
 
   # Reveal health status on /up that returns 200 if the app boots with no exceptions, otherwise 500.

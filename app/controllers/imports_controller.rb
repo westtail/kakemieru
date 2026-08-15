@@ -4,11 +4,12 @@ class ImportsController < ApplicationController
   end
 
   def new
-    @payment_methods = Current.user.payment_methods.active.order(:id)
+    set_form_collections
+    @manual_rows = [ {} ] # 手動入力の初期行（空1行）
   end
 
+  # CSV 取り込み
   def create
-    # 支払方法は本人のアクティブなものだけ（所有権スコープ・生 params を Import に渡さない）。
     payment_method = Current.user.payment_methods.active.find(params.dig(:import, :payment_method_id))
 
     result = Imports::CsvImporter.new(
@@ -21,15 +22,53 @@ class ImportsController < ApplicationController
       redirect_to transactions_path(month: redirect_month(result.import)),
                   notice: "#{result.import.row_count}件を取り込みました。"
     else
-      @errors = result.errors
-      @payment_methods = Current.user.payment_methods.active.order(:id)
-      render :new, status: :unprocessable_entity
+      rerender_new(result.errors)
+    end
+  rescue ActiveRecord::RecordNotFound
+    redirect_to new_import_path, alert: "支払方法を選択してください。"
+  end
+
+  # 手動まとめ入力
+  def create_manual
+    default = Current.user.payment_methods.active.find(manual_params[:payment_method_id])
+    rows = manual_params[:transactions] || []
+
+    result = Imports::ManualBulkImporter.new(
+      user: Current.user,
+      default_payment_method: default,
+      rows: rows
+    ).call
+
+    if result.errors.empty?
+      redirect_to transactions_path(month: redirect_month(result.import)),
+                  notice: "#{result.import.row_count}件を保存しました。"
+    else
+      rerender_new(result.errors, manual_rows: rows.presence || [ {} ])
     end
   rescue ActiveRecord::RecordNotFound
     redirect_to new_import_path, alert: "支払方法を選択してください。"
   end
 
   private
+    def manual_params
+      params.require(:manual).permit(
+        :payment_method_id,
+        transactions: %i[date merchant_name amount category_id payment_method_id]
+      )
+    end
+
+    def set_form_collections
+      @payment_methods = Current.user.payment_methods.active.order(:id)
+      @categories = Current.user.categories.order(:id)
+    end
+
+    def rerender_new(errors, manual_rows: [ {} ])
+      @errors = errors
+      @manual_rows = manual_rows
+      set_form_collections
+      render :new, status: :unprocessable_entity
+    end
+
     # 取り込んだ明細の最新月へ誘導する（結果が見える）。
     def redirect_month(import)
       import.transactions.maximum(:effective_date)&.strftime("%Y-%m")
