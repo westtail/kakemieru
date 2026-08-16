@@ -187,5 +187,99 @@ RSpec.describe "Transactions", type: :request do
       get "/transactions", params: { month: [ "x" ], category: { x: "1" }, q: [ "y" ] }
       expect(response).to have_http_status(:ok)
     end
+
+    it "訂正済みの行にバッジと編集リンクを表示する" do
+      corrected = create(:transaction, user: user, payment_method: payment_method,
+                         date: Date.new(2026, 1, 10), merchant_name: "訂正済店", amount: 1000, amount_override: 800)
+
+      get "/transactions", params: { month: "2026-01" }
+      expect(response.body).to include("訂正")
+      expect(response.body).to include(edit_transaction_path(corrected))
+    end
+  end
+
+  describe "GET /transactions/:id/edit" do
+    before { sign_in }
+
+    it "自分の明細の編集画面を表示する（原本は表示のみ）" do
+      transaction = create(:transaction, user: user, payment_method: payment_method,
+                           date: Date.new(2026, 1, 15), amount: 1234, description: "原本メモ")
+      get edit_transaction_path(transaction)
+      expect(response).to have_http_status(:ok)
+      expect(response.body).to include("1,234", "原本メモ", "merchant_name")
+    end
+
+    it "他ユーザーの明細は 404" do
+      other = create(:user)
+      others_tx = create(:transaction, user: other, payment_method: create(:payment_method, user: other))
+      get edit_transaction_path(others_tx)
+      expect(response).to have_http_status(:not_found)
+    end
+  end
+
+  describe "PATCH /transactions/:id" do
+    before { sign_in }
+
+    let!(:transaction) do
+      create(:transaction, user: user, payment_method: payment_method,
+             date: Date.new(2026, 1, 15), amount: 1000, merchant_name: "元の店")
+    end
+
+    it "amount_override を保存すると effective_amount が更新される" do
+      patch transaction_path(transaction), params: { transaction: { amount_override: 800 } }
+      transaction.reload
+      expect(transaction.amount).to eq(1000) # 原本は不変
+      expect(transaction.effective_amount).to eq(800)
+      expect(response).to redirect_to("/transactions?month=2026-01")
+    end
+
+    it "date_override を保存すると effective_date が更新され、その月へ遷移する" do
+      patch transaction_path(transaction), params: { transaction: { date_override: "2026-02-20" } }
+      transaction.reload
+      expect(transaction.date).to eq(Date.new(2026, 1, 15)) # 原本は不変
+      expect(transaction.effective_date).to eq(Date.new(2026, 2, 20))
+      expect(response).to redirect_to("/transactions?month=2026-02")
+    end
+
+    it "amount_override を空欄で保存すると訂正が解除され原本に戻る" do
+      transaction.update!(amount_override: 800)
+      expect(transaction.reload.effective_amount).to eq(800)
+
+      patch transaction_path(transaction), params: { transaction: { amount_override: "" } }
+      transaction.reload
+      expect(transaction.amount_override).to be_nil
+      expect(transaction.effective_amount).to eq(1000) # 原本へ戻る
+      expect(transaction.corrected?).to be(false)
+    end
+
+    it "merchant_name / category_id を更新できる" do
+      category = create(:category, user: user, name: "食費")
+      patch transaction_path(transaction), params: { transaction: { merchant_name: "新しい店", category_id: category.id } }
+      transaction.reload
+      expect(transaction.merchant_name).to eq("新しい店")
+      expect(transaction.category_id).to eq(category.id)
+    end
+
+    it "不正値（店舗名空・金額訂正が非整数・不正日付）は 422 で再描画し原本を変えない" do
+      patch transaction_path(transaction), params: { transaction: { merchant_name: "" } }
+      expect(response).to have_http_status(:unprocessable_entity)
+
+      patch transaction_path(transaction), params: { transaction: { amount_override: "abc" } }
+      expect(response).to have_http_status(:unprocessable_entity)
+
+      patch transaction_path(transaction), params: { transaction: { date_override: "not-a-date" } }
+      expect(response).to have_http_status(:unprocessable_entity)
+
+      transaction.reload
+      expect(transaction.effective_amount).to eq(1000)
+      expect(transaction.effective_date).to eq(Date.new(2026, 1, 15))
+    end
+
+    it "他ユーザーの明細の更新は 404" do
+      other = create(:user)
+      others_tx = create(:transaction, user: other, payment_method: create(:payment_method, user: other))
+      patch transaction_path(others_tx), params: { transaction: { merchant_name: "乗っ取り" } }
+      expect(response).to have_http_status(:not_found)
+    end
   end
 end
