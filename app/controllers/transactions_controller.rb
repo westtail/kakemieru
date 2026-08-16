@@ -1,4 +1,6 @@
 class TransactionsController < ApplicationController
+  before_action :set_transaction, only: %i[edit update]
+
   def index
     @month = parse_month(params[:month]) || Date.current.beginning_of_month
     # 配列/ハッシュ型の細工パラメータでも 500 にせず「すべて」に倒す。
@@ -30,11 +32,39 @@ class TransactionsController < ApplicationController
     end
   end
 
+  def edit
+    @categories = Current.user.categories.order(:id)
+  end
+
+  def update
+    if @transaction.update(transaction_update_params)
+      # effective_date は DB の生成カラム。override 変更後の正しい月を得るため再読込する
+      # （update は RETURNING で生成カラムを取り直さないため in-memory は古いまま）。
+      @transaction.reload
+      redirect_to transactions_path(month: @transaction.effective_date.strftime("%Y-%m")),
+                  notice: "明細を更新しました。"
+    else
+      @categories = Current.user.categories.order(:id)
+      render :edit, status: :unprocessable_entity
+    end
+  end
+
   private
+    # 所有権スコープ: 他ユーザー・削除済みは見つからず 404（= 操作不可）。
+    def set_transaction
+      @transaction = Current.user.transactions.not_deleted.find(params[:id])
+    end
+
     # 他ユーザーの category/payment_method を注入させない（user_id/override/effective_* も不可）。
     # 値の所有者チェックはモデルのテナント整合バリデーションで担保する。
     def transaction_params
       params.require(:transaction).permit(:date, :amount, :merchant_name, :category_id, :payment_method_id)
+    end
+
+    # 編集で変更できるのは 店舗名・カテゴリ・訂正値のみ。原本 date/amount（attr_readonly）と
+    # payment_method は permit しない（原本の不変性・スコープ外項目を二重に守る）。
+    def transaction_update_params
+      params.require(:transaction).permit(:merchant_name, :category_id, :amount_override, :date_override)
     end
 
     def parse_month(value)
