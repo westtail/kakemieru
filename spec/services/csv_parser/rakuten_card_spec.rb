@@ -120,6 +120,18 @@ RSpec.describe CsvParser::RakutenCard do
       expect(result.rows.size).to eq(1)
     end
 
+    it "UTF-8（BOM付き）で先頭にサマリー行があってもヘッダーを自動検出して取り込める" do
+      csv = "﻿" + <<~CSV
+        ご利用明細,,,,,,
+        利用日,利用店名・商品名,利用者,支払方法,利用金額,支払手数料,支払総額
+        2026/03/10,前置きストア,本人,1回払い,1500,0,1500
+      CSV
+      result = described_class.parse(csv)
+      expect(result.errors).to be_empty
+      expect(result.rows.size).to eq(1)
+      expect(result.rows.first[:merchant_name]).to eq("前置きストア")
+    end
+
     it "全項目クォート付き・列数の多い実フォーマット（UTF-8）でも取り込める" do
       csv = <<~CSV
         "利用日","利用店名・商品名","利用者","支払方法","利用金額","手数料/利息","支払総額","4月支払金額","5月繰越残高","新規サイン"
