@@ -44,6 +44,10 @@ class Transaction < ApplicationRecord
     start_date = Date.new(year, month, 1)
     where(effective_date: start_date...start_date.next_month)
   }
+  # 店舗名の前方一致。LIKE のワイルドカード（% _）はエスケープする。
+  scope :merchant_prefix, ->(keyword) {
+    where("merchant_name LIKE ?", "#{sanitize_sql_like(keyword)}%")
+  }
 
   private
     def payment_method_belongs_to_user
