@@ -38,6 +38,11 @@ class Transaction < ApplicationRecord
   validate :import_belongs_to_user
   validate :date_override_is_valid_date
 
+  # 訂正値（金額 or 日付の override）を持つか。一覧の「訂正」バッジ判定に使う。
+  def corrected?
+    amount_override.present? || date_override.present?
+  end
+
   scope :not_deleted, -> { where(deleted_at: nil) }
   # 月内の明細（集計用の effective_date で判定）。呼び出し側で not_deleted と合成する。
   scope :in_month, ->(year, month) {
