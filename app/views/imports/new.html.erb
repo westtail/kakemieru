@@ -10,7 +10,7 @@
   </div>
 <% end %>
 
-<section>
+<section id="csv-import">
   <h2>CSVから取り込む</h2>
   <%= form_with url: imports_path, method: :post, scope: :import, html: { multipart: true } do |form| %>
     <div>
@@ -28,7 +28,7 @@
 
 <hr>
 
-<section data-controller="bulk-entry" data-bulk-entry-max-value="50">
+<section id="manual-import" data-controller="bulk-entry" data-bulk-entry-max-value="50">
   <h2>手動でまとめて入力</h2>
   <%= form_with url: manual_import_path, method: :post do %>
     <div>

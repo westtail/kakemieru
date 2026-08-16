@@ -2,9 +2,25 @@
 <% if authenticated? %>
   <header id="global-nav" class="flex items-center flex-wrap gap-4 px-4 py-3 border-b border-gray-200 bg-gray-50">
     <%= link_to "掛け見える", root_path, class: "font-bold text-gray-800 no-underline" %>
-    <nav class="flex flex-wrap gap-4">
+    <nav class="flex flex-wrap items-center gap-4">
       <%= link_to "明細", transactions_path, class: "text-blue-600 hover:underline" %>
-      <%= link_to "取り込み", new_import_path, class: "text-blue-600 hover:underline" %>
+      <div class="relative" data-controller="dropdown">
+        <button type="button" class="text-blue-600 hover:underline"
+                data-dropdown-target="button" data-action="dropdown#toggle"
+                aria-haspopup="true" aria-expanded="false">取り込み <span aria-hidden="true">▾</span></button>
+        <div data-dropdown-target="menu"
+             class="hidden absolute left-0 mt-1 w-48 bg-white border border-gray-200 rounded shadow z-10">
+          <%= link_to "CSVから取り込む", new_import_path(anchor: "csv-import"),
+                class: "block px-4 py-2 text-blue-600 no-underline hover:bg-gray-100",
+                data: { action: "dropdown#close" } %>
+          <%= link_to "手動でまとめて入力", new_import_path(anchor: "manual-import"),
+                class: "block px-4 py-2 text-blue-600 no-underline hover:bg-gray-100",
+                data: { action: "dropdown#close" } %>
+          <%= link_to "取り込み履歴", imports_path,
+                class: "block px-4 py-2 text-blue-600 no-underline hover:bg-gray-100",
+                data: { action: "dropdown#close" } %>
+        </div>
+      </div>
       <%= link_to "カテゴリ", categories_path, class: "text-blue-600 hover:underline" %>
       <%= link_to "支払方法", payment_methods_path, class: "text-blue-600 hover:underline" %>
       <%= link_to "アカウント", account_path, class: "text-blue-600 hover:underline" %>

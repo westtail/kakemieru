@@ -23,6 +23,15 @@ RSpec.describe "グローバルナビ", type: :request do
       get transactions_path
       expect(response.body).to include('id="global-nav"')
     end
+
+    it "「取り込み」はドロップダウンで CSV/手動/履歴の3項目を持つ" do
+      get "/"
+      expect(response.body).to include('data-controller="dropdown"')
+      # 3項目のリンクがサーバーレンダリングされている（表示切替は Stimulus）
+      expect(response.body).to include(new_import_path(anchor: "csv-import"))
+      expect(response.body).to include(new_import_path(anchor: "manual-import"))
+      expect(response.body).to include(imports_path)
+    end
   end
 
   describe "未ログイン時" do
