@@ -6,7 +6,9 @@ services:
     build:
       target: development
     user: "1000:1000"
-    command: bundle exec rails server -b 0.0.0.0 -p 3000
+    # サーバ起動前に Tailwind を一度ビルドして builds/tailwind.css を用意する
+    # （初回レンダリングの Propshaft MissingAsset を防ぐ。以降の再ビルドは css サービスが担当）。
+    command: bash -c "bin/rails tailwindcss:build && bundle exec rails server -b 0.0.0.0 -p 3000"
     environment:
       POSTGRES_HOST: db
       POSTGRES_USER: postgres
