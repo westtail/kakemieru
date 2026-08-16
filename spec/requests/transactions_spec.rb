@@ -104,4 +104,74 @@ RSpec.describe "Transactions", type: :request do
       expect(response.body).not_to include("他人の明細")
     end
   end
+
+  describe "GET /transactions（絞り込み）" do
+    before { sign_in }
+
+    let(:food) { create(:category, user: user, name: "食費") }
+    let(:transport) { create(:category, user: user, name: "交通費") }
+
+    # 同一月（2026-01）に、カテゴリ別・キーワード別の明細を用意する。
+    let!(:food_tx) do
+      create(:transaction, user: user, payment_method: payment_method,
+             date: Date.new(2026, 1, 10), merchant_name: "スーパー", category: food)
+    end
+    let!(:transport_tx) do
+      create(:transaction, user: user, payment_method: payment_method,
+             date: Date.new(2026, 1, 11), merchant_name: "鉄道", category: transport)
+    end
+    let!(:uncategorized_tx) do
+      create(:transaction, user: user, payment_method: payment_method,
+             date: Date.new(2026, 1, 12), merchant_name: "自販機", category: nil)
+    end
+
+    it "カテゴリ指定でそのカテゴリの明細のみ表示する" do
+      get "/transactions", params: { month: "2026-01", category: food.id }
+      expect(response.body).to include("スーパー")
+      expect(response.body).not_to include("鉄道")
+      expect(response.body).not_to include("自販機")
+    end
+
+    it "category 空で未分類のみ表示する" do
+      get "/transactions", params: { month: "2026-01", category: "" }
+      expect(response.body).to include("自販機")
+      expect(response.body).not_to include("スーパー")
+      expect(response.body).not_to include("鉄道")
+    end
+
+    it "category=all（既定）で全件表示する" do
+      get "/transactions", params: { month: "2026-01", category: "all" }
+      expect(response.body).to include("スーパー", "鉄道", "自販機")
+    end
+
+    it "キーワードは店舗名の前方一致で絞り込む" do
+      create(:transaction, user: user, payment_method: payment_method,
+             date: Date.new(2026, 1, 13), merchant_name: "スターバックス")
+
+      get "/transactions", params: { month: "2026-01", q: "スター" }
+      expect(response.body).to include("スターバックス")
+      # 前方一致なので「スーパー」や後方一致は出ない
+      expect(response.body).not_to include("スーパー")
+      expect(response.body).not_to include("自販機")
+    end
+
+    it "他ユーザーのカテゴリ id を指定しても自分の明細は漏れない" do
+      others_category = create(:category, user: create(:user), name: "他人カテゴリ")
+
+      get "/transactions", params: { month: "2026-01", category: others_category.id }
+      expect(response.body).not_to include("スーパー")
+      expect(response.body).not_to include("自販機")
+      expect(response.body).to include("該当する明細はありません")
+    end
+
+    it "該当する明細がない月はメッセージを表示する" do
+      get "/transactions", params: { month: "2020-01" }
+      expect(response.body).to include("該当する明細はありません")
+    end
+
+    it "配列/ハッシュ型の細工パラメータでも 500 にならない" do
+      get "/transactions", params: { month: [ "x" ], category: { x: "1" }, q: [ "y" ] }
+      expect(response).to have_http_status(:ok)
+    end
+  end
 end
