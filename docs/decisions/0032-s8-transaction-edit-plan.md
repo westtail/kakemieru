@@ -9,7 +9,7 @@
 
 ## コンテキスト
 
-#43 で一覧・絞り込みができるようになった明細を、1件ずつ編集できるようにする。CSV 原本（date/amount/description）は不変・表示のみで、訂正は override 列に入れる、というモデル方針（`app/models/transaction.rb`）に沿う。一覧→編集の導線を通す。
+Issue #43 で一覧・絞り込みができるようになった明細を、1件ずつ編集できるようにする。CSV 原本（date/amount/description）は不変・表示のみで、訂正は override 列に入れる、というモデル方針（`app/models/transaction.rb`）に沿う。一覧→編集の導線を通す。
 
 ---
 
