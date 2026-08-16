@@ -21,9 +21,9 @@
 
 - **gem は `tailwindcss-rails`（Tailwind v4 系）**: standalone CLI バイナリ方式で **Node/npm 不要**。Propshaft + importmap をそのまま維持し、`package.json` を追加しない。cssbundling-rails（Node 前提）は不採用。
 - **本番ビルド**: 既存 `Dockerfile` の `assets:precompile` が Tailwind build を内包（gem が precompile にフック）。本番構成は変更不要。
-- **CI（test ジョブ）**: `bin/rails tailwindcss:build` を `db:schema:load` の後・`rspec` の前に追加する。レイアウトが `tailwind` を参照するため、ビルド済み CSS が無いと Propshaft の MissingAsset でレイアウト描画 spec が全滅するため必須。
-- **開発（Docker）**: 既存は単一プロセス（foreman/Procfile.dev なし）。watch は `docker-compose.override.yml` に **専用サービス `css`**（`rails tailwindcss:watch`）を追加して回す。foreman/`bin/dev` 依存は増やさない。
-- **ビルド出力 `app/assets/builds/tailwind.css` は非コミット**（`.gitignore`）。生成は 開発=css サービス / CI=build ステップ / 本番=precompile が担う。
+- **テスト/CI**: `spec/rails_helper.rb` の `before(:suite)` で、ビルド出力が無ければ一度だけ `tailwindcss:build` する。レイアウトが `tailwind` を参照するため、ビルド済み CSS が無いと Propshaft の MissingAsset でレイアウト描画 spec が全滅するのを防ぐ。CI ワークフロー（`.github/workflows/ci.yml`）は変更しない（当初は CI に build ステップを追加する案だったが、push トークンに `workflow` スコープが無く、また `before(:suite)` 方式ならローカル `rspec` でも同じ保証が効くため、こちらを採用）。
+- **開発（Docker）**: 既存は単一プロセス（foreman/Procfile.dev なし）。`docker-compose.override.yml` で (1) `web` の起動コマンドで `tailwindcss:build` してから server を起動（初回レンダリングの MissingAsset 防止）、(2) 再ビルド用の **専用サービス `css`**（`rails tailwindcss:watch`）を web と並走させる。foreman/`bin/dev` 依存は増やさない。
+- **ビルド出力 `app/assets/builds/tailwind.css` は非コミット**（`.gitignore`）。生成は 開発=web 起動時ビルド＋css サービス / テスト・CI=`before(:suite)` / 本番=precompile が担う。
 - **移行範囲は漸進**: 今回は共通クロム（レイアウト・ヘッダー・ホーム）＋インライン `style="color:red"` の3箇所のみ Tailwind 化してパターンを確立。各画面フォーム/一覧の本格スタイリングは後続スライスで行う。
 
 ---
