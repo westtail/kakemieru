@@ -144,15 +144,29 @@ RSpec.describe "Transactions", type: :request do
       expect(response.body).to include("スーパー", "鉄道", "自販機")
     end
 
-    it "キーワードは店舗名の前方一致で絞り込む" do
+    it "キーワードは店舗名の前方一致で絞り込む（部分一致は除外）" do
       create(:transaction, user: user, payment_method: payment_method,
              date: Date.new(2026, 1, 13), merchant_name: "スターバックス")
+      # 「スター」を含むが先頭ではない → 前方一致では出ない
+      create(:transaction, user: user, payment_method: payment_method,
+             date: Date.new(2026, 1, 14), merchant_name: "駅スター")
 
       get "/transactions", params: { month: "2026-01", q: "スター" }
       expect(response.body).to include("スターバックス")
-      # 前方一致なので「スーパー」や後方一致は出ない
+      expect(response.body).not_to include("駅スター")
       expect(response.body).not_to include("スーパー")
-      expect(response.body).not_to include("自販機")
+    end
+
+    it "キーワードの LIKE ワイルドカード（_ や %）をリテラルとして扱う" do
+      # "_" をエスケープしないと "A_B" は「A + 任意1文字 + B」に一致してしまう
+      create(:transaction, user: user, payment_method: payment_method,
+             date: Date.new(2026, 1, 15), merchant_name: "A_B商店")
+      create(:transaction, user: user, payment_method: payment_method,
+             date: Date.new(2026, 1, 16), merchant_name: "AXB商店")
+
+      get "/transactions", params: { month: "2026-01", q: "A_B" }
+      expect(response.body).to include("A_B商店")
+      expect(response.body).not_to include("AXB商店")
     end
 
     it "他ユーザーのカテゴリ id を指定しても自分の明細は漏れない" do
