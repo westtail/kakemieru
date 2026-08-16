@@ -52,6 +52,16 @@ RSpec.describe "Imports", type: :request do
       expect(flash[:notice]).to include("2件")
     end
 
+    it "UTF-8 で保存された CSV でも取り込める（Excel 保存等）" do
+      utf8_file = Rack::Test::UploadedFile.new(
+        StringIO.new(valid_csv), "text/csv", original_filename: "rakuten_utf8.csv"
+      )
+      expect do
+        post "/imports", params: { import: { payment_method_id: payment_method.id, file: utf8_file } }
+      end.to change { user.transactions.count }.by(2)
+      expect(response).to redirect_to("/transactions?month=2026-01")
+    end
+
     it "同じファイルの再取り込みは重複エラーで再描画する" do
       post "/imports", params: { import: { payment_method_id: payment_method.id, file: csv_upload(valid_csv) } }
       expect do
