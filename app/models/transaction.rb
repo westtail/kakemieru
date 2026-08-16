@@ -43,6 +43,11 @@ class Transaction < ApplicationRecord
     amount_override.present? || date_override.present?
   end
 
+  # 取り消し（ソフトデリート）。物理削除せず deleted_at をセットする。
+  def soft_delete!
+    update!(deleted_at: Time.current)
+  end
+
   scope :not_deleted, -> { where(deleted_at: nil) }
   # 月内の明細（集計用の effective_date で判定）。呼び出し側で not_deleted と合成する。
   scope :in_month, ->(year, month) {
@@ -62,9 +67,12 @@ class Transaction < ApplicationRecord
     end
 
     def category_belongs_to_user
-      return if category.nil? || user.nil?
+      return if user.nil?
+      return if category_id.blank? # 未分類（nil）は許可
 
-      errors.add(:category, :invalid) if category.user_id != user_id
+      # category は optional のため存在検証されない。実在しない id はここで弾かないと
+      # DB の FK 違反で 500 になる（一覧を開いたままカテゴリ削除→古い option 選択のレース）。
+      errors.add(:category, :invalid) if category.nil? || category.user_id != user_id
     end
 
     def import_belongs_to_user

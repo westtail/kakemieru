@@ -1,5 +1,5 @@
 class TransactionsController < ApplicationController
-  before_action :set_transaction, only: %i[edit update]
+  before_action :set_transaction, only: %i[edit update categorize destroy]
 
   def index
     @month = parse_month(params[:month]) || Date.current.beginning_of_month
@@ -47,6 +47,27 @@ class TransactionsController < ApplicationController
       @categories = Current.user.categories.order(:id)
       render :edit, status: :unprocessable_entity
     end
+  end
+
+  # 一覧のインライン カテゴリ変更（Turbo Stream 専用）。
+  # 全画面編集 update（HTML リダイレクト）と混ざらないよう別アクションに分離する。
+  def categorize
+    @transaction.update(params.require(:transaction).permit(:category_id))
+    # 他ユーザーの category_id はモデルのテナント整合で拒否される。reload で実際の保存状態
+    # （拒否時は元のカテゴリ）に戻し、その行だけを差し替える。
+    @transaction.reload
+    @categories = Current.user.categories.order(:id)
+    render turbo_stream: turbo_stream.replace(
+      @transaction,
+      partial: "transactions/transaction",
+      locals: { transaction: @transaction, categories: @categories }
+    )
+  end
+
+  # 取り消し（ソフトデリート）。行を消す Turbo Stream を返す。
+  def destroy
+    @transaction.soft_delete!
+    render turbo_stream: turbo_stream.remove(@transaction)
   end
 
   private
