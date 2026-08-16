@@ -4,6 +4,8 @@ source "https://rubygems.org"
 gem "rails", "8.1.3.1"
 # The modern asset pipeline for Rails [https://github.com/rails/propshaft]
 gem "propshaft"
+# Tailwind CSS（standalone バイナリ方式・Node 不要）[https://github.com/rails/tailwindcss-rails]
+gem "tailwindcss-rails"
 # Use postgresql as the database for Active Record
 gem "pg", "~> 1.1"
 # CSV 取り込みで使用。Ruby 3.4 で csv は default gem 対象外になり、Bundler 配下では

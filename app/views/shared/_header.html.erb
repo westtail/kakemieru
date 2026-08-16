@@ -1,14 +1,14 @@
 <%# ログイン時のみ表示する全ページ共通のグローバルナビ。 %>
 <% if authenticated? %>
-  <header id="global-nav">
-    <%= link_to "掛け見える", root_path, class: "brand" %>
-    <nav class="nav-links">
-      <%= link_to "明細", transactions_path %>
-      <%= link_to "取り込み", new_import_path %>
-      <%= link_to "カテゴリ", categories_path %>
-      <%= link_to "支払方法", payment_methods_path %>
-      <%= link_to "アカウント", account_path %>
+  <header id="global-nav" class="flex items-center flex-wrap gap-4 px-4 py-3 border-b border-gray-200 bg-gray-50">
+    <%= link_to "掛け見える", root_path, class: "font-bold text-gray-800 no-underline" %>
+    <nav class="flex flex-wrap gap-4">
+      <%= link_to "明細", transactions_path, class: "text-blue-600 hover:underline" %>
+      <%= link_to "取り込み", new_import_path, class: "text-blue-600 hover:underline" %>
+      <%= link_to "カテゴリ", categories_path, class: "text-blue-600 hover:underline" %>
+      <%= link_to "支払方法", payment_methods_path, class: "text-blue-600 hover:underline" %>
+      <%= link_to "アカウント", account_path, class: "text-blue-600 hover:underline" %>
     </nav>
-    <%= button_to "ログアウト", sign_out_path, method: :delete, class: "logout" %>
+    <%= button_to "ログアウト", sign_out_path, method: :delete, form_class: "ml-auto", class: "text-gray-600 hover:underline" %>
   </header>
 <% end %>

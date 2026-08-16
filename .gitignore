@@ -43,3 +43,6 @@
 /tmp/screenshots/
 # Ignore local Claude Code settings.
 /.claude/
+
+/app/assets/builds/*
+!/app/assets/builds/.keep
