@@ -17,15 +17,16 @@
     <link rel="icon" href="/icon.svg" type="image/svg+xml">
     <link rel="apple-touch-icon" href="/icon.png">
 
-    <%# Includes all stylesheet files in app/assets/stylesheets %>
-    <%= stylesheet_link_tag :app, "data-turbo-track": "reload" %>
+    <%= stylesheet_link_tag "tailwind", "data-turbo-track": "reload" %>
     <%= javascript_importmap_tags %>
   </head>
 
   <body>
     <%= render "shared/header" %>
-    <%# フラッシュは turbo-frame の外（body 直下）に置くことで Turbo Drive 後も表示される %>
-    <%= render "shared/flash" %>
-    <%= yield %>
+    <main class="max-w-3xl mx-auto p-4">
+      <%# フラッシュは turbo-frame の外（body 直下）に置くことで Turbo Drive 後も表示される %>
+      <%= render "shared/flash" %>
+      <%= yield %>
+    </main>
   </body>
 </html>
