@@ -27,4 +27,15 @@ RSpec.describe "取り込みドロップダウン", type: :feature do
     find("h1").click
     expect(page).to have_no_link("取り込み履歴")
   end
+
+  it "Escape キーで閉じる" do
+    user = create(:user)
+    sign_in_as(user)
+
+    click_button "取り込み"
+    expect(page).to have_link("取り込み履歴")
+
+    find("body").send_keys(:escape)
+    expect(page).to have_no_link("取り込み履歴")
+  end
 end
