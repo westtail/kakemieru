@@ -4,7 +4,7 @@
 
 ## エンドポイント
 
-```
+```http
 GET /transactions/summary?month=YYYY-MM
 ```
 
