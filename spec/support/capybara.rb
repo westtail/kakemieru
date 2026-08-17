@@ -14,6 +14,8 @@ remote_chrome = ENV["CHROME_URL"].presence || ENV["CHROME_HOST"].presence
 Capybara.server = :puma, { Silent: true }
 Capybara.default_max_wait_time = 5
 Capybara.save_path = Rails.root.join("tmp/screenshots")
+# aria-label を持つコントロール（一覧のカテゴリ select 等）をアクセシブル名で探せるようにする。
+Capybara.enable_aria_label = true
 
 cuprite_options = {
   window_size: [ 1200, 800 ],
