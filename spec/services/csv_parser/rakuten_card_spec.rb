@@ -96,4 +96,52 @@ RSpec.describe CsvParser::RakutenCard do
     expect(result.rows).to be_empty
     expect(result.errors.size).to eq(1)
   end
+
+  describe "エンコーディングの柔軟性（Shift-JIS / UTF-8）" do
+    # Excel で開いて保存したり UTF-8 でダウンロードした CSV も取り込めるようにする。
+    let(:utf8_csv) do
+      <<~CSV
+        利用日,利用店名・商品名,利用者,支払方法,利用金額,支払手数料,支払総額
+        2026/03/10,UTF8ストア,本人,1回払い,"2,000",0,"2,000"
+      CSV
+    end
+
+    it "UTF-8 の CSV を取り込める" do
+      result = described_class.parse(utf8_csv)
+      expect(result.errors).to be_empty
+      expect(result.rows.size).to eq(1)
+      expect(result.rows.first[:amount]).to eq(2000)
+      expect(result.rows.first[:merchant_name]).to eq("UTF8ストア")
+    end
+
+    it "UTF-8 BOM 付きの CSV を取り込める" do
+      result = described_class.parse("﻿" + utf8_csv)
+      expect(result.errors).to be_empty
+      expect(result.rows.size).to eq(1)
+    end
+
+    it "UTF-8（BOM付き）で先頭にサマリー行があってもヘッダーを自動検出して取り込める" do
+      csv = "﻿" + <<~CSV
+        ご利用明細,,,,,,
+        利用日,利用店名・商品名,利用者,支払方法,利用金額,支払手数料,支払総額
+        2026/03/10,前置きストア,本人,1回払い,1500,0,1500
+      CSV
+      result = described_class.parse(csv)
+      expect(result.errors).to be_empty
+      expect(result.rows.size).to eq(1)
+      expect(result.rows.first[:merchant_name]).to eq("前置きストア")
+    end
+
+    it "全項目クォート付き・列数の多い実フォーマット（UTF-8）でも取り込める" do
+      csv = <<~CSV
+        "利用日","利用店名・商品名","利用者","支払方法","利用金額","手数料/利息","支払総額","4月支払金額","5月繰越残高","新規サイン"
+        "2026/04/15","ローソン","本人","1回払い","1,200","0","1,200","1,200","0",""
+      CSV
+      result = described_class.parse(csv)
+      expect(result.errors).to be_empty
+      expect(result.rows.size).to eq(1)
+      expect(result.rows.first[:amount]).to eq(1200)
+      expect(result.rows.first[:merchant_name]).to eq("ローソン")
+    end
+  end
 end

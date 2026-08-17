@@ -55,6 +55,10 @@ services:
     image: zenika/alpine-chrome:latest
     # /dev/shm 不足によるクラッシュを防ぐ
     shm_size: 2g
+    # attach_file（ファイルアップロード）は Chrome 側のファイルパスを読むため、fixture 置き場だけを
+    # web と同じパスに read-only マウントしてパスを一致させる（リモート Chrome 対策・最小権限）。
+    volumes:
+      - ./spec/fixtures/files:/rails/spec/fixtures/files:ro
     command:
       - --headless
       - --no-sandbox

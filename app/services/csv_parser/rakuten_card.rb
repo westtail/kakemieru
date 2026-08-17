@@ -55,15 +55,36 @@ module CsvParser
 
     private
 
-    # Shift-JIS を UTF-8 に変換し、「利用日」を含むヘッダー行以降だけを CSV としてパースする。
+    # 入力を UTF-8 テキストにし、「利用日」等を含むヘッダー行以降だけを CSV としてパースする。
+    # 楽天の公式ダウンロードは Shift-JIS だが、Excel 保存・UTF-8 ダウンロードにも対応するため
+    # UTF-8 / Shift-JIS の両方を試し、必須ヘッダーが見つかる方を採用する。
     # 先頭に口座サマリー行が入る場合があるためヘッダーを自動検出する。
     def table
-      utf8 = @content.to_s.dup.force_encoding("Shift_JIS").encode("UTF-8", invalid: :replace, undef: :replace)
+      utf8 = to_utf8(@content)
       lines = utf8.lines
-      header_index = lines.index { |line| REQUIRED_HEADERS.all? { |header| line.include?(header) } }
+      header_index = lines.index { |line| header_line?(line) }
       raise "ヘッダー行（#{REQUIRED_HEADERS.join('/')}）が見つかりません" if header_index.nil?
 
       CSV.parse(lines[header_index..].join, headers: true)
+    end
+
+    # 必須ヘッダーが全て含まれる行か。
+    def header_line?(line)
+      REQUIRED_HEADERS.all? { |header| line.include?(header) }
+    end
+
+    # UTF-8 と Shift-JIS を試し、ヘッダー行が見つかる方の UTF-8 文字列を返す。
+    # 見つからなければ Shift-JIS 経由（従来動作）を返し、後段でヘッダー未検出エラーにする。
+    def to_utf8(content)
+      raw = content.to_s
+
+      as_utf8 = raw.dup.force_encoding("UTF-8").delete_prefix("\u{FEFF}")
+      return as_utf8 if as_utf8.valid_encoding? && as_utf8.each_line.any? { |line| header_line?(line) }
+
+      from_sjis = raw.dup.force_encoding("Shift_JIS").encode("UTF-8", invalid: :replace, undef: :replace)
+      return from_sjis if from_sjis.each_line.any? { |line| header_line?(line) }
+
+      as_utf8.valid_encoding? ? as_utf8 : from_sjis
     end
 
     def row_to_attributes(csv_row)
