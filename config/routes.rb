@@ -27,8 +27,10 @@ Rails.application.routes.draw do
   # 支払方法管理（一覧・追加・名前/種別変更・削除）。show は使わない。
   resources :payment_methods, except: %i[show]
 
-  # 明細。S7 は月別一覧（最小）・手動1件入力のみ。編集/絞り込みは S8。
-  resources :transactions, only: %i[index new create edit update]
+  # 明細。一覧・絞り込み(#43)・編集(#41)・カテゴリ即時変更/削除 Turbo Stream(#44)。
+  resources :transactions, only: %i[index new create edit update destroy] do
+    member { patch :categorize }
+  end
 
   # CSV取り込み。S6 は new/create（保存）と最小の履歴一覧。詳細/取り消しは S9。
   resources :imports, only: %i[index new create]
