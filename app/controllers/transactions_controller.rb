@@ -52,9 +52,13 @@ class TransactionsController < ApplicationController
   # 一覧のインライン カテゴリ変更（Turbo Stream 専用）。
   # 全画面編集 update（HTML リダイレクト）と混ざらないよう別アクションに分離する。
   def categorize
-    @transaction.update(params.require(:transaction).permit(:category_id))
-    # 他ユーザーの category_id はモデルのテナント整合で拒否される。reload で実際の保存状態
-    # （拒否時は元のカテゴリ）に戻し、その行だけを差し替える。
+    begin
+      @transaction.update(params.require(:transaction).permit(:category_id))
+    rescue ActiveRecord::InvalidForeignKey
+      # 検証は通ったが書き込み前にカテゴリが削除された稀なレース。無視して元の状態で返す。
+    end
+    # 他ユーザー/存在しない category_id はモデルのテナント整合で拒否される。reload で実際の
+    # 保存状態（拒否時は元のカテゴリ）に戻し、その行だけを差し替える。
     @transaction.reload
     @categories = Current.user.categories.order(:id)
     render turbo_stream: turbo_stream.replace(

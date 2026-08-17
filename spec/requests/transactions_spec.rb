@@ -324,6 +324,15 @@ RSpec.describe "Transactions", type: :request do
       expect(transaction.reload.category_id).to be_nil
     end
 
+    it "検証通過後にカテゴリが消えるレース（FK 違反）でも 500 にせず行を返す" do
+      # 検証は通るが書き込みで FK 違反になる稀なレースを再現する。
+      allow_any_instance_of(Transaction).to receive(:update).and_raise(ActiveRecord::InvalidForeignKey)
+      patch categorize_transaction_path(transaction),
+            params: { transaction: { category_id: food.id } }, as: :turbo_stream
+      expect(response).to have_http_status(:ok)
+      expect(response.body).to include("transaction_#{transaction.id}")
+    end
+
     it "他ユーザーの明細は 404" do
       other = create(:user)
       others_tx = create(:transaction, user: other, payment_method: create(:payment_method, user: other))

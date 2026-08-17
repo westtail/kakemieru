@@ -24,12 +24,14 @@
   <td class="py-2 pr-4 whitespace-nowrap" data-controller="confirm-delete">
     <div data-confirm-delete-target="actions" class="flex items-center gap-3">
       <%= link_to "編集", edit_transaction_path(transaction), class: "text-blue-600 hover:underline" %>
-      <button type="button" data-action="confirm-delete#show" class="text-red-600 hover:underline">削除</button>
+      <button type="button" data-action="confirm-delete#show" data-confirm-delete-target="deleteButton"
+              class="text-red-600 hover:underline">削除</button>
     </div>
     <div data-confirm-delete-target="banner" class="hidden items-center gap-2">
       <span>削除しますか？</span>
       <%= button_to "確定", transaction_path(transaction), method: :delete,
-            form_class: "inline", class: "text-red-600 hover:underline" %>
+            form_class: "inline", class: "text-red-600 hover:underline",
+            data: { "confirm-delete-target": "confirmButton" } %>
       <button type="button" data-action="confirm-delete#hide" class="text-gray-600 hover:underline">キャンセル</button>
     </div>
   </td>

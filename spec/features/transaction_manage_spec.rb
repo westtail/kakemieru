@@ -38,7 +38,10 @@ RSpec.describe "明細のカテゴリ即時変更・削除（Turbo Stream）", t
     expect(page).to have_content("削除しますか？")
 
     within("tr", text: "コンビニ") { click_button "キャンセル" }
-    expect(page).to have_content("コンビニ")
+    within("tr", text: "コンビニ") do
+      expect(page).to have_no_content("削除しますか？")
+      expect(page).to have_button("削除")
+    end
     expect(user.transactions.first.reload.deleted_at).to be_nil
   end
 end
