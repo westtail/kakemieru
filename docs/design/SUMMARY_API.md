@@ -1,155 +1,50 @@
-# サマリー API 設計
+# サマリー API 設計（`GET /transactions/summary`）
 
-最終更新: 2026-04-12
-
----
-
-## 概要
-
-ダッシュボードのグラフ・合計額を Stimulus + fetch で取得するための JSON API。
-
----
+ダッシュボード（#48）が消費する月次集計 JSON を返す読み取り専用エンドポイント。
 
 ## エンドポイント
 
 ```
-GET /transactions/summary?month=2026-04
+GET /transactions/summary?month=YYYY-MM
 ```
 
-- `month` パラメータ: `YYYY-MM` 形式。省略時は当月
-- 認証必須（未ログインは 401）
-- レスポンス: JSON
+- **GET 専用**。書き込み系アクションはこのエンドポイント／コントローラに追加しない。
+- **認証必須**。未ログインは `401 Unauthorized`（HTML のようにログイン画面へリダイレクトしない）。
+- `month` 省略・不正形式（`YYYY-MM` でない）は `422 Unprocessable Entity`。
 
----
+## パラメータ
 
-## DB への影響
+| 名前 | 必須 | 形式 | 説明 |
+|---|---|---|---|
+| `month` | 必須 | `YYYY-MM` | 集計対象月。`effective_date` がこの月の明細を対象。 |
 
-**なし。** 既存のスキーマで全て取得できる。
-
-```ruby
-# 実行されるクエリのイメージ
-current_user.transactions
-  .in_month(year, month)                    # WHERE user_id=? AND deleted_at IS NULL AND effective_date BETWEEN ...
-  .joins("LEFT JOIN categories ON categories.id = transactions.category_id")
-  .group("categories.id, categories.name")
-  .sum(:effective_amount)
-# → インデックス (user_id, deleted_at, category_id, effective_date) がそのまま使われる
-```
-
----
-
-## レスポンス形式
-
-### 成功時（200）
+## レスポンス（200）
 
 ```json
 {
   "month": "2026-04",
-  "total": 128400,
+  "total": 12300,
   "categories": [
-    { "id": 1,   "name": "食費",   "amount": 45000 },
-    { "id": 2,   "name": "交通費", "amount": 12000 },
-    { "id": 3,   "name": "日用品", "amount": 18000 },
-    { "id": null,"name": "未分類", "amount": 5000  }
+    { "id": 1, "name": "食費", "amount": 8000 },
+    { "id": 3, "name": "交通費", "amount": 3000 },
+    { "id": null, "name": "未分類", "amount": 1300 }
   ]
 }
 ```
 
-**フィールドの仕様**
+- `total`: 対象月の `effective_amount` の**符号付き合計**（返金明細のマイナスも反映した純額）。
+- `categories`: カテゴリ別の `effective_amount` 合計。**amount 降順**。**未分類**（`id: null`, `name: "未分類"`）も含む。
+- 集計対象は `deleted_at IS NULL`（取り消し済みは除外）かつ本人の明細のみ。
 
-| フィールド | 型 | 説明 |
+## エラー
+
+| 状況 | ステータス | ボディ |
 |---|---|---|
-| `month` | string | リクエストした月（YYYY-MM） |
-| `total` | integer | 月の支出合計（円） |
-| `categories[].id` | integer \| null | カテゴリID。未分類は `null` |
-| `categories[].name` | string | カテゴリ名。未分類は `"未分類"` 固定 |
-| `categories[].amount` | integer | カテゴリ別支出合計（円） |
+| 未ログイン | `401` | （空） |
+| `month` 不正・欠落 | `422` | `{ "error": "月の形式が不正です（YYYY-MM）" }` |
 
-- `categories` は `amount` の降順で返す
-- 金額ゼロのカテゴリは含めない
-- グラフの色は **フロント側で決める**（カテゴリIDをキーに Stimulus コントローラー内で固定色マップを保持）
+## CSRF ポリシー（#14）
 
-### エラー時
-
-| ケース | ステータス | ボディ |
-|---|---|---|
-| 未ログイン | 401 | `{ "error": "Unauthorized" }` |
-| `month` パラメータ不正 | 422 | `{ "error": "month の形式が不正です（YYYY-MM）" }` |
-| 将来存在しない月（サーバーエラー） | 500 | `{ "error": "Internal Server Error" }` |
-
----
-
-## コントローラー実装方針
-
-```ruby
-class TransactionsController < ApplicationController
-  # GET /transactions/summary
-  def summary
-    year, month = parse_month(params[:month])  # "2026-04" → [2026, 4]
-
-    rows = current_user.transactions
-                       .in_month(year, month)
-                       .joins("LEFT JOIN categories ON categories.id = transactions.category_id")
-                       .group("categories.id, categories.name")
-                       .sum(:effective_amount)
-    # rows: { [1, "食費"] => 45000, [nil, nil] => 5000, ... }
-
-    categories = rows.map do |(id, name), amount|
-      { id: id, name: name || "未分類", amount: amount }
-    end.sort_by { |c| -c[:amount] }
-
-    render json: {
-      month: params[:month],
-      total: categories.sum { |c| c[:amount] },
-      categories: categories
-    }
-  end
-
-  private
-
-  def parse_month(str)
-    date = Date.strptime(str, "%Y-%m")
-    [date.year, date.month]
-  rescue ArgumentError, TypeError
-    render json: { error: "month の形式が不正です（YYYY-MM）" }, status: :unprocessable_entity
-    nil
-  end
-end
-```
-
----
-
-## Stimulus コントローラーとの接続
-
-```javascript
-// dashboard_controller.js（実装時の参考）
-async switchMonth(month) {
-  const res = await fetch(`/transactions/summary?month=${month}`, {
-    headers: { "Accept": "application/json" }
-  })
-  if (!res.ok) {
-    // エラー表示（URLは変更しない）
-    return
-  }
-  const data = await res.json()
-  this.updateTotal(data.total)
-  this.updateChart(data.categories)
-  history.pushState({}, "", `/?month=${month}`)  // fetch 完了後に URL 更新
-}
-```
-
----
-
-## グラフの色マップ（フロント側）
-
-カテゴリIDに対して固定色を割り当てる。DB には持たない。
-
-```javascript
-const CATEGORY_COLORS = {
-  default: [
-    "#4F81BD", "#C0504D", "#9BBB59", "#8064A2",
-    "#4BACC6", "#F79646", "#2C4770", "#772C2C"
-  ]
-}
-// categories 配列の index で循環して色を割り当てる
-```
+- 本エンドポイントは JSON を返す **読み取り専用の専用コントローラ `Transactions::SummariesController`** に実装し、`protect_from_forgery with: :null_session` を適用する。
+- `null_session` は**コントローラ全体**の CSRF 戦略を変えるため、書き込みアクションを持つ `TransactionsController` には適用しない。GET 専用に隔離することで、将来の書き込み追加時に CSRF 防御が失われるのを防ぐ。
+- 書き込み系（作成・更新・削除・カテゴリ即時変更）は従来どおり通常の CSRF 保護（`:exception`）を維持する。書き込みが必要になった場合もこのコントローラには足さず、別コントローラで通常保護のまま実装する。
