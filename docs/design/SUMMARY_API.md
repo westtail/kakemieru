@@ -25,15 +25,15 @@ GET /transactions/summary?month=YYYY-MM
   "month": "2026-04",
   "total": 12300,
   "categories": [
-    { "id": 1, "name": "食費", "amount": 8000 },
-    { "id": 3, "name": "交通費", "amount": 3000 },
-    { "id": null, "name": "未分類", "amount": 1300 }
+    { "id": 1, "name": "食費", "amount": 8000, "count": 12 },
+    { "id": 3, "name": "交通費", "amount": 3000, "count": 4 },
+    { "id": null, "name": "未分類", "amount": 1300, "count": 3 }
   ]
 }
 ```
 
 - `total`: 対象月の `effective_amount` の**符号付き合計**（返金明細のマイナスも反映した純額）。
-- `categories`: カテゴリ別の `effective_amount` 合計。**amount 降順**。**未分類**（`id: null`, `name: "未分類"`）も含む。
+- `categories`: カテゴリ別の `effective_amount` 合計（`amount`）と**明細件数**（`count`）。**amount 降順**。**未分類**（`id: null`, `name: "未分類"`）も含む。ダッシュボードの「未分類 N件」バッジは未分類の `count` を使う。
 - 集計対象は `deleted_at IS NULL`（取り消し済みは除外）かつ本人の明細のみ。
 
 ## エラー

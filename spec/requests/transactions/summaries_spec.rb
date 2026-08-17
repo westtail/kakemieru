@@ -29,8 +29,8 @@ RSpec.describe "Transactions::Summaries", type: :request do
       expect(json["month"]).to eq("2026-04")
       expect(json["total"]).to eq(6200)
       expect(json["categories"]).to eq([
-        { "id" => food.id, "name" => "食費", "amount" => 5000 },
-        { "id" => nil, "name" => "未分類", "amount" => 1200 }
+        { "id" => food.id, "name" => "食費", "amount" => 5000, "count" => 1 },
+        { "id" => nil, "name" => "未分類", "amount" => 1200, "count" => 1 }
       ])
     end
 
