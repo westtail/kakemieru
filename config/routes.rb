@@ -30,6 +30,8 @@ Rails.application.routes.draw do
   # 明細。一覧・絞り込み(#43)・編集(#41)・カテゴリ即時変更/削除 Turbo Stream(#44)。
   resources :transactions, only: %i[index new create edit update destroy] do
     member { patch :categorize }
+    # ダッシュボード用の集計 JSON（GET 専用）。CSRF は専用コントローラで隔離（#14）。
+    collection { get :summary, to: "transactions/summaries#show" }
   end
 
   # CSV取り込み。S6 は new/create（保存）と最小の履歴一覧。詳細/取り消しは S9。
