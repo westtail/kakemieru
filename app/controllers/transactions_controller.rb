@@ -1,4 +1,6 @@
 class TransactionsController < ApplicationController
+  include MonthParam
+
   before_action :set_transaction, only: %i[edit update categorize destroy]
 
   def index
@@ -90,15 +92,6 @@ class TransactionsController < ApplicationController
     # payment_method は permit しない（原本の不変性・スコープ外項目を二重に守る）。
     def transaction_update_params
       params.require(:transaction).permit(:merchant_name, :category_id, :amount_override, :date_override)
-    end
-
-    def parse_month(value)
-      # 文字列以外（配列/ハッシュ）や空は当月扱い（呼び出し側でフォールバック）。
-      return nil unless value.is_a?(String) && value.present?
-
-      Date.strptime(value, "%Y-%m")
-    rescue ArgumentError
-      nil
     end
 
     # カテゴリ絞り込み。nil/"all"=すべて、""=未分類、それ以外=その category_id。
