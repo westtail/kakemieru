@@ -282,4 +282,94 @@ RSpec.describe "Transactions", type: :request do
       expect(response).to have_http_status(:not_found)
     end
   end
+
+  describe "PATCH /transactions/:id/categorize（カテゴリ即時変更・Turbo Stream）" do
+    before { sign_in }
+
+    let!(:transaction) do
+      create(:transaction, user: user, payment_method: payment_method,
+             date: Date.new(2026, 1, 15), merchant_name: "コンビニ", category: nil)
+    end
+    let(:food) { create(:category, user: user, name: "食費") }
+
+    it "カテゴリを更新し、該当行を差し替える Turbo Stream を返す" do
+      patch categorize_transaction_path(transaction),
+            params: { transaction: { category_id: food.id } }, as: :turbo_stream
+
+      expect(response).to have_http_status(:ok)
+      expect(response.media_type).to eq("text/vnd.turbo-stream.html")
+      expect(response.body).to include('action="replace"', "transaction_#{transaction.id}")
+      expect(transaction.reload.category_id).to eq(food.id)
+    end
+
+    it "未分類（空）へ戻せる" do
+      transaction.update!(category: food)
+      patch categorize_transaction_path(transaction),
+            params: { transaction: { category_id: "" } }, as: :turbo_stream
+      expect(transaction.reload.category_id).to be_nil
+    end
+
+    it "他ユーザーのカテゴリ id では変更されない（500 にしない）" do
+      others_category = create(:category, user: create(:user), name: "他人カテゴリ")
+      patch categorize_transaction_path(transaction),
+            params: { transaction: { category_id: others_category.id } }, as: :turbo_stream
+      expect(response).to have_http_status(:ok)
+      expect(transaction.reload.category_id).to be_nil
+    end
+
+    it "存在しないカテゴリ id でも 500 にせず変更しない（FK 違反回避）" do
+      patch categorize_transaction_path(transaction),
+            params: { transaction: { category_id: 999_999 } }, as: :turbo_stream
+      expect(response).to have_http_status(:ok)
+      expect(transaction.reload.category_id).to be_nil
+    end
+
+    it "検証通過後にカテゴリが消えるレース（FK 違反）でも 500 にせず行を返す" do
+      # 検証は通るが書き込みで FK 違反になる稀なレースを再現する。
+      allow_any_instance_of(Transaction).to receive(:update).and_raise(ActiveRecord::InvalidForeignKey)
+      patch categorize_transaction_path(transaction),
+            params: { transaction: { category_id: food.id } }, as: :turbo_stream
+      expect(response).to have_http_status(:ok)
+      expect(response.body).to include("transaction_#{transaction.id}")
+    end
+
+    it "他ユーザーの明細は 404" do
+      other = create(:user)
+      others_tx = create(:transaction, user: other, payment_method: create(:payment_method, user: other))
+      patch categorize_transaction_path(others_tx),
+            params: { transaction: { category_id: food.id } }, as: :turbo_stream
+      expect(response).to have_http_status(:not_found)
+    end
+  end
+
+  describe "DELETE /transactions/:id（ソフト削除・Turbo Stream）" do
+    before { sign_in }
+
+    let!(:transaction) do
+      create(:transaction, user: user, payment_method: payment_method,
+             date: Date.new(2026, 1, 15), merchant_name: "消す明細")
+    end
+
+    it "deleted_at をセットし、該当行を削除する Turbo Stream を返す" do
+      delete transaction_path(transaction), as: :turbo_stream
+
+      expect(response).to have_http_status(:ok)
+      expect(response.media_type).to eq("text/vnd.turbo-stream.html")
+      expect(response.body).to include('action="remove"', "transaction_#{transaction.id}")
+      expect(transaction.reload.deleted_at).to be_present
+    end
+
+    it "削除後は一覧に表示されない" do
+      delete transaction_path(transaction), as: :turbo_stream
+      get "/transactions", params: { month: "2026-01" }
+      expect(response.body).not_to include("消す明細")
+    end
+
+    it "他ユーザーの明細の削除は 404" do
+      other = create(:user)
+      others_tx = create(:transaction, user: other, payment_method: create(:payment_method, user: other))
+      delete transaction_path(others_tx), as: :turbo_stream
+      expect(response).to have_http_status(:not_found)
+    end
+  end
 end

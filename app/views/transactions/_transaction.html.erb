@@ -1,0 +1,38 @@
+<%# 明細1行。Turbo Stream の replace/remove 対象にするため <tr> に dom_id を付与する。 %>
+<%# locals: transaction / categories %>
+<tr id="<%= dom_id(transaction) %>" class="border-b border-gray-100 <%= "bg-yellow-50" if transaction.category.nil? %>">
+  <td class="py-2 pr-4 whitespace-nowrap"><%= transaction.effective_date.strftime("%-m/%-d") %></td>
+  <td class="py-2 pr-4">
+    <%= transaction.merchant_name %>
+    <% if transaction.corrected? %>
+      <span class="ml-1 inline-block rounded bg-orange-100 px-1.5 py-0.5 text-xs text-orange-700">訂正</span>
+    <% end %>
+  </td>
+  <td class="py-2 pr-4 text-right whitespace-nowrap"><%= number_to_currency(transaction.effective_amount, unit: "¥", precision: 0) %></td>
+  <td class="py-2 pr-4">
+    <%# カテゴリのインライン変更。select 変更で PATCH categorize を送信し、行を差し替える。 %>
+    <%= form_with url: categorize_transaction_path(transaction), method: :patch, data: { controller: "auto-submit" } do %>
+      <%= select_tag "transaction[category_id]",
+            options_from_collection_for_select(categories, :id, :name, transaction.category_id),
+            include_blank: "未分類",
+            "aria-label": "カテゴリ",
+            class: "border border-gray-300 rounded px-2 py-1 #{'text-yellow-700' if transaction.category.nil?}",
+            data: { action: "change->auto-submit#submit" } %>
+    <% end %>
+  </td>
+  <td class="py-2 pr-4"><%= transaction.payment_method.name %></td>
+  <td class="py-2 pr-4 whitespace-nowrap" data-controller="confirm-delete">
+    <div data-confirm-delete-target="actions" class="flex items-center gap-3">
+      <%= link_to "編集", edit_transaction_path(transaction), class: "text-blue-600 hover:underline" %>
+      <button type="button" data-action="confirm-delete#show" data-confirm-delete-target="deleteButton"
+              class="text-red-600 hover:underline">削除</button>
+    </div>
+    <div data-confirm-delete-target="banner" class="hidden items-center gap-2">
+      <span>削除しますか？</span>
+      <%= button_to "確定", transaction_path(transaction), method: :delete,
+            form_class: "inline", class: "text-red-600 hover:underline",
+            data: { "confirm-delete-target": "confirmButton" } %>
+      <button type="button" data-action="confirm-delete#hide" class="text-gray-600 hover:underline">キャンセル</button>
+    </div>
+  </td>
+</tr>
