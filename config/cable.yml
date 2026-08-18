@@ -9,9 +9,6 @@ test:
   adapter: test
 
 production:
-  adapter: solid_cable
-  connects_to:
-    database:
-      writing: cable
-  polling_interval: 0.1.seconds
-  message_retention: 1.day
+  # solid_cable は不使用。現状 Turbo Streams のブロードキャストは無く、将来使う場合も
+  # 単一 Puma プロセス構成のため async で足りる（DB テーブル不要）。
+  adapter: async

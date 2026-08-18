@@ -1,13 +1,18 @@
 source "https://rubygems.org"
 
 # Bundle edge Rails instead: gem "rails", github: "rails/rails", branch: "main"
-gem "rails", "8.1.3"
+gem "rails", "8.1.3.1"
 # The modern asset pipeline for Rails [https://github.com/rails/propshaft]
 gem "propshaft"
+# Tailwind CSS（standalone バイナリ方式・Node 不要）[https://github.com/rails/tailwindcss-rails]
+gem "tailwindcss-rails"
 # Use postgresql as the database for Active Record
 gem "pg", "~> 1.1"
+# CSV 取り込みで使用。Ruby 3.4 で csv は default gem 対象外になり、Bundler 配下では
+# Gemfile 宣言が必須（require "csv" が LoadError になる）。Ruby 3.4.9 同梱の 3.3.2 に固定。
+gem "csv", "3.3.2"
 # Use the Puma web server [https://github.com/puma/puma]
-gem "puma", "~> 7.0"
+gem "puma", "~> 8.0"
 # Use JavaScript with ESM import maps [https://github.com/rails/importmap-rails]
 gem "importmap-rails"
 # Hotwire's SPA-like page accelerator [https://turbo.hotwired.dev]
@@ -23,10 +28,9 @@ gem "bcrypt", "~> 3.1.7"
 # Windows does not include zoneinfo files, so bundle the tzinfo-data gem
 gem "tzinfo-data", platforms: %i[ windows jruby ]
 
-# Use the database-backed adapters for Rails.cache, Active Job, and Action Cable
+# Rails.cache は solid_cache（rate_limit で使用）。
+# Active Job は :inline、Action Cable は async のため solid_queue / solid_cable は不使用。
 gem "solid_cache"
-gem "solid_queue"
-gem "solid_cable"
 
 # Reduces boot times through caching; required in config/boot.rb
 gem "bootsnap", require: false

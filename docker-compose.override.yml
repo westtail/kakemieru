@@ -6,7 +6,9 @@ services:
     build:
       target: development
     user: "1000:1000"
-    command: bundle exec rails server -b 0.0.0.0 -p 3000
+    # サーバ起動前に Tailwind を一度ビルドして builds/tailwind.css を用意する
+    # （初回レンダリングの Propshaft MissingAsset を防ぐ。以降の再ビルドは css サービスが担当）。
+    command: bash -c "bin/rails tailwindcss:build && bundle exec rails server -b 0.0.0.0 -p 3000"
     environment:
       POSTGRES_HOST: db
       POSTGRES_USER: postgres
@@ -23,6 +25,23 @@ services:
     stdin_open: true
     tty: true
 
+  # Tailwind CSS の watch ビルド（app/assets/tailwind → app/assets/builds/tailwind.css）。
+  # foreman/Procfile.dev は使わず、web と並走する専用サービスとして起動する。
+  css:
+    build:
+      target: development
+    user: "1000:1000"
+    command: bundle exec rails tailwindcss:watch
+    environment:
+      POSTGRES_HOST: db
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: password
+    volumes:
+      - .:/rails
+      - bundle_cache:/usr/local/bundle
+    depends_on:
+      - web
+
   db:
     environment:
       POSTGRES_DB: ${POSTGRES_DB:-kakemieru_development}
@@ -36,6 +55,10 @@ services:
     image: zenika/alpine-chrome:latest
     # /dev/shm 不足によるクラッシュを防ぐ
     shm_size: 2g
+    # attach_file（ファイルアップロード）は Chrome 側のファイルパスを読むため、fixture 置き場だけを
+    # web と同じパスに read-only マウントしてパスを一致させる（リモート Chrome 対策・最小権限）。
+    volumes:
+      - ./spec/fixtures/files:/rails/spec/fixtures/files:ro
     command:
       - --headless
       - --no-sandbox

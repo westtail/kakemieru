@@ -1,0 +1,22 @@
+<%# 手動まとめ入力の1行。name は manual[transactions][][field]（配列=index 不要）。 %>
+<%# row: 値のハッシュ（[:date] 等）/ payment_methods / categories %>
+<%# 注意: Rack は「同じキーの再出現」で次の行のハッシュに切り替える。5フィールドを %>
+<%#       常に同順・全て送信する前提。条件付き表示や未送信になるフィールドを足すと %>
+<%#       行の境界がずれるので、その場合は index 付き name（[0][field]）に変えること。 %>
+<%# 行は <template> で複製されるので id ではなく aria-label で名前を付ける（id 重複を避ける）。 %>
+<tr class="manual-row">
+  <td><%= date_field_tag "manual[transactions][][date]", row[:date], "aria-label": "利用日" %></td>
+  <td><%= text_field_tag "manual[transactions][][merchant_name]", row[:merchant_name], maxlength: 255, "aria-label": "店舗名" %></td>
+  <td><%= number_field_tag "manual[transactions][][amount]", row[:amount], step: 1, "aria-label": "金額" %></td>
+  <td>
+    <%= select_tag "manual[transactions][][category_id]",
+          options_from_collection_for_select(categories, :id, :name, row[:category_id]),
+          include_blank: "未分類", "aria-label": "カテゴリ" %>
+  </td>
+  <td>
+    <%= select_tag "manual[transactions][][payment_method_id]",
+          options_from_collection_for_select(payment_methods, :id, :name, row[:payment_method_id]),
+          include_blank: "（デフォルト）", "aria-label": "支払方法" %>
+  </td>
+  <td><button type="button" data-action="bulk-entry#removeRow" aria-label="この行を削除">削除</button></td>
+</tr>

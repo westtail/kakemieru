@@ -33,6 +33,27 @@ RSpec.describe "Registrations", type: :request do
       end
     end
 
+    context "登録時の初期カテゴリ自動生成" do
+      before do
+        CategoryCatalog::DEFAULTS.each { |c| CategoryTemplate.create!(category_key: c[:key], name: c[:name]) }
+      end
+
+      it "テンプレートから初期カテゴリがユーザーにコピーされる" do
+        post "/sign_up", params: valid_params
+        user = User.find_by(email_address: "new@example.com")
+        expect(user.categories.count).to eq(CategoryCatalog::DEFAULTS.size)
+        expect(user.categories.pluck(:category_key)).to match_array(CategoryCatalog::DEFAULTS.map { |c| c[:key] })
+      end
+
+      it "現金（cash）の支払方法が1件自動生成される（#21）" do
+        post "/sign_up", params: valid_params
+        user = User.find_by(email_address: "new@example.com")
+        cash = user.payment_methods.where(payment_type: "cash")
+        expect(cash.count).to eq(1)
+        expect(cash.first.name).to eq("現金")
+      end
+    end
+
     context "admin パラメータを送っても権限昇格しない" do
       it "admin は false のまま作成される" do
         post "/sign_up", params: valid_params.merge(admin: true)

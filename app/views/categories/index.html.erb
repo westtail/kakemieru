@@ -1,0 +1,29 @@
+<h1>カテゴリ</h1>
+
+<section>
+  <h2>初期カテゴリ</h2>
+  <p>初期カテゴリは名前の変更のみできます（削除はできません）。</p>
+  <ul>
+    <% @initial_categories.each do |category| %>
+      <li>
+        <%= category.name %>
+        <%= link_to "名前変更", edit_category_path(category) %>
+      </li>
+    <% end %>
+  </ul>
+</section>
+
+<section>
+  <h2>独自カテゴリ</h2>
+  <ul>
+    <% @custom_categories.each do |category| %>
+      <li>
+        <%= category.name %>
+        <%= link_to "名前変更", edit_category_path(category) %>
+        <%= button_to "削除", category_path(category), method: :delete,
+              form: { data: { turbo_confirm: "「#{category.name}」を削除します。よろしいですか？" } } %>
+      </li>
+    <% end %>
+  </ul>
+  <%= link_to "カテゴリを追加", new_category_path %>
+</section>

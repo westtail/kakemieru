@@ -52,9 +52,14 @@ docker compose exec web bin/rails db:prepare
 docker compose exec web bundle exec rspec
 
 # 種別ごと
-docker compose exec web bundle exec rspec spec/models      # モデル（ユニット）
-docker compose exec web bundle exec rspec spec/requests     # コントローラ（リクエスト）
-docker compose exec web bundle exec rspec spec/features      # E2E（実ブラウザ・要 chrome）
+docker compose exec web bundle exec rspec spec/models       # モデル（ユニット）
+docker compose exec web bundle exec rspec spec/services      # サービス（CSVパーサ・取り込み等）
+docker compose exec web bundle exec rspec spec/requests      # コントローラ（リクエスト）
+docker compose exec web bundle exec rspec spec/features       # E2E（実ブラウザ・要 chrome）
+
+# 1ファイルだけ / 1テストだけ実行（行番号指定）
+docker compose exec web bundle exec rspec spec/requests/transactions_spec.rb
+docker compose exec web bundle exec rspec spec/requests/transactions_spec.rb:88
 
 # ドキュメント形式で詳細表示
 docker compose exec web bundle exec rspec --format documentation
@@ -67,6 +72,13 @@ docker compose exec web bundle exec rspec --format documentation
 ### E2E（システムスペック）について
 
 `spec/features/` は Capybara + Cuprite で別コンテナの Chrome（`docker compose up -d` で起動）を操作する。追加設定は不要。詳細は [ADR-0023](docs/decisions/0023-e2e-test-environment.md) を参照。
+
+主要なユーザーフローがブラウザで実際に通ることをスモーク的に検証する（サインアップ / ログイン・ログアウト / パスワード再設定 / 退会 / 取り込みドロップダウン / CSV 取り込み など）。細かい分岐は request spec 側で網羅し、E2E は代表的なハッピーパスに絞っている。
+
+```bash
+# E2E だけ実行
+docker compose exec web bundle exec rspec spec/features
+```
 
 ## 開発の便利機能
 

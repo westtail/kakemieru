@@ -20,6 +20,24 @@ Rails.application.routes.draw do
   patch  "account/password", to: "accounts#update_password",  as: :account_password
   get    "account/delete",   to: "accounts#confirm_deletion", as: :confirm_account_deletion
   delete "account",          to: "accounts#destroy"
+
+  # カテゴリ管理（一覧・追加・名前変更・削除）。show は使わない。
+  resources :categories, except: %i[show]
+
+  # 支払方法管理（一覧・追加・名前/種別変更・削除）。show は使わない。
+  resources :payment_methods, except: %i[show]
+
+  # 明細。一覧・絞り込み(#43)・編集(#41)・カテゴリ即時変更/削除 Turbo Stream(#44)。
+  resources :transactions, only: %i[index new create edit update destroy] do
+    member { patch :categorize }
+    # ダッシュボード用の集計 JSON（GET 専用）。CSRF は専用コントローラで隔離（#14）。
+    collection { get :summary, to: "transactions/summaries#show" }
+  end
+
+  # CSV取り込み。S6 は new/create（保存）と最小の履歴一覧。詳細/取り消しは S9。
+  resources :imports, only: %i[index new create]
+  # 手動まとめ入力（複数行を manual_bulk として一括保存）。
+  post "imports/manual", to: "imports#create_manual", as: :manual_import
   # Define your application routes per the DSL in https://guides.rubyonrails.org/routing.html
 
   # Reveal health status on /up that returns 200 if the app boots with no exceptions, otherwise 500.

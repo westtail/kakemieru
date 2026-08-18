@@ -9,6 +9,13 @@ class User < ApplicationRecord
 
   has_secure_password
   has_many :sessions, dependent: :destroy
+  # 退会カスケードの順序が重要: transactions を最初に destroy する。
+  # transactions を持つ imports(restrict) / payment_methods(明細あり→アーカイブ) が
+  # 先に評価されると退会が失敗・アーカイブ化してしまうため、transactions を先に消す。
+  has_many :transactions, dependent: :destroy
+  has_many :categories, dependent: :destroy
+  has_many :imports, dependent: :destroy
+  has_many :payment_methods, dependent: :destroy
 
   normalizes :email_address, with: ->(e) { e.strip.downcase }
 

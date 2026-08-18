@@ -1,0 +1,22 @@
+<%# 新規追加・編集で共有するフォーム。submit ラベルのみ呼び出し側から渡す。 %>
+<%= render "shared/error_messages", record: @payment_method %>
+
+<%= form_with model: @payment_method do |form| %>
+  <div>
+    <%= form.label :name, "名称" %><br>
+    <%= form.text_field :name, required: true, autofocus: true %>
+  </div>
+  <div>
+    <% if @payment_method.cash? %>
+      <%# 現金は種別を変更できない（名前変更のみ）。フォームに出さないことで cash のまま保持する。 %>
+      <p>種別: <%= PaymentMethodCatalog::LABELS[@payment_method.payment_type] %></p>
+    <% else %>
+      <%= form.label :payment_type, "種別" %><br>
+      <%= form.select :payment_type,
+            PaymentMethodCatalog::SELECTABLE_TYPES.map { |type| [ PaymentMethodCatalog::LABELS[type], type ] } %>
+    <% end %>
+  </div>
+  <%= form.submit submit_label %>
+<% end %>
+
+<p><%= link_to "支払方法一覧に戻る", payment_methods_path %></p>

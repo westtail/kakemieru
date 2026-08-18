@@ -40,6 +40,19 @@ rescue ActiveRecord::PendingMigrationError => e
   abort e.to_s.strip
 end
 RSpec.configure do |config|
+  # レイアウトは Tailwind のビルド出力（app/assets/builds/tailwind.css）を参照するため、
+  # 未生成だと Propshaft の MissingAsset でレイアウト描画の spec が落ちる。CI など未ビルド
+  # 環境向けに、無ければスイート開始前に一度だけビルドする（ローカルは css watch サービスが
+  # 生成済みのためスキップされ高速）。
+  config.before(:suite) do
+    tailwind_build = Rails.root.join('app/assets/builds/tailwind.css')
+    unless tailwind_build.exist?
+      require 'rake'
+      Rails.application.load_tasks
+      Rake::Task['tailwindcss:build'].invoke
+    end
+  end
+
   # Remove this line if you're not using ActiveRecord or ActiveRecord fixtures
   config.fixture_paths = [
     Rails.root.join('spec/fixtures')
