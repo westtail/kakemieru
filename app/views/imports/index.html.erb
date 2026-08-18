@@ -11,6 +11,7 @@
         <%= import.payment_method.name %>
         <%= import.row_count %>件
         <% if import.source_ref.present? %>（<%= import.source_ref %>）<% end %>
+        <%= link_to "取り消し", cancel_confirm_import_path(import), class: "text-red-600 hover:underline" %>
       </li>
     <% end %>
   </ul>

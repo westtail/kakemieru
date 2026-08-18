@@ -1,0 +1,26 @@
+<h1 class="text-2xl font-bold">取り込みの取り消し</h1>
+
+<dl class="mt-4 grid grid-cols-[8rem_1fr] gap-y-1 text-sm text-gray-700">
+  <dt class="text-gray-500">取り込み日時</dt>
+  <dd><%= @import.created_at.strftime("%Y-%m-%d %H:%M") %></dd>
+  <dt class="text-gray-500">支払方法</dt>
+  <dd><%= @import.payment_method.name %></dd>
+  <% if @import.source_ref.present? %>
+    <dt class="text-gray-500">ファイル</dt>
+    <dd><%= @import.source_ref %></dd>
+  <% end %>
+</dl>
+
+<% if @active_count.positive? %>
+  <p class="mt-4 text-red-600">
+    この操作は取り消せません。<strong><%= @active_count %>件</strong>の明細をまとめて削除します。
+  </p>
+  <div class="mt-4 flex items-center gap-4">
+    <%= button_to "実行", cancel_import_path(@import), method: :delete,
+          class: "px-4 py-2 border border-red-600 rounded bg-red-600 text-white hover:bg-red-700 cursor-pointer" %>
+    <%= link_to "戻る", imports_path, class: "text-blue-600 hover:underline" %>
+  </div>
+<% else %>
+  <p class="mt-4 text-gray-600">取り消せる明細はありません（すでに取り消し済みです）。</p>
+  <p class="mt-4"><%= link_to "取り込み履歴に戻る", imports_path, class: "text-blue-600 hover:underline" %></p>
+<% end %>
