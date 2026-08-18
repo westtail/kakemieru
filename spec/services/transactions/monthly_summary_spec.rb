@@ -22,9 +22,9 @@ RSpec.describe Transactions::MonthlySummary do
     expect(summary[:month]).to eq("2026-04")
     expect(summary[:total]).to eq(11_000)
     expect(summary[:categories]).to eq([
-      { id: food.id, name: "食費", amount: 8000 },
-      { id: transport.id, name: "交通費", amount: 2000 },
-      { id: nil, name: "未分類", amount: 1000 }
+      { id: food.id, name: "食費", amount: 8000, count: 2 },
+      { id: transport.id, name: "交通費", amount: 2000, count: 1 },
+      { id: nil, name: "未分類", amount: 1000, count: 1 }
     ])
   end
 
@@ -32,7 +32,7 @@ RSpec.describe Transactions::MonthlySummary do
     tx(amount: 5000, category: food)
     tx(amount: -2000, category: food) # 返金
     expect(summary[:total]).to eq(3000)
-    expect(summary[:categories].first).to eq({ id: food.id, name: "食費", amount: 3000 })
+    expect(summary[:categories].first).to eq({ id: food.id, name: "食費", amount: 3000, count: 2 })
   end
 
   it "対象月・本人・未削除のみを集計する" do

@@ -11,16 +11,17 @@ module Transactions
     def call
       scope = @user.transactions.not_deleted.in_month(@month.year, @month.month)
       names = @user.categories.pluck(:id, :name).to_h
-      by_category = scope.group(:category_id).sum(:effective_amount) # { category_id|nil => amount }
+      amounts = scope.group(:category_id).sum(:effective_amount) # { category_id|nil => amount }
+      counts = scope.group(:category_id).count                   # { category_id|nil => 件数 }
 
-      categories = by_category.map do |category_id, amount|
+      categories = amounts.map do |category_id, amount|
         # fetch のデフォルトで、names 取得後にカテゴリが増える稀なレースでも name が nil に
         # ならないようにする（sort_by で nil <=> String の 500 を防ぐ）。
         name = category_id ? names.fetch(category_id, "未分類") : "未分類"
-        { id: category_id, name: name, amount: amount }
+        { id: category_id, name: name, amount: amount, count: counts[category_id] || 0 }
       end.sort_by { |category| [ -category[:amount], category[:name] ] }
 
-      { month: @month.strftime("%Y-%m"), total: by_category.values.sum, categories: categories }
+      { month: @month.strftime("%Y-%m"), total: amounts.values.sum, categories: categories }
     end
   end
 end
