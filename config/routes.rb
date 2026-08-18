@@ -34,8 +34,13 @@ Rails.application.routes.draw do
     collection { get :summary, to: "transactions/summaries#show" }
   end
 
-  # CSV取り込み。S6 は new/create（保存）と最小の履歴一覧。詳細/取り消しは S9。
-  resources :imports, only: %i[index new create]
+  # CSV取り込み。取り込み・履歴一覧・取り消し（S9 #46）。履歴の本格詳細は #47。
+  resources :imports, only: %i[index new create] do
+    member do
+      get :cancel_confirm     # 取り消し確認画面
+      delete :cancel          # 取り消し実行（紐づく明細をソフト削除）
+    end
+  end
   # 手動まとめ入力（複数行を manual_bulk として一括保存）。
   post "imports/manual", to: "imports#create_manual", as: :manual_import
   # Define your application routes per the DSL in https://guides.rubyonrails.org/routing.html
