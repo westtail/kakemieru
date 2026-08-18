@@ -1,4 +1,6 @@
 class ImportsController < ApplicationController
+  before_action :set_import, only: %i[cancel_confirm cancel]
+
   def index
     @imports = Current.user.imports.includes(:payment_method).order(created_at: :desc)
   end
@@ -49,7 +51,28 @@ class ImportsController < ApplicationController
     redirect_to new_import_path, alert: "支払方法を選択してください。"
   end
 
+  # 取り込み取り消しの確認画面。件数と警告を表示する。
+  def cancel_confirm
+    @active_count = @import.transactions.not_deleted.count
+  end
+
+  # 取り込み取り消しの実行。紐づく明細を一括ソフト削除する。Import レコードは残す
+  # （file_hash を温存し、同ファイルの再取り込みは引き続きエラーにする）。
+  def cancel
+    count = @import.transactions.not_deleted.update_all(deleted_at: Time.current)
+    if count.zero?
+      redirect_to imports_path, alert: "取り消せる明細はありませんでした。"
+    else
+      redirect_to imports_path, notice: "#{count}件の明細を取り消しました。"
+    end
+  end
+
   private
+    # 所有権スコープ: 他ユーザーの取り込みは見つからず 404。
+    def set_import
+      @import = Current.user.imports.find(params[:id])
+    end
+
     def manual_params
       params.require(:manual).permit(
         :payment_method_id,
