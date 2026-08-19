@@ -1,8 +1,19 @@
 class ImportsController < ApplicationController
-  before_action :set_import, only: %i[cancel_confirm cancel]
+  before_action :set_import, only: %i[show cancel_confirm cancel]
 
   def index
     @imports = Current.user.imports.includes(:payment_method).order(created_at: :desc)
+    # 各 Import の未削除件数を1クエリで取得（取消済/一部取消の判定・N+1 回避）。
+    @active_counts = Current.user.transactions.not_deleted
+                            .where(import_id: @imports.ids).group(:import_id).count
+  end
+
+  # 取り込み詳細。含まれる明細（取消済みも含む）を表示する。
+  def show
+    # 支払方法は @import から表示するため、行ごとに使う category のみ eager load する。
+    @transactions = @import.transactions.includes(:category)
+                           .order(effective_date: :desc, id: :desc)
+    @active_count = @import.transactions.not_deleted.count
   end
 
   def new
