@@ -146,13 +146,71 @@ RSpec.describe "Imports", type: :request do
   end
 
   describe "GET /imports（履歴一覧）" do
+    before { sign_in }
+
     it "自分の取り込み履歴を表示する" do
-      sign_in
       post "/imports", params: { import: { payment_method_id: payment_method.id, file: csv_upload(valid_csv) } }
 
       get "/imports"
       expect(response).to have_http_status(:ok)
       expect(response.body).to include("楽天カード", "rakuten.csv")
+    end
+
+    it "他ユーザーの取り込みは表示しない" do
+      other = create(:user)
+      create(:import, user: other, source_ref: "他人のファイル.csv")
+
+      get "/imports"
+      expect(response.body).not_to include("他人のファイル.csv")
+    end
+
+    it "取り消し済みの取り込みは「取消済」と表示する" do
+      post "/imports", params: { import: { payment_method_id: payment_method.id, file: csv_upload(valid_csv) } }
+      import = user.imports.order(:id).last
+      delete cancel_import_path(import)
+
+      get "/imports"
+      expect(response.body).to include("取消済")
+    end
+
+    it "一部の明細のみ取り消した取り込みは「一部取消」と表示する" do
+      post "/imports", params: { import: { payment_method_id: payment_method.id, file: csv_upload(valid_csv) } }
+      import = user.imports.order(:id).last
+      import.transactions.first.update!(deleted_at: Time.current) # 2件中1件だけ取消
+
+      get "/imports"
+      expect(response.body).to include("一部取消")
+    end
+  end
+
+  describe "GET /imports/:id（詳細）" do
+    before { sign_in }
+
+    it "取り込みのメタ情報と含まれる明細を表示する" do
+      post "/imports", params: { import: { payment_method_id: payment_method.id, file: csv_upload(valid_csv) } }
+      import = user.imports.order(:id).last
+
+      get import_path(import)
+      expect(response).to have_http_status(:ok)
+      expect(response.body).to include("rakuten.csv", "楽天カード") # メタ
+      expect(response.body).to include("ローソン", "Amazon")        # 明細
+    end
+
+    it "取り消し済みの明細も詳細に表示される（取消済みが分かる）" do
+      post "/imports", params: { import: { payment_method_id: payment_method.id, file: csv_upload(valid_csv) } }
+      import = user.imports.order(:id).last
+      delete cancel_import_path(import)
+
+      get import_path(import)
+      expect(response.body).to include("ローソン")   # 取消後も明細は見える
+      expect(response.body).to include("取消済")
+    end
+
+    it "他ユーザーの取り込み詳細は 404" do
+      other = create(:user)
+      others_import = create(:import, user: other)
+      get import_path(others_import)
+      expect(response).to have_http_status(:not_found)
     end
   end
 
