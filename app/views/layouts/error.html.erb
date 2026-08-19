@@ -1,0 +1,17 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <title><%= content_for?(:title) ? content_for(:title) : "エラー" %> - Kakemieru</title>
+    <meta name="viewport" content="width=device-width,initial-scale=1">
+    <%= csrf_meta_tags %>
+    <%= csp_meta_tag %>
+    <link rel="icon" href="/icon.png" type="image/png">
+    <%# エラーページは DB/セッションに依存しない最小レイアウト（ヘッダーの認証チェックを避ける）。 %>
+    <%= stylesheet_link_tag "tailwind", "data-turbo-track": "reload" %>
+  </head>
+  <body>
+    <main class="max-w-3xl mx-auto p-8">
+      <%= yield %>
+    </main>
+  </body>
+</html>

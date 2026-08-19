@@ -1,0 +1,10 @@
+<% content_for(:title) { "サーバーエラー" } %>
+<div class="mx-auto max-w-md text-center">
+  <p class="text-5xl font-bold text-gray-400">500</p>
+  <h1 class="mt-4 text-xl font-bold">サーバーエラーが発生しました</h1>
+  <p class="mt-2 text-gray-600">一時的な問題の可能性があります。時間をおいて再度お試しください。</p>
+  <p class="mt-6">
+    <%= link_to "トップへ戻る", root_path,
+          class: "inline-block px-4 py-2 border border-blue-600 rounded text-blue-600 no-underline hover:bg-blue-600 hover:text-white" %>
+  </p>
+</div>
