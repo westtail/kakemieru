@@ -1,0 +1,56 @@
+<h1 class="text-2xl font-bold">取り込み詳細</h1>
+
+<dl class="mt-4 grid grid-cols-[8rem_1fr] gap-y-1 text-sm text-gray-700">
+  <dt class="text-gray-500">取り込み日時</dt>
+  <dd><%= @import.created_at.strftime("%Y-%m-%d %H:%M") %></dd>
+  <dt class="text-gray-500">支払方法</dt>
+  <dd><%= @import.payment_method.name %></dd>
+  <dt class="text-gray-500">種別</dt>
+  <dd><%= import_source_label(@import.source_type) %></dd>
+  <% if @import.source_ref.present? %>
+    <dt class="text-gray-500">ファイル</dt>
+    <dd><%= @import.source_ref %></dd>
+  <% end %>
+  <dt class="text-gray-500">件数</dt>
+  <dd><%= @import.row_count %>件（<%= import_status_label(@import.row_count, @active_count) %>）</dd>
+</dl>
+
+<h2 class="mt-6 text-lg font-bold">含まれる明細</h2>
+<% if @transactions.any? %>
+  <table class="mt-2 w-full border-collapse text-sm">
+    <thead>
+      <tr class="border-b border-gray-300 text-left text-gray-600">
+        <th class="py-2 pr-4">日付</th>
+        <th class="py-2 pr-4">店舗名</th>
+        <th class="py-2 pr-4 text-right">金額</th>
+        <th class="py-2 pr-4">カテゴリ</th>
+        <th class="py-2 pr-4">状態</th>
+      </tr>
+    </thead>
+    <tbody>
+      <% @transactions.each do |transaction| %>
+        <% canceled = transaction.deleted_at.present? %>
+        <tr class="border-b border-gray-100 <%= "text-gray-400 line-through" if canceled %>">
+          <td class="py-2 pr-4 whitespace-nowrap"><%= transaction.effective_date.strftime("%-m/%-d") %></td>
+          <td class="py-2 pr-4"><%= transaction.merchant_name %></td>
+          <td class="py-2 pr-4 text-right whitespace-nowrap"><%= number_to_currency(transaction.effective_amount, unit: "¥", precision: 0) %></td>
+          <td class="py-2 pr-4"><%= transaction.category&.name || "未分類" %></td>
+          <td class="py-2 pr-4">
+            <% if canceled %>
+              <span class="rounded bg-gray-200 px-1.5 py-0.5 text-xs text-gray-600 no-underline">取消済</span>
+            <% end %>
+          </td>
+        </tr>
+      <% end %>
+    </tbody>
+  </table>
+<% else %>
+  <p class="mt-2 text-gray-600">この取り込みに明細はありません。</p>
+<% end %>
+
+<div class="mt-6 flex items-center gap-4">
+  <%= link_to "取り込み履歴に戻る", imports_path, class: "text-blue-600 hover:underline" %>
+  <% if @active_count.positive? %>
+    <%= link_to "この取り込みを取り消す", cancel_confirm_import_path(@import), class: "text-red-600 hover:underline" %>
+  <% end %>
+</div>

@@ -34,8 +34,8 @@ Rails.application.routes.draw do
     collection { get :summary, to: "transactions/summaries#show" }
   end
 
-  # CSV取り込み。取り込み・履歴一覧・取り消し（S9 #46）。履歴の本格詳細は #47。
-  resources :imports, only: %i[index new create] do
+  # CSV取り込み。取り込み・履歴一覧/詳細（S9 #47）・取り消し（S9 #46）。
+  resources :imports, only: %i[index new create show] do
     member do
       get :cancel_confirm     # 取り消し確認画面
       delete :cancel          # 取り消し実行（紐づく明細をソフト削除）
