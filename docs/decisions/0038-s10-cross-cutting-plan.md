@@ -25,7 +25,7 @@
 ## 確認結果（既に満たしている項目）
 
 - **CSRF**: 既定 `:exception`（`ApplicationController < ActionController::Base`）。サマリー API のみ `Transactions::SummariesController` で `protect_from_forgery with: :null_session` に隔離（#45/#14）。書き込み系は通常保護。
-- **認証適用**: `Authentication` concern が `before_action :require_authentication` を全体適用。除外（`allow_unauthenticated_access`）は sessions / registrations / passwords / transactions/summaries の4つのみ。
+- **認証適用**: `Authentication` concern が `before_action :require_authentication` を全体適用。`allow_unauthenticated_access` を持つのは sessions / registrations / passwords / transactions/summaries / **errors** の5つ。うち **丸ごと免除（オプション無し）は registrations / passwords / errors の3つ**、sessions（`only: [new, create]`）と summaries（`only: :show`）は該当アクションのみ条件付き skip で認証は保持。回帰ガードは `spec/requests/authorization_spec.rb`。
 - **N+1 監査**: 一覧・集約系はすべて対応済み。
   - `TransactionsController#index`: `includes(:category, :payment_method)`。
   - `ImportsController#index`: `includes(:payment_method)` ＋ 未削除件数は `group(:import_id).count` の集約1本。

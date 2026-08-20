@@ -29,6 +29,35 @@ RSpec.describe "エラーページ・ヘルスチェック", type: :request do
     end
   end
 
+  describe "POST /500（via: :all・CSRF スキップ）" do
+    it "POST でも 500 のエラーページを返す（例外時に POST がディスパッチされても通る）" do
+      post "/500"
+      expect(response).to have_http_status(:internal_server_error)
+      expect(response.body).to include("サーバーエラーが発生しました")
+    end
+  end
+
+  describe "実例外の exceptions_app 経由（config.exceptions_app = routes）" do
+    # 本番同様に例外ミドルウェアで処理させ、実例外→ブランド化ページの配線を検証する。
+    around do |example|
+      env_config = Rails.application.env_config
+      original = env_config["action_dispatch.show_exceptions"]
+      original_detailed = env_config["action_dispatch.show_detailed_exceptions"]
+      env_config["action_dispatch.show_exceptions"] = :all
+      env_config["action_dispatch.show_detailed_exceptions"] = false
+      example.run
+    ensure
+      env_config["action_dispatch.show_exceptions"] = original
+      env_config["action_dispatch.show_detailed_exceptions"] = original_detailed
+    end
+
+    it "存在しないパスは exceptions_app 経由でブランド化 404 を返す" do
+      get "/no/such/path/exists"
+      expect(response).to have_http_status(:not_found)
+      expect(response.body).to include("見つかりません")
+    end
+  end
+
   describe "ヘルスチェック" do
     it "GET /health は 200 を返す" do
       get "/health"
