@@ -24,6 +24,18 @@ RSpec.describe "明細のカテゴリ即時変更・削除（Turbo Stream）", t
     end
   end
 
+  it "カテゴリ変更はページをリロードしても保持される" do
+    within("tr", text: "コンビニ") do
+      select "食費", from: "カテゴリ"
+      expect(page).to have_select("カテゴリ", selected: "食費")
+    end
+
+    visit transactions_path(month: "2026-01")
+    within("tr", text: "コンビニ") do
+      expect(page).to have_select("カテゴリ", selected: "食費")
+    end
+  end
+
   it "削除ボタンで確認バナーが出て、確定すると行が消える" do
     within("tr", text: "コンビニ") { click_button "削除" }
     expect(page).to have_content("削除しますか？")
