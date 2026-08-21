@@ -1,0 +1,9 @@
+<%# アーカイブ済みの支払方法1行。append 先で識別できるよう dom_id を付与する（表示のみ）。 %>
+<%# locals: payment_method %>
+<li id="<%= dom_id(payment_method) %>" class="flex items-center gap-3 py-2 border-b border-gray-100 text-gray-500">
+  <span class="flex-1">
+    <%= payment_method.name %>
+    <span class="text-sm">（<%= PaymentMethodCatalog::LABELS[payment_method.payment_type] %>）</span>
+  </span>
+  <span class="inline-block rounded bg-gray-100 px-1.5 py-0.5 text-xs">アーカイブ済み</span>
+</li>
