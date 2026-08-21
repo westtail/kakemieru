@@ -25,6 +25,18 @@ RSpec.describe "PaymentMethods", type: :request do
       expect(response).to have_http_status(:ok)
       expect(response.body).to include("楽天カード", "現金")
     end
+
+    it "アーカイブ済みの支払方法を別セクションで表示する" do
+      create(:payment_method, user: user, name: "現役カード")
+      create(:payment_method, :archived, user: user, name: "昔のカード")
+      sign_in
+
+      get "/payment_methods"
+      expect(response).to have_http_status(:ok)
+      expect(response.body).to include("現役カード", "昔のカード")
+      # アーカイブ済みは append 先のコンテナに入る。
+      expect(response.body).to include('id="archived-payment-methods"')
+    end
   end
 
   describe "POST /payment_methods（追加）" do
@@ -72,12 +84,23 @@ RSpec.describe "PaymentMethods", type: :request do
   describe "DELETE /payment_methods/:id（削除）" do
     before { sign_in }
 
-    it "現金以外は削除できる" do
+    it "履歴なしは物理削除され、Turbo Stream で行を除去する" do
       payment_method = create(:payment_method, user: user, name: "楽天カード")
       expect do
-        delete "/payment_methods/#{payment_method.id}"
+        delete "/payment_methods/#{payment_method.id}", as: :turbo_stream
       end.to change { user.payment_methods.count }.by(-1)
+
+      expect(response.media_type).to eq("text/vnd.turbo-stream.html")
+      expect(response.body).to include(
+        %(<turbo-stream action="remove" target="#{ActionView::RecordIdentifier.dom_id(payment_method)}">)
+      )
+    end
+
+    it "非 Turbo（HTML）では一覧へリダイレクトする（後方互換）" do
+      payment_method = create(:payment_method, user: user, name: "楽天カード")
+      delete "/payment_methods/#{payment_method.id}"
       expect(response).to redirect_to("/payment_methods")
+      expect(flash[:notice]).to be_present
     end
 
     it "現金は削除できない（拒否して残る）" do
@@ -89,13 +112,28 @@ RSpec.describe "PaymentMethods", type: :request do
       expect(flash[:alert]).to be_present
     end
 
-    it "明細を持つ支払方法は削除でなくアーカイブされる（物理削除しない）" do
+    it "明細を持つ支払方法はアーカイブされ、Turbo Stream で archived セクションへ移動する" do
       payment_method = create(:payment_method, user: user, name: "楽天カード")
       create(:transaction, user: user, payment_method: payment_method)
 
       expect do
-        delete "/payment_methods/#{payment_method.id}"
+        delete "/payment_methods/#{payment_method.id}", as: :turbo_stream
       end.not_to change { user.payment_methods.count }
+      expect(payment_method.reload.archived_at).to be_present
+
+      dom = ActionView::RecordIdentifier.dom_id(payment_method)
+      # アクティブ行を除去し、アーカイブ済みコンテナへ追加する。
+      expect(response.body).to include(%(<turbo-stream action="remove" target="#{dom}">))
+      expect(response.body).to include(%(<turbo-stream action="append" target="archived-payment-methods">))
+      # 1件目のアーカイブでは「ありません」の空メッセージも消す。
+      expect(response.body).to include(%(<turbo-stream action="remove" target="archived-empty">))
+    end
+
+    it "非 Turbo（HTML）でのアーカイブは一覧へリダイレクトし通知する（後方互換）" do
+      payment_method = create(:payment_method, user: user, name: "楽天カード")
+      create(:transaction, user: user, payment_method: payment_method)
+
+      delete "/payment_methods/#{payment_method.id}"
       expect(payment_method.reload.archived_at).to be_present
       expect(response).to redirect_to("/payment_methods")
       expect(flash[:notice]).to include("アーカイブ")
@@ -106,7 +144,7 @@ RSpec.describe "PaymentMethods", type: :request do
       create(:import, user: user, payment_method: payment_method)
 
       expect do
-        delete "/payment_methods/#{payment_method.id}"
+        delete "/payment_methods/#{payment_method.id}", as: :turbo_stream
       end.not_to change { user.payment_methods.count }
       expect(payment_method.reload.archived_at).to be_present
     end
