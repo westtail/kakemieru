@@ -1,18 +1,31 @@
-<h1>支払方法</h1>
+<div class="max-w-2xl mx-auto p-4">
+  <h1 class="text-xl font-bold mb-4">支払方法</h1>
 
-<ul>
-  <% @payment_methods.each do |payment_method| %>
-    <li>
-      <%= payment_method.name %>（<%= PaymentMethodCatalog::LABELS[payment_method.payment_type] %>）
-      <%= link_to "名前変更", edit_payment_method_path(payment_method) %>
-      <% unless payment_method.cash? %>
-        <%= button_to "削除", payment_method_path(payment_method), method: :delete,
-              form: { data: { turbo_confirm: "「#{payment_method.name}」を削除します。よろしいですか？" } } %>
+  <ul id="payment-methods">
+    <% @payment_methods.each do |payment_method| %>
+      <%= render "payment_method", payment_method: payment_method,
+            transaction_count: @transaction_counts.fetch(payment_method.id, 0),
+            has_import: @import_payment_method_ids.include?(payment_method.id) %>
+    <% end %>
+  </ul>
+
+  <p class="text-sm text-gray-500 mt-2">「現金」は自動で用意され、削除できません（名前は変更できます）。</p>
+
+  <p class="mt-4">
+    <%= link_to "支払方法を追加", new_payment_method_path, class: "text-blue-600 hover:underline" %>
+  </p>
+
+  <section class="mt-8">
+    <h2 class="text-lg font-semibold mb-2 text-gray-600">アーカイブ済み</h2>
+    <%# 明細/取り込み履歴を持つため物理削除できない支払方法。空でも append 先として常に描画する。 %>
+    <ul id="archived-payment-methods">
+      <% @archived_payment_methods.each do |payment_method| %>
+        <%= render "archived_payment_method", payment_method: payment_method %>
       <% end %>
-    </li>
-  <% end %>
-</ul>
-
-<p>「現金」は自動で用意され、削除できません（名前は変更できます）。</p>
-
-<%= link_to "支払方法を追加", new_payment_method_path %>
+    </ul>
+    <% if @archived_payment_methods.empty? %>
+      <%# 1件目をアーカイブしたら Turbo Stream 側でこの空メッセージを消す。 %>
+      <p id="archived-empty" class="text-sm text-gray-400">アーカイブ済みの支払方法はありません。</p>
+    <% end %>
+  </section>
+</div>
