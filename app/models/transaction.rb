@@ -4,6 +4,42 @@
 #   集計・グラフ・月絞り込みは必ずこちらを使う。Rails からは書き込まない（読み取り専用）。
 # - import_id = NULL は手動入力、category_id = NULL は未分類。
 # - 取り消しは物理削除せず deleted_at（ソフトデリート）で行う。
+# == Schema Information
+#
+# Table name: transactions
+#
+#  id                :bigint           not null, primary key
+#  amount            :integer          not null
+#  amount_override   :integer
+#  date              :date             not null
+#  date_override     :date
+#  deleted_at        :datetime
+#  description       :string
+#  effective_amount  :integer
+#  effective_date    :date
+#  merchant_name     :string(255)      not null
+#  created_at        :datetime         not null
+#  updated_at        :datetime         not null
+#  category_id       :bigint
+#  import_id         :bigint
+#  payment_method_id :bigint           not null
+#  user_id           :bigint           not null
+#
+# Indexes
+#
+#  index_transactions_on_import_id                   (import_id)
+#  index_transactions_on_user_active_category        (user_id,deleted_at,category_id,effective_date)
+#  index_transactions_on_user_active_effective_date  (user_id,deleted_at,effective_date)
+#  index_transactions_on_user_active_payment_method  (user_id,deleted_at,payment_method_id)
+#  index_transactions_on_user_merchant_name          (user_id,merchant_name)
+#
+# Foreign Keys
+#
+#  fk_rails_...  (category_id => categories.id) ON DELETE => nullify
+#  fk_rails_...  (import_id => imports.id)
+#  fk_rails_...  (payment_method_id => payment_methods.id)
+#  fk_rails_...  (user_id => users.id)
+#
 class Transaction < ApplicationRecord
   # date/amount は原本で不変。訂正は *_override に入れる。通常の更新（update/update!）で
   # 変更しようとすると ReadonlyAttributeError（Rails 8: raise_on_assign_to_attr_readonly）。
