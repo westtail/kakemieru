@@ -6,11 +6,15 @@ class PaymentMethodsController < ApplicationController
     @archived_payment_methods = Current.user.payment_methods.archived.order(:id)
 
     # 行ごとに件数を都度問い合わせないよう先読みする（N+1 回避）。
-    # archivable? と同じく soft-delete 済みも含む全明細を数える（FK RESTRICT の実態に合わせる）。
     ids = @payment_methods.map(&:id)
-    @transaction_counts = Current.user.transactions.where(payment_method_id: ids).group(:payment_method_id).count
-    @import_payment_method_ids =
-      Current.user.imports.where(payment_method_id: ids).distinct.pluck(:payment_method_id).to_set
+    # 表示用: 取り消し済みを除いた「有効な」明細件数（確認文言の N）。
+    @active_transaction_counts =
+      Current.user.transactions.not_deleted.where(payment_method_id: ids).group(:payment_method_id).count
+    # 分岐用: 物理削除できない（＝アーカイブになる）支払方法。archivable? と一致させるため、
+    # soft-delete 済みも含む全明細・全取り込みを対象にする（FK RESTRICT の実態に合わせる）。
+    tx_owner_ids = Current.user.transactions.where(payment_method_id: ids).distinct.pluck(:payment_method_id)
+    import_owner_ids = Current.user.imports.where(payment_method_id: ids).distinct.pluck(:payment_method_id)
+    @archivable_payment_method_ids = (tx_owner_ids + import_owner_ids).to_set
   end
 
   def new

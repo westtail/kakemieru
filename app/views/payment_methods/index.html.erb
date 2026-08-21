@@ -4,8 +4,8 @@
   <ul id="payment-methods">
     <% @payment_methods.each do |payment_method| %>
       <%= render "payment_method", payment_method: payment_method,
-            transaction_count: @transaction_counts.fetch(payment_method.id, 0),
-            has_import: @import_payment_method_ids.include?(payment_method.id) %>
+            active_count: @active_transaction_counts.fetch(payment_method.id, 0),
+            archivable: @archivable_payment_method_ids.include?(payment_method.id) %>
     <% end %>
   </ul>
 

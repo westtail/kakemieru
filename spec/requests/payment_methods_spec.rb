@@ -37,6 +37,35 @@ RSpec.describe "PaymentMethods", type: :request do
       # アーカイブ済みは append 先のコンテナに入る。
       expect(response.body).to include('id="archived-payment-methods"')
     end
+
+    describe "削除/アーカイブの確認文言（turbo_confirm）" do
+      before { sign_in }
+
+      it "有効な明細がある場合は件数を添えてアーカイブと説明する" do
+        pm = create(:payment_method, user: user, name: "楽天カード")
+        create_list(:transaction, 2, user: user, payment_method: pm)
+
+        get "/payment_methods"
+        expect(response.body).to include("「楽天カード」には 2 件の明細があります。削除せずアーカイブします。")
+      end
+
+      it "取り消し済み明細のみの場合は件数を出さず履歴ありとしてアーカイブと説明する" do
+        pm = create(:payment_method, user: user, name: "楽天カード")
+        create(:transaction, user: user, payment_method: pm).soft_delete!
+
+        get "/payment_methods"
+        # 有効な明細は 0 件なので「N 件」とは言わない。だが履歴があるため削除ではなくアーカイブ。
+        expect(response.body).to include("「楽天カード」には履歴があるため、削除せずアーカイブします。")
+        expect(response.body).not_to include("0 件の明細")
+      end
+
+      it "履歴がない場合は削除と説明する" do
+        create(:payment_method, user: user, name: "楽天カード")
+
+        get "/payment_methods"
+        expect(response.body).to include("「楽天カード」を削除します。")
+      end
+    end
   end
 
   describe "POST /payment_methods（追加）" do

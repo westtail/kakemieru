@@ -1,5 +1,5 @@
 <%# アクティブな支払方法1行。Turbo Stream の remove 対象にするため dom_id を付与する。 %>
-<%# locals: payment_method / transaction_count / has_import %>
+<%# locals: payment_method / active_count / archivable %>
 <li id="<%= dom_id(payment_method) %>" class="flex items-center gap-3 py-2 border-b border-gray-100">
   <span class="flex-1">
     <%= payment_method.name %>
@@ -11,6 +11,6 @@
     <%= button_to "削除", payment_method_path(payment_method), method: :delete,
           class: "text-red-600 hover:underline",
           form: { data: { turbo_confirm: payment_method_removal_confirm(
-            payment_method, transaction_count: transaction_count, has_import: has_import) } } %>
+            payment_method, active_count: active_count, archivable: archivable) } } %>
   <% end %>
 </li>
