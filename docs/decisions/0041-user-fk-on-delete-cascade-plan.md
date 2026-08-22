@@ -36,7 +36,8 @@ Issue の明示リストは4つ（categories / payment_methods / sessions / impo
 ## 実装
 
 - `db/migrate/*_add_on_delete_cascade_to_user_foreign_keys.rb`: 各 FK を `remove_foreign_key` → `add_foreign_key ..., on_delete: :cascade` で張り直す。`down` で無指定へ戻す。
-- 検証: `spec/models/user_spec.rb` に、生 SQL `DELETE FROM users` で全子レコードが消え FK 違反にならないことのテストを追加。
+- **単一 DDL トランザクション（Rails 既定）で実行**する。remove → add を原子的に行うことで、他セッションからは旧 FK か新 FK のどちらかしか見えず、「FK が一瞬消える隙間」が生じない（その隙間での `DELETE FROM users` による子行の孤児化を防ぐ）。対象テーブルは小規模のため検証スキャンのロックも短時間で許容範囲。将来テーブルが肥大化してロックが問題になる場合は、一時名の cascade FK を先に足して検証後に旧 FK を落とすオンライン方式に切り替える（`disable_ddl_transaction!` + NOT VALID だけでは上記の孤児化ウィンドウが残るため単純採用しない）。
+- 検証: `spec/models/user_spec.rb` に、`delete_all`（コールバック非経由）で全子レコードが消え FK 違反にならないことのテストを追加。
 
 ## スコープ外
 
