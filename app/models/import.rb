@@ -1,6 +1,31 @@
 # 取り込み操作の単位（CSV 1ファイル = 1 Import）。同一ユーザー内で file_hash を一意にして
 # 同じ内容の二重取り込みを防ぐ。Import は物理削除しない方針（取り消しは transactions の
 # ソフトデリートで行う）。has_many :transactions は transactions を作る S7 で追加する。
+# == Schema Information
+#
+# Table name: imports
+#
+#  id                :bigint           not null, primary key
+#  file_hash         :string           not null
+#  imported_at       :datetime
+#  row_count         :integer          default(0), not null
+#  source_ref        :string
+#  source_type       :string           not null
+#  created_at        :datetime         not null
+#  updated_at        :datetime         not null
+#  payment_method_id :bigint           not null
+#  user_id           :bigint           not null
+#
+# Indexes
+#
+#  index_imports_on_payment_method_id      (payment_method_id)
+#  index_imports_on_user_id_and_file_hash  (user_id,file_hash) UNIQUE
+#
+# Foreign Keys
+#
+#  fk_rails_...  (payment_method_id => payment_methods.id)
+#  fk_rails_...  (user_id => users.id)
+#
 class Import < ApplicationRecord
   belongs_to :user
   belongs_to :payment_method

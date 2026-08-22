@@ -2,6 +2,27 @@
 # - 初期カテゴリ: category_key あり（テンプレ由来）。名前変更のみ可・削除不可。
 # - 独自カテゴリ: category_key が NULL。追加・名前変更・削除すべて可。
 # has_many :transactions / dependent: :nullify は Transaction を作る S7 で追加する（ADR-0024）。
+# == Schema Information
+#
+# Table name: categories
+#
+#  id           :bigint           not null, primary key
+#  category_key :string
+#  name         :string           not null
+#  created_at   :datetime         not null
+#  updated_at   :datetime         not null
+#  user_id      :bigint           not null
+#
+# Indexes
+#
+#  index_categories_on_user_id_and_category_key  (user_id,category_key) UNIQUE WHERE (category_key IS NOT NULL)
+#  index_categories_on_user_id_and_id            (user_id,id) UNIQUE
+#  index_categories_on_user_id_and_name          (user_id,name) UNIQUE
+#
+# Foreign Keys
+#
+#  fk_rails_...  (user_id => users.id)
+#
 class Category < ApplicationRecord
   belongs_to :user
 
