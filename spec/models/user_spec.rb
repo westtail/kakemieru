@@ -92,5 +92,26 @@ RSpec.describe User, type: :model do
       user.sessions.create!(ip_address: "127.0.0.1", user_agent: "test-agent")
       expect { user.destroy }.to change(Session, :count).by(-1)
     end
+
+    it "DB レベルでユーザーを削除すると全子レコードが CASCADE される（#110）" do
+      # ActiveRecord の dependent: :destroy を経由しない生 SQL 削除でも、DB の
+      # ON DELETE CASCADE により子レコードが消え、FK 制約で失敗しないことを確認する。
+      user = create(:user)
+      payment_method = create(:payment_method, user: user)
+      create(:category, user: user)
+      user.sessions.create!(ip_address: "127.0.0.1", user_agent: "test-agent")
+      import = create(:import, user: user, payment_method: payment_method)
+      create(:transaction, user: user, payment_method: payment_method, import: import)
+
+      # delete_all は単一 DELETE 文を発行し dependent: :destroy コールバックを経由しない。
+      expect { User.where(id: user.id).delete_all }.not_to raise_error
+
+      expect(User.exists?(user.id)).to be false
+      expect(Category.where(user_id: user.id)).to be_empty
+      expect(PaymentMethod.where(user_id: user.id)).to be_empty
+      expect(Session.where(user_id: user.id)).to be_empty
+      expect(Import.where(user_id: user.id)).to be_empty
+      expect(Transaction.where(user_id: user.id)).to be_empty
+    end
   end
 end
