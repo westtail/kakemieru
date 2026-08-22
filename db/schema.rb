@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2026_08_14_135612) do
+ActiveRecord::Schema[8.1].define(version: 2026_08_22_121953) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "pg_catalog.plpgsql"
 
@@ -125,13 +125,13 @@ ActiveRecord::Schema[8.1].define(version: 2026_08_14_135612) do
     t.index ["email_address"], name: "index_users_on_email_address", unique: true
   end
 
-  add_foreign_key "categories", "users"
+  add_foreign_key "categories", "users", on_delete: :cascade
   add_foreign_key "imports", "payment_methods"
-  add_foreign_key "imports", "users"
-  add_foreign_key "payment_methods", "users"
-  add_foreign_key "sessions", "users"
+  add_foreign_key "imports", "users", on_delete: :cascade
+  add_foreign_key "payment_methods", "users", on_delete: :cascade
+  add_foreign_key "sessions", "users", on_delete: :cascade
   add_foreign_key "transactions", "categories", on_delete: :nullify
   add_foreign_key "transactions", "imports"
   add_foreign_key "transactions", "payment_methods"
-  add_foreign_key "transactions", "users"
+  add_foreign_key "transactions", "users", on_delete: :cascade
 end
