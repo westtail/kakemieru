@@ -131,7 +131,7 @@ ci/8-github-actions-setup
 - [ ] rails db:migrate が正常完了すること
 - [ ] rails db:rollback で down が正常動作すること
 - [ ] rails db:migrate:redo (up→down→up) が通ること
-- [ ] db/schema.rb のレビュー（カラム・インデックス・制約を確認）
+- [ ] db/structure.sql のレビュー（カラム・インデックス・制約を確認。#113 で schema.rb から切替）
 ```
 
 ### 2. ADR作成（任意）
