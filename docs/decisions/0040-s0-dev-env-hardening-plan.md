@@ -17,7 +17,7 @@
 
 ## 論点と決定
 
-- **annotate は `annotaterb` を採用**: 従来の `annotate`（ctran/annotate_models）は 2022 年以降ほぼ更新が止まり Rails 8 での動作が不安定。維持フォークの `annotaterb`（drwl/annotaterb）は Rails 8 対応で active。`bundle exec annotaterb install` で `.annotaterb.yml` と `lib/tasks` の rake フックを生成し、`db:migrate` 後にモデルへスキーマコメントを自動追記する。対象はモデルのみ（factory/spec への注釈は無効）。development グループに `require: false` で追加。
+- **annotate は `annotaterb` を採用**: 従来の `annotate`（ctran/annotate_models）は 2022 年以降ほぼ更新が止まり Rails 8 での動作が不安定。維持フォークの `annotaterb`（drwl/annotaterb）は Rails 8 対応で active。`bin/rails g annotate_rb:install` で `.annotaterb.yml` と rake フック（`lib/tasks/annotate_rb.rake`）を生成し、`db:migrate` 後にモデルへスキーマコメントを自動追記する。対象はモデルのみ（factory/spec への注釈は無効）。development グループに `require: false` で追加。
 - **seeds は development 限定のサンプルデータ**: `db/seeds.rb` は全環境で冪等。既存のカテゴリテンプレート投入はそのまま残し、`Rails.env.development?` のときだけサンプルの「ユーザー・支払方法・カテゴリ・明細（当月/先月）」を追加する。ユーザーの初期データは本番登録と同じ経路（`Category.copy_templates_to` / `PaymentMethod.create_default_for`）で作り、実挙動と乖離させない。明細は自然キーが無いため「ユーザーに明細が無いときだけ投入」で冪等化する。
 - **bundler-audit は CI の独立ジョブ**: `bundler-audit` gem を development/test に追加し、`.github/workflows/ci.yml` に `scan_deps` ジョブを足して `bundle exec bundler-audit check --update` を実行する。既存の `scan_js`（importmap audit）と対をなす依存脆弱性チェック。
 
@@ -26,7 +26,7 @@
 ## 実装
 
 - `Gemfile`: development に `annotaterb`、development/test に `bundler-audit`（ともに `require: false`）。
-- `.annotaterb.yml` / `lib/tasks/auto_annotate_models.rake`: `annotaterb install` の生成物。
+- `.annotaterb.yml` / `lib/tasks/annotate_rb.rake`: `annotate_rb:install` ジェネレータの生成物。
 - 各 `app/models/*.rb`: `annotaterb models` によるスキーマコメント追記。
 - `.github/workflows/ci.yml`: `scan_deps` ジョブ追加。
 - `db/seeds.rb`: development 限定のサンプルデータを冪等に追加。
