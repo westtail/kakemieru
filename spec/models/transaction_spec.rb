@@ -136,4 +136,69 @@ RSpec.describe Transaction, type: :model do
       expect(user).to be_destroyed
     end
   end
+
+  # アプリ層バリデーション（テナント整合）を迂回する生 SQL でも、DB の複合FKが
+  # 他ユーザーの category/payment_method 混入を拒否することを検証する（多層防御・#113）。
+  describe "DB 層の複合FK（マルチテナント保護・#113）" do
+    let(:user) { create(:user) }
+    let(:payment_method) { create(:payment_method, user: user) }
+    let(:other) { create(:user) }
+
+    it "他ユーザーの category を生 SQL 更新でも DB が拒否する" do
+      tx = create(:transaction, user: user, payment_method: payment_method)
+      others_category = create(:category, user: other)
+
+      expect {
+        ActiveRecord::Base.connection.execute(
+          "UPDATE transactions SET category_id = #{others_category.id} WHERE id = #{tx.id}"
+        )
+      }.to raise_error(ActiveRecord::InvalidForeignKey)
+    end
+
+    it "他ユーザーの payment_method を生 SQL 更新でも DB が拒否する" do
+      tx = create(:transaction, user: user, payment_method: payment_method)
+      others_payment_method = create(:payment_method, user: other)
+
+      expect {
+        ActiveRecord::Base.connection.execute(
+          "UPDATE transactions SET payment_method_id = #{others_payment_method.id} WHERE id = #{tx.id}"
+        )
+      }.to raise_error(ActiveRecord::InvalidForeignKey)
+    end
+
+    it "他ユーザーの category を持つ行の生 SQL INSERT を DB が拒否する（取り込み経路の回帰防止）" do
+      others_category = create(:category, user: other)
+
+      expect {
+        ActiveRecord::Base.connection.execute(<<~SQL)
+          INSERT INTO transactions (user_id, payment_method_id, category_id, date, amount, merchant_name, created_at, updated_at)
+          VALUES (#{user.id}, #{payment_method.id}, #{others_category.id}, '2026-01-01', 1000, 'x', NOW(), NOW())
+        SQL
+      }.to raise_error(ActiveRecord::InvalidForeignKey)
+    end
+
+    it "自ユーザーの category は生 SQL 更新でも許可される" do
+      tx = create(:transaction, user: user, payment_method: payment_method)
+      own_category = create(:category, user: user)
+
+      expect {
+        ActiveRecord::Base.connection.execute(
+          "UPDATE transactions SET category_id = #{own_category.id} WHERE id = #{tx.id}"
+        )
+      }.not_to raise_error
+      expect(tx.reload.category_id).to eq(own_category.id)
+    end
+
+    it "カテゴリを DB レベルで削除すると category_id だけ NULL 化し user_id は保持する（列指定 SET NULL）" do
+      category = create(:category, user: user)
+      tx = create(:transaction, user: user, payment_method: payment_method, category: category)
+
+      # dependent: :nullify（アプリ層）を迂回する生 SQL 削除でも DB が NULL 化する。
+      Category.where(id: category.id).delete_all
+
+      tx.reload
+      expect(tx.category_id).to be_nil
+      expect(tx.user_id).to eq(user.id)
+    end
+  end
 end
