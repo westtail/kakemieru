@@ -17,8 +17,16 @@ user = User.find_or_create_by!(email_address: "dev@example.com") do |u|
   u.password_confirmation = "password"
 end
 
-# 本番登録と同じ経路で初期データ（カテゴリ12件・現金）を用意する。
-Category.copy_templates_to(user) if user.categories.empty?
+# 初期カテゴリ（テンプレ由来）を正規状態へ収束させる。全消し済み・部分欠けでも
+# 不足しているキーだけを補い、サンプル明細が未分類化するのを防ぐ。
+existing_keys = user.categories.where.not(category_key: nil).pluck(:category_key)
+CategoryTemplate.order(:id).each do |template|
+  next if existing_keys.include?(template.category_key)
+
+  user.categories.create!(category_key: template.category_key, name: template.name)
+end
+
+# 現金（削除不可の特別枠）が無ければ用意する。
 PaymentMethod.create_default_for(user) unless user.payment_methods.exists?(payment_type: "cash")
 
 # サンプルのカード類（現金は create_default_for で作成済み）。
@@ -48,14 +56,18 @@ if user.transactions.none?
     [ last_month, 25, "居酒屋",           5_200, "dining_out",    cash ]
   ]
 
-  samples.each do |base, day, name, amount, key, payment_method|
-    user.transactions.create!(
-      payment_method: payment_method,
-      category: key && category.call(key),
-      date: base + (day - 1).days,
-      amount: amount,
-      merchant_name: name
-    )
+  # 途中失敗で一部だけコミットされると、再実行時に none? が false になり補完できない。
+  # 全件まとめて投入し、失敗時は投入前の状態へ戻す。
+  ActiveRecord::Base.transaction do
+    samples.each do |base, day, name, amount, key, payment_method|
+      user.transactions.create!(
+        payment_method: payment_method,
+        category: key && category.call(key),
+        date: base + (day - 1).days,
+        amount: amount,
+        merchant_name: name
+      )
+    end
   end
 
   puts "[seed] #{user.email_address} にサンプル明細 #{samples.size} 件を投入しました。"
