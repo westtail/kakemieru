@@ -24,7 +24,7 @@
 # Foreign Keys
 #
 #  fk_rails_...  (payment_method_id => payment_methods.id)
-#  fk_rails_...  (user_id => users.id)
+#  fk_rails_...  (user_id => users.id) ON DELETE => cascade
 #
 class Import < ApplicationRecord
   belongs_to :user

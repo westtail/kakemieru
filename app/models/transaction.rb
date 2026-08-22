@@ -35,10 +35,10 @@
 #
 # Foreign Keys
 #
-#  fk_rails_...  (category_id => categories.id) ON DELETE => nullify
-#  fk_rails_...  (import_id => imports.id)
-#  fk_rails_...  (payment_method_id => payment_methods.id)
-#  fk_rails_...  (user_id => users.id)
+#  fk_rails_...                         (import_id => imports.id)
+#  fk_rails_...                         (user_id => users.id) ON DELETE => cascade
+#  fk_transactions_user_category        ([user_id, category_id] => categories[user_id, id]) ON DELETE => nullify
+#  fk_transactions_user_payment_method  ([user_id, payment_method_id] => payment_methods[user_id, id])
 #
 class Transaction < ApplicationRecord
   # date/amount は原本で不変。訂正は *_override に入れる。通常の更新（update/update!）で
@@ -67,8 +67,9 @@ class Transaction < ApplicationRecord
   validates :amount_override, numericality: AMOUNT_NUMERICALITY, allow_nil: true
   validates :merchant_name, presence: true, length: { maximum: 255 }
 
-  # 複合FKを張らない方針のため、他ユーザーの user 資源への紐づけをモデル層で防ぐ
-  # （コントローラの current_user スコープと二層）。
+  # 他ユーザーの user 資源への紐づけを防ぐテナント整合。DB 層の複合FK（#113）と二層防御で、
+  # アプリ層はレース時に 500 でなく 422 を返す UX 役割で残す（コントローラの current_user
+  # スコープと合わせて三層）。安易に削除しないこと。
   validate :payment_method_belongs_to_user
   validate :category_belongs_to_user
   validate :import_belongs_to_user

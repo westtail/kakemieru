@@ -85,3 +85,7 @@ production:
   cache:
     <<: *primary_production
     migrations_paths: db/cache_migrate
+    # solid_cache_entries は primary（structure.sql）で管理し、この接続は同一物理 DB を
+    # 参照するだけ。schema_format=:sql（#113）で存在しない cache_structure.sql を要求しない
+    # よう、rake db タスクの対象から外す（cache の読み書き自体には影響しない）。
+    database_tasks: false

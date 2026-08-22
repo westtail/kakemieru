@@ -17,12 +17,11 @@
 # Indexes
 #
 #  index_payment_methods_on_user_id_and_archived_at  (user_id,archived_at)
-#  index_payment_methods_on_user_id_and_id           (user_id,id) UNIQUE
 #  index_payment_methods_on_user_id_and_name         (user_id,name) UNIQUE
 #
 # Foreign Keys
 #
-#  fk_rails_...  (user_id => users.id)
+#  fk_rails_...  (user_id => users.id) ON DELETE => cascade
 #
 class PaymentMethod < ApplicationRecord
   belongs_to :user
