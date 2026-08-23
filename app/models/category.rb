@@ -16,12 +16,11 @@
 # Indexes
 #
 #  index_categories_on_user_id_and_category_key  (user_id,category_key) UNIQUE WHERE (category_key IS NOT NULL)
-#  index_categories_on_user_id_and_id            (user_id,id) UNIQUE
 #  index_categories_on_user_id_and_name          (user_id,name) UNIQUE
 #
 # Foreign Keys
 #
-#  fk_rails_...  (user_id => users.id)
+#  fk_rails_...  (user_id => users.id) ON DELETE => cascade
 #
 class Category < ApplicationRecord
   belongs_to :user

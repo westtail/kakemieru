@@ -15,6 +15,11 @@ services:
       POSTGRES_PASSWORD: password
       # system spec は別コンテナの Chrome にリモート接続する（この env の有無でリモート判定）。
       CHROME_HOST: chrome
+      # base の DATABASE_URL（本番向け・kakemieru_development 固定）を dev では無効化する。
+      # DATABASE_URL があると RAILS_ENV=test でもそのDB名が優先され、rspec が開発DBを
+      # 使ってしまう。未設定にして database.yml の環境別解決（dev→development / test→test）
+      # に委ねる（null = ホスト環境から解決。ホストに無いので未設定になる）。
+      DATABASE_URL:
     volumes:
       # ソースコードをマウント（コード変更を即時反映）
       - .:/rails
