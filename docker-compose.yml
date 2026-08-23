@@ -16,7 +16,9 @@ services:
       - "80:80"
 
   db:
-    image: postgres:16-alpine
+    # 本番 Fly Postgres（17.2）と CI に合わせて 17 系。pg_dump 17 が生成する structure.sql は
+    # PG17 の SET（transaction_timeout 等）を含むため、DB サーバも 17+ でないとロードに失敗する。
+    image: postgres:17-alpine
     environment:
       POSTGRES_USER: ${POSTGRES_USER:-postgres}
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
