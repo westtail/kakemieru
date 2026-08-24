@@ -34,8 +34,13 @@ Rails.application.routes.draw do
     collection { get :summary, to: "transactions/summaries#show" }
   end
 
-  # CSV取り込み。S6 は new/create（保存）と最小の履歴一覧。詳細/取り消しは S9。
-  resources :imports, only: %i[index new create]
+  # CSV取り込み。取り込み・履歴一覧/詳細（S9 #47）・取り消し（S9 #46）。
+  resources :imports, only: %i[index new create show] do
+    member do
+      get :cancel_confirm     # 取り消し確認画面
+      delete :cancel          # 取り消し実行（紐づく明細をソフト削除）
+    end
+  end
   # 手動まとめ入力（複数行を manual_bulk として一括保存）。
   post "imports/manual", to: "imports#create_manual", as: :manual_import
   # Define your application routes per the DSL in https://guides.rubyonrails.org/routing.html
@@ -43,6 +48,13 @@ Rails.application.routes.draw do
   # Reveal health status on /up that returns 200 if the app boots with no exceptions, otherwise 500.
   # Can be used by load balancers and uptime monitors to verify that the app is live.
   get "up" => "rails/health#show", as: :rails_health_check
+  # アプリ向けのヘルスチェック（/up は Fly が利用）。
+  get "health" => "rails/health#show", as: :health
+
+  # ブランド化した動的エラーページ（exceptions_app = routes 経由でも使う）。
+  match "/404", to: "errors#not_found",            via: :all
+  match "/422", to: "errors#unprocessable_entity", via: :all
+  match "/500", to: "errors#internal_server_error", via: :all
 
   # Render dynamic PWA files from app/views/pwa/* (remember to link manifest in application.html.erb)
   # get "manifest" => "rails/pwa#manifest", as: :pwa_manifest

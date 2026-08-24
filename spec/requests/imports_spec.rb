@@ -146,13 +146,147 @@ RSpec.describe "Imports", type: :request do
   end
 
   describe "GET /imports（履歴一覧）" do
+    before { sign_in }
+
     it "自分の取り込み履歴を表示する" do
-      sign_in
       post "/imports", params: { import: { payment_method_id: payment_method.id, file: csv_upload(valid_csv) } }
 
       get "/imports"
       expect(response).to have_http_status(:ok)
       expect(response.body).to include("楽天カード", "rakuten.csv")
+    end
+
+    it "他ユーザーの取り込みは表示しない" do
+      other = create(:user)
+      create(:import, user: other, source_ref: "他人のファイル.csv")
+
+      get "/imports"
+      expect(response.body).not_to include("他人のファイル.csv")
+    end
+
+    it "取り消し済みの取り込みは「取消済」と表示する" do
+      post "/imports", params: { import: { payment_method_id: payment_method.id, file: csv_upload(valid_csv) } }
+      import = user.imports.order(:id).last
+      delete cancel_import_path(import)
+
+      get "/imports"
+      expect(response.body).to include("取消済")
+    end
+
+    it "一部の明細のみ取り消した取り込みは「一部取消」と表示する" do
+      post "/imports", params: { import: { payment_method_id: payment_method.id, file: csv_upload(valid_csv) } }
+      import = user.imports.order(:id).last
+      import.transactions.first.update!(deleted_at: Time.current) # 2件中1件だけ取消
+
+      get "/imports"
+      expect(response.body).to include("一部取消")
+    end
+  end
+
+  describe "GET /imports/:id（詳細）" do
+    before { sign_in }
+
+    it "取り込みのメタ情報と含まれる明細を表示する" do
+      post "/imports", params: { import: { payment_method_id: payment_method.id, file: csv_upload(valid_csv) } }
+      import = user.imports.order(:id).last
+
+      get import_path(import)
+      expect(response).to have_http_status(:ok)
+      expect(response.body).to include("rakuten.csv", "楽天カード") # メタ
+      expect(response.body).to include("ローソン", "Amazon")        # 明細
+    end
+
+    it "取り消し済みの明細も詳細に表示される（取消済みが分かる）" do
+      post "/imports", params: { import: { payment_method_id: payment_method.id, file: csv_upload(valid_csv) } }
+      import = user.imports.order(:id).last
+      delete cancel_import_path(import)
+
+      get import_path(import)
+      expect(response.body).to include("ローソン")   # 取消後も明細は見える
+      expect(response.body).to include("取消済")
+    end
+
+    it "他ユーザーの取り込み詳細は 404" do
+      other = create(:user)
+      others_import = create(:import, user: other)
+      get import_path(others_import)
+      expect(response).to have_http_status(:not_found)
+    end
+  end
+
+  describe "取り込み取り消し" do
+    before { sign_in }
+
+    # CSV を取り込み、作成された Import（明細2件付き）を返す。
+    def import_valid_csv
+      post "/imports", params: { import: { payment_method_id: payment_method.id, file: csv_upload(valid_csv) } }
+      user.imports.order(:id).last
+    end
+
+    describe "GET /imports/:id/cancel_confirm" do
+      it "対象件数と警告を表示する" do
+        import = import_valid_csv
+        get cancel_confirm_import_path(import)
+        expect(response).to have_http_status(:ok)
+        expect(response.body).to include("2件", "取り消せません")
+      end
+
+      it "他ユーザーの取り込みは 404" do
+        other = create(:user)
+        others_import = create(:import, user: other)
+        get cancel_confirm_import_path(others_import)
+        expect(response).to have_http_status(:not_found)
+      end
+    end
+
+    describe "DELETE /imports/:id/cancel" do
+      it "紐づく明細をソフト削除し、Import レコードは残す" do
+        import = import_valid_csv
+
+        expect do
+          delete cancel_import_path(import)
+        end.to change { user.transactions.not_deleted.count }.by(-2)
+
+        expect(Import.exists?(import.id)).to be(true)
+        expect(import.transactions.where.not(deleted_at: nil).count).to eq(2)
+        expect(response).to redirect_to("/imports")
+        expect(flash[:notice]).to include("2件")
+      end
+
+      it "取り消した明細は一覧に表示されない" do
+        import = import_valid_csv
+        delete cancel_import_path(import)
+
+        get "/transactions", params: { month: "2026-01" }
+        expect(response.body).not_to include("ローソン")
+        expect(response.body).not_to include("Amazon")
+      end
+
+      it "取り消し後も同じファイルの再取り込みは重複エラー（file_hash 温存）" do
+        import = import_valid_csv
+        delete cancel_import_path(import)
+
+        expect do
+          post "/imports", params: { import: { payment_method_id: payment_method.id, file: csv_upload(valid_csv) } }
+        end.not_to change { user.transactions.count }
+        expect(response).to have_http_status(:unprocessable_entity)
+        expect(response.body).to include("取り込み済み")
+      end
+
+      it "他ユーザーの取り込みは 404" do
+        other = create(:user)
+        others_import = create(:import, user: other)
+        delete cancel_import_path(others_import)
+        expect(response).to have_http_status(:not_found)
+      end
+
+      it "取り消せる明細が無ければ（二重実行）案内メッセージを出す" do
+        import = import_valid_csv
+        delete cancel_import_path(import) # 1回目
+        delete cancel_import_path(import) # 2回目は 0 件
+        expect(response).to redirect_to("/imports")
+        expect(flash[:alert]).to include("取り消せる明細はありません")
+      end
     end
   end
 end

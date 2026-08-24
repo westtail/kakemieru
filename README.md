@@ -2,8 +2,30 @@
 
 クレジットカード明細 CSV をアップロードして収支をグラフで可視化する家計簿 Web アプリ。
 
-- Rails 8 / PostgreSQL / Hotwire / Docker / Fly.io
-- 認証は Rails 8 Built-in Authentication（メール + パスワード）
+## スクリーンショット
+
+| ダッシュボード | 明細一覧・絞り込み |
+|---|---|
+| ![ダッシュボード](docs/images/dashboard.png) | ![明細一覧](docs/images/transactions.png) |
+
+月次の支出合計とカテゴリ別の内訳を円グラフで表示し、明細は月・カテゴリ・キーワードで絞り込める。カテゴリはその場で（ページ遷移なしに）変更・削除できる。
+
+## 技術スタック
+
+| 領域 | 採用技術 |
+|---|---|
+| 言語・フレームワーク | Ruby / Rails 8 |
+| データベース | PostgreSQL |
+| フロントエンド | Hotwire（Turbo / Stimulus）+ importmap（Node 不要） |
+| CSS | Tailwind CSS（`tailwindcss-rails`・スタンドアロンバイナリ） |
+| グラフ | Chart.js（`vendor/javascript` に自己完結バンドルを同梱） |
+| 認証 | Rails 8 Built-in Authentication（メール + パスワード） |
+| メール送信 | Resend（本番）/ letter_opener（開発） |
+| テスト | RSpec + FactoryBot + Shoulda Matchers / Capybara + Cuprite（E2E） |
+| 実行環境 | Docker Compose（開発）/ Fly.io（本番・東京 nrt） |
+| CI/CD | GitHub Actions（lint / brakeman / test / Fly デプロイ） |
+
+主要な設計判断は [docs/decisions/](docs/decisions/)（ADR）に記録している。
 
 ## 前提条件
 
@@ -92,12 +114,31 @@ docker compose exec web bundle exec rspec spec/features
 docker compose down
 ```
 
+## デプロイ
+
+本番は Fly.io（東京 nrt）。デプロイは **`main` ブランチへの push で自動実行**される。
+
+- 開発は `develop` で行い、リリース時に `develop` → `main` を PR でマージする。
+- `main` への push を [.github/workflows/fly-deploy.yml](.github/workflows/fly-deploy.yml) が検知し、`flyctl deploy --remote-only` を実行する。
+- DB マイグレーションはデプロイ時に `bin/docker-entrypoint` の `db:prepare` で自動適用される。
+
+手動デプロイや Fly の操作は [docs/infra/FLYCTL.md](docs/infra/FLYCTL.md)、パイプライン全体は [docs/infra/CI_CD.md](docs/infra/CI_CD.md) を参照。
+
 ## ドキュメント
 
 - [docs/PROJECT_ABOUT.md](docs/PROJECT_ABOUT.md) — 全体像・技術スタック・要件
 - [docs/DEVELOPMENT_GUIDE.md](docs/DEVELOPMENT_GUIDE.md) — 開発フロー
 - [docs/design/](docs/design/) — DB / 画面 / 認証などの設計
 - [docs/decisions/](docs/decisions/) — ADR（意思決定記録）
+
+### 主要な設計判断（ADR 抜粋）
+
+- [0010 テストフレームワーク](docs/decisions/0010-testing-framework.md) — RSpec 採用
+- [0011 認証方式](docs/decisions/0011-authentication-strategy.md) — Rails 8 Built-in Authentication
+- [0012 CSV 取り込み方式](docs/decisions/0012-csv-import-strategy.md)
+- [0013 DB モデル設計](docs/decisions/0013-database-model-design.md)
+- [0023 E2E テスト環境](docs/decisions/0023-e2e-test-environment.md) — Capybara + Cuprite
+- [0030 Tailwind CSS 採用](docs/decisions/0030-tailwind-css-adoption.md)
 
 ## 本番インフラのセットアップ
 

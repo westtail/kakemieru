@@ -2,6 +2,27 @@
 # - 現金（payment_type: cash）: 登録時に1件自動生成。削除不可・名前変更のみ可。
 # - それ以外: ユーザーが自由に追加・名前/種別変更・削除できる。
 # has_many :transactions（S7）/ :imports（S5）は関連先が作られてから追加する（ADR-0025）。
+# == Schema Information
+#
+# Table name: payment_methods
+#
+#  id           :bigint           not null, primary key
+#  archived_at  :datetime
+#  name         :string           not null
+#  payment_type :string           not null
+#  created_at   :datetime         not null
+#  updated_at   :datetime         not null
+#  user_id      :bigint           not null
+#
+# Indexes
+#
+#  index_payment_methods_on_user_id_and_archived_at  (user_id,archived_at)
+#  index_payment_methods_on_user_id_and_name         (user_id,name) UNIQUE
+#
+# Foreign Keys
+#
+#  fk_rails_...  (user_id => users.id) ON DELETE => cascade
+#
 class PaymentMethod < ApplicationRecord
   belongs_to :user
 

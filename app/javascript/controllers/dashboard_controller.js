@@ -3,6 +3,13 @@ import { Chart, PieController, ArcElement, Tooltip, Legend } from "chart.js"
 
 Chart.register(PieController, ArcElement, Tooltip, Legend)
 
+// カテゴリ別円グラフの配色。自動彩色プラグイン（Colors）を積まない構成のため、
+// スライス色を明示指定する。カテゴリ数がこれを超える場合は先頭から循環させる。
+const CATEGORY_COLORS = [
+  "#3b82f6", "#f97316", "#10b981", "#ef4444", "#8b5cf6",
+  "#eab308", "#ec4899", "#14b8a6", "#6366f1", "#84cc16"
+]
+
 // 月次ダッシュボード。月切り替えで GET /transactions/summary を fetch し、
 // 支出合計・カテゴリ別円グラフ・未分類バッジを再描画する。ページ遷移はしない。
 export default class extends Controller {
@@ -102,16 +109,18 @@ export default class extends Controller {
     const slices = data.categories.filter((c) => c.amount > 0)
     const labels = slices.map((c) => c.name)
     const amounts = slices.map((c) => c.amount)
+    const colors = slices.map((_, i) => CATEGORY_COLORS[i % CATEGORY_COLORS.length])
 
     if (this.chart) {
       this.chart.data.labels = labels
       this.chart.data.datasets[0].data = amounts
+      this.chart.data.datasets[0].backgroundColor = colors
       this.chart.update()
       return
     }
     this.chart = new Chart(this.canvasTarget, {
       type: "pie",
-      data: { labels, datasets: [{ data: amounts }] },
+      data: { labels, datasets: [{ data: amounts, backgroundColor: colors }] },
       options: { responsive: true, plugins: { legend: { position: "bottom" } } }
     })
   }

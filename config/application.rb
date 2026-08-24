@@ -34,6 +34,13 @@ module Kakemieru
     # Common ones are `templates`, `generators`, or `middleware`, for example.
     config.autoload_lib(ignore: %w[assets tasks])
 
+    # 例外時のエラーページを routes 経由の ErrorsController（ブランド化ビュー）で描画する。
+    config.exceptions_app = routes
+
+    # 複合FK・列指定 ON DELETE SET NULL 等、Ruby 形式の schema.rb で表現できない制約を
+    # CI/テスト DB まで含めて再現するため、スキーマ管理を structure.sql（pg_dump）にする（#113）。
+    config.active_record.schema_format = :sql
+
     # Configuration for the application, engines, and railties goes here.
     #
     # These settings can be overridden in specific environments using the files

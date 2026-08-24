@@ -48,6 +48,9 @@ group :development, :test do
   # Static analysis for security vulnerabilities [https://brakemanscanner.org/]
   gem "brakeman", require: false
 
+  # 依存 gem の既知脆弱性チェック（CI の scan_deps で実行）。
+  gem "bundler-audit", require: false
+
   # Omakase Ruby styling [https://github.com/rails/rubocop-rails-omakase/]
   gem "rubocop-rails-omakase", require: false
 
@@ -66,6 +69,9 @@ end
 group :development do
   # Use console on exceptions pages [https://github.com/rails/web-console]
   gem "web-console"
+
+  # db:migrate 後にモデルへスキーマコメントを自動追記する（Rails 8 対応の維持フォーク）。
+  gem "annotaterb", require: false
 
   # 開発環境で送信メールをブラウザで確認する（/letter_opener で閲覧）。
   # Docker はヘッドレスでブラウザ自動起動ができないため web 版を使う。

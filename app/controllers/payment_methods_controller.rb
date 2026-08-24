@@ -2,8 +2,19 @@ class PaymentMethodsController < ApplicationController
   before_action :set_payment_method, only: %i[edit update destroy]
 
   def index
-    # S4 は全件アクティブ（アーカイブ運用は S7）。
     @payment_methods = Current.user.payment_methods.active.order(:id)
+    @archived_payment_methods = Current.user.payment_methods.archived.order(:id)
+
+    # 行ごとに件数を都度問い合わせないよう先読みする（N+1 回避）。
+    ids = @payment_methods.map(&:id)
+    # 表示用: 取り消し済みを除いた「有効な」明細件数（確認文言の N）。
+    @active_transaction_counts =
+      Current.user.transactions.not_deleted.where(payment_method_id: ids).group(:payment_method_id).count
+    # 分岐用: 物理削除できない（＝アーカイブになる）支払方法。archivable? と一致させるため、
+    # soft-delete 済みも含む全明細・全取り込みを対象にする（FK RESTRICT の実態に合わせる）。
+    tx_owner_ids = Current.user.transactions.where(payment_method_id: ids).distinct.pluck(:payment_method_id)
+    import_owner_ids = Current.user.imports.where(payment_method_id: ids).distinct.pluck(:payment_method_id)
+    @archivable_payment_method_ids = (tx_owner_ids + import_owner_ids).to_set
   end
 
   def new
@@ -43,7 +54,7 @@ class PaymentMethodsController < ApplicationController
 
     # 判定（archivable?）と削除/アーカイブを行ロックで原子的に行う。並行リクエストが間に
     # 明細/取り込みを追加しても、RESTRICT による FK 例外 500 にならないようにする。
-    archived = @payment_method.with_lock do
+    @archived = @payment_method.with_lock do
       if @payment_method.archivable?
         @payment_method.archive!
         true
@@ -53,10 +64,14 @@ class PaymentMethodsController < ApplicationController
       end
     end
 
-    if archived
-      redirect_to payment_methods_path, notice: "明細があるため支払方法をアーカイブしました。"
-    else
-      redirect_to payment_methods_path, notice: "支払方法を削除しました。"
+    respond_to do |format|
+      # 一覧をその場で更新する（削除は行除去、アーカイブは archived セクションへ移動）。
+      format.turbo_stream
+      # 非 Turbo は従来どおり全画面リダイレクト（Turbo もリダイレクトを追従するため後方互換）。
+      format.html do
+        notice = @archived ? "明細があるため支払方法をアーカイブしました。" : "支払方法を削除しました。"
+        redirect_to payment_methods_path, notice: notice
+      end
     end
   end
 

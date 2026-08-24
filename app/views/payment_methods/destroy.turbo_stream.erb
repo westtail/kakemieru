@@ -1,0 +1,9 @@
+<%# 削除: アクティブ行を除去する。アーカイブ: 行を除去して archived セクションへ移す。 %>
+<%= turbo_stream.remove @payment_method %>
+<% if @archived %>
+  <%# 空メッセージが残っていれば消す（対象が無ければ no-op）。 %>
+  <%= turbo_stream.remove "archived-empty" %>
+  <%= turbo_stream.append "archived-payment-methods" do %>
+    <%= render "archived_payment_method", payment_method: @payment_method %>
+  <% end %>
+<% end %>
