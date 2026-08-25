@@ -1,8 +1,8 @@
-<h1>取り込み</h1>
+<h1 class="page-title">取り込み</h1>
 
 <% if @errors.present? %>
-  <div class="error-messages text-red-600">
-    <ul>
+  <div class="error-messages mb-4 rounded border border-red-200 bg-red-50 p-3 text-red-600">
+    <ul class="list-disc pl-5">
       <% @errors.each do |error| %>
         <li><%= error %></li>
       <% end %>
@@ -11,36 +11,39 @@
 <% end %>
 
 <section id="csv-import">
-  <h2>CSVから取り込む</h2>
+  <h2 class="section-title">CSVから取り込む</h2>
   <%= form_with url: imports_path, method: :post, scope: :import, html: { multipart: true } do |form| %>
-    <div>
-      <%= form.label :payment_method_id, "支払方法" %><br>
+    <div class="field">
+      <%= form.label :payment_method_id, "支払方法", class: "field-label" %>
       <%= form.collection_select :payment_method_id, @payment_methods, :id, :name,
-            { prompt: "支払方法を選択してください" }, { required: true } %>
+            { prompt: "支払方法を選択してください" }, { required: true, class: "field-input" } %>
     </div>
-    <div>
-      <%= form.label :file, "CSVファイル（楽天カード・Shift-JIS）" %><br>
-      <%= form.file_field :file, accept: ".csv" %>
+    <div class="field">
+      <%= form.label :file, "CSVファイル（楽天カード・Shift-JIS）", class: "field-label" %>
+      <%= form.file_field :file, accept: ".csv", class: "field-input" %>
     </div>
-    <%= form.submit "取り込む" %>
+    <%= form.submit "取り込む", class: "btn-primary" %>
   <% end %>
 </section>
 
-<hr>
+<hr class="my-8 border-gray-200">
 
 <section id="manual-import" data-controller="bulk-entry" data-bulk-entry-max-value="50">
-  <h2>手動でまとめて入力</h2>
+  <h2 class="section-title">手動でまとめて入力</h2>
   <%= form_with url: manual_import_path, method: :post do %>
-    <div>
-      <%= label_tag "manual_payment_method_id", "デフォルト支払方法（各行で個別指定も可）" %><br>
+    <div class="field">
+      <%= label_tag "manual_payment_method_id", "デフォルト支払方法（各行で個別指定も可）", class: "field-label" %>
       <%= select_tag "manual[payment_method_id]",
             options_from_collection_for_select(@payment_methods, :id, :name),
-            prompt: "支払方法を選択してください", required: true, id: "manual_payment_method_id" %>
+            prompt: "支払方法を選択してください", required: true, id: "manual_payment_method_id", class: "field-input" %>
     </div>
 
-    <table>
+    <table class="mt-2 w-full border-collapse text-sm">
       <thead>
-        <tr><th>利用日</th><th>店舗名</th><th>金額</th><th>カテゴリ</th><th>支払方法</th><th></th></tr>
+        <tr class="border-b border-gray-300 text-left text-gray-600">
+          <th class="py-2 pr-3">利用日</th><th class="py-2 pr-3">店舗名</th><th class="py-2 pr-3">金額</th>
+          <th class="py-2 pr-3">カテゴリ</th><th class="py-2 pr-3">支払方法</th><th></th>
+        </tr>
       </thead>
       <tbody data-bulk-entry-target="list">
         <% @manual_rows.each do |row| %>
@@ -54,9 +57,11 @@
       <%= render "manual_row", row: {}, payment_methods: @payment_methods, categories: @categories %>
     </template>
 
-    <button type="button" data-action="bulk-entry#addRow" data-bulk-entry-target="addButton">行を追加</button>
-    <%= submit_tag "保存する" %>
+    <div class="mt-4 flex items-center gap-3">
+      <button type="button" class="btn-secondary" data-action="bulk-entry#addRow" data-bulk-entry-target="addButton">行を追加</button>
+      <%= submit_tag "保存する", class: "btn-primary" %>
+    </div>
   <% end %>
 </section>
 
-<p><%= link_to "取り込み履歴", imports_path %></p>
+<p class="mt-6"><%= link_to "取り込み履歴", imports_path, class: "link" %></p>
