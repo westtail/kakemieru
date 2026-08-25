@@ -8,11 +8,13 @@ import { Controller } from "@hotwired/stimulus"
 // （同ページ内はページ遷移せず hashchange だけ起きるため、その購読も行う）。
 export default class extends Controller {
   static targets = ["tab", "panel"]
+  // initial: hash が無いときの初期タブ（例: 手動入力の検証エラー再描画で "manual-import"）。
+  static values = { initial: String }
 
   connect() {
     this.onHashChange = () => this.showFromHash()
     window.addEventListener("hashchange", this.onHashChange)
-    this.showFromHash()
+    this.showInitial()
   }
 
   disconnect() {
@@ -24,10 +26,23 @@ export default class extends Controller {
     window.location.hash = event.currentTarget.dataset.tabName
   }
 
-  showFromHash() {
-    const names = this.panelTargets.map((p) => p.dataset.tabName)
+  // 初期表示: URL の hash を最優先。無ければサーバ指定の initial、それも無ければ先頭タブ。
+  showInitial() {
+    const names = this.tabNames()
     const fromHash = window.location.hash.replace(/^#/, "")
-    this.show(names.includes(fromHash) ? fromHash : names[0])
+    if (names.includes(fromHash)) return this.show(fromHash)
+    if (names.includes(this.initialValue)) return this.show(this.initialValue)
+    this.show(names[0])
+  }
+
+  showFromHash() {
+    const names = this.tabNames()
+    const fromHash = window.location.hash.replace(/^#/, "")
+    if (names.includes(fromHash)) this.show(fromHash)
+  }
+
+  tabNames() {
+    return this.panelTargets.map((p) => p.dataset.tabName)
   }
 
   show(name) {

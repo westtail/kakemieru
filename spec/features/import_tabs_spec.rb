@@ -30,4 +30,19 @@ RSpec.describe "取り込みのタブ切替", type: :feature do
     expect(page).to have_button("行を追加")
     expect(page).to have_no_field("CSVファイル（楽天カード・Shift-JIS）")
   end
+
+  it "手動入力の検証エラーで再描画されても手動タブが維持される" do
+    visit new_import_path
+    click_button "手動でまとめて入力"
+
+    select "楽天カード", from: "デフォルト支払方法（各行で個別指定も可）"
+    # 利用日だけ入れ 店舗名/金額 を空にして検証エラーを起こす。
+    fill_in "利用日", with: "2026-01-15"
+    click_button "保存する"
+
+    # 422 再描画後、CSV タブに戻らず手動タブのまま（復元行が隠れない）。
+    expect(page).to have_css(".error-messages")
+    expect(page).to have_button("行を追加")
+    expect(page).to have_no_field("CSVファイル（楽天カード・Shift-JIS）")
+  end
 end

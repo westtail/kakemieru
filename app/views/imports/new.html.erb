@@ -11,7 +11,7 @@
 <% end %>
 
 <%# CSV / 手動 をタブで切り替え、選んだ方だけ表示する（初期タブは URL の hash で決まる）。 %>
-<div data-controller="tabs">
+<div data-controller="tabs" data-tabs-initial-value="<%= @active_tab %>">
   <div class="flex gap-1 border-b border-gray-200" role="tablist">
     <button type="button" role="tab" class="-mb-px cursor-pointer border-b-2 border-transparent px-4 py-2 font-medium text-gray-500"
             data-tabs-target="tab" data-tab-name="csv-import" data-action="tabs#select">CSVから取り込む</button>

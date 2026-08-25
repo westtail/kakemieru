@@ -56,7 +56,7 @@ class ImportsController < ApplicationController
       redirect_to transactions_path(month: redirect_month(result.import)),
                   notice: "#{result.import.row_count}件を保存しました。"
     else
-      rerender_new(result.errors, manual_rows: rows.presence || [ {} ])
+      rerender_new(result.errors, manual_rows: rows.presence || [ {} ], active_tab: "manual-import")
     end
   rescue ActiveRecord::RecordNotFound
     redirect_to new_import_path, alert: "支払方法を選択してください。"
@@ -96,9 +96,12 @@ class ImportsController < ApplicationController
       @categories = Current.user.categories.order(:id)
     end
 
-    def rerender_new(errors, manual_rows: [ {} ])
+    # active_tab: 再描画後に開くタブ。手動入力の失敗時は手動タブを維持し、復元した入力行を
+    # 隠さない（既定は CSV 取り込みの失敗を想定して csv-import）。
+    def rerender_new(errors, manual_rows: [ {} ], active_tab: "csv-import")
       @errors = errors
       @manual_rows = manual_rows
+      @active_tab = active_tab
       set_form_collections
       render :new, status: :unprocessable_entity
     end
