@@ -1,22 +1,23 @@
 <%# 新規追加・編集で共有するフォーム。submit ラベルのみ呼び出し側から渡す。 %>
 <%= render "shared/error_messages", record: @payment_method %>
 
-<%= form_with model: @payment_method do |form| %>
-  <div>
-    <%= form.label :name, "名称" %><br>
-    <%= form.text_field :name, required: true, autofocus: true %>
+<%= form_with model: @payment_method, class: "max-w-md" do |form| %>
+  <div class="field">
+    <%= form.label :name, "名称", class: "field-label" %>
+    <%= form.text_field :name, required: true, autofocus: true, class: "field-input" %>
   </div>
-  <div>
+  <div class="field">
     <% if @payment_method.cash? %>
       <%# 現金は種別を変更できない（名前変更のみ）。フォームに出さないことで cash のまま保持する。 %>
-      <p>種別: <%= PaymentMethodCatalog::LABELS[@payment_method.payment_type] %></p>
+      <p class="muted">種別: <%= PaymentMethodCatalog::LABELS[@payment_method.payment_type] %></p>
     <% else %>
-      <%= form.label :payment_type, "種別" %><br>
+      <%= form.label :payment_type, "種別", class: "field-label" %>
       <%= form.select :payment_type,
-            PaymentMethodCatalog::SELECTABLE_TYPES.map { |type| [ PaymentMethodCatalog::LABELS[type], type ] } %>
+            PaymentMethodCatalog::SELECTABLE_TYPES.map { |type| [ PaymentMethodCatalog::LABELS[type], type ] },
+            {}, { class: "field-input" } %>
     <% end %>
   </div>
-  <%= form.submit submit_label %>
+  <%= form.submit submit_label, class: "btn-primary" %>
 <% end %>
 
-<p><%= link_to "支払方法一覧に戻る", payment_methods_path %></p>
+<p class="mt-4"><%= link_to "支払方法一覧に戻る", payment_methods_path, class: "link" %></p>
