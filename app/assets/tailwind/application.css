@@ -26,6 +26,15 @@
   .link { @apply text-blue-600 no-underline hover:underline; }
   .link-danger { @apply text-red-600 no-underline hover:underline; }
 
+  /* グローバルナビ: 非アクティブはグレー、現在地は青で強調して「今どこか」を分かるようにする */
+  .nav-link { @apply rounded px-2 py-1 text-gray-600 no-underline transition-colors hover:bg-gray-100 hover:text-gray-900; }
+  .nav-link-active { @apply rounded bg-blue-50 px-2 py-1 font-semibold text-blue-700 no-underline; }
+
+  /* フラッシュメッセージ（notice=緑 / alert=赤）。flash と組み合わせて色を付ける */
+  .flash { @apply mb-4 flex items-start gap-2 rounded border px-4 py-3 transition-opacity duration-500; }
+  .flash-notice { @apply border-green-200 bg-green-50 text-green-800; }
+  .flash-alert { @apply border-red-200 bg-red-50 text-red-800; }
+
   /* フォーム */
   .field { @apply mb-4; }
   .field-label { @apply mb-1 block text-sm font-medium text-gray-700; }

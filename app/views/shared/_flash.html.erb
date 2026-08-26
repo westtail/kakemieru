@@ -1,11 +1,15 @@
 <%# フラッシュ表示の共通パーシャル。notice=緑 / alert=赤。 %>
 <%# turbo-stream で差し替えられるよう id="flash" のコンテナで囲む。 %>
-<%# style は暫定。CSS 導入時に class（flash-notice/alert）へ寄せて削除する。 %>
+<%# 各メッセージは flash_controller で一定時間後にフェード消滅（閉じるボタンでも消せる）。 %>
 <div id="flash">
-  <% if flash[:notice].present? %>
-    <%= tag.div flash[:notice], class: "flash flash-notice", style: "color:green" %>
-  <% end %>
-  <% if flash[:alert].present? %>
-    <%= tag.div flash[:alert], class: "flash flash-alert", style: "color:red" %>
+  <% { notice: "flash-notice", alert: "flash-alert" }.each do |key, variant| %>
+    <% if flash[key].present? %>
+      <div class="flash <%= variant %>" data-controller="flash"
+           role="<%= key == :alert ? "alert" : "status" %>">
+        <span class="flex-1"><%= flash[key] %></span>
+        <button type="button" class="shrink-0 leading-none opacity-70 hover:opacity-100"
+                data-action="flash#dismiss" aria-label="閉じる">&times;</button>
+      </div>
+    <% end %>
   <% end %>
 </div>
