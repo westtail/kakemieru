@@ -198,6 +198,104 @@ RSpec.describe "Transactions", type: :request do
     end
   end
 
+  describe "GET /transactions（並び替え・#147）" do
+    before { sign_in }
+
+    # 店舗名/金額/日付/カテゴリ/支払方法が別々の並びになるよう作る。
+    # 名前は先頭 ASCII（A/B/C）で collation に依らず一意に並ぶようにする。
+    let(:pm_a) { create(:payment_method, user: user, name: "Aカード") }
+    let(:pm_b) { create(:payment_method, user: user, name: "Bカード") }
+    let(:cat_a) { create(:category, user: user, name: "Aカテゴリ") }
+    let(:cat_b) { create(:category, user: user, name: "Bカテゴリ") }
+
+    # 各次元の並びが互いに（特に既定の日付降順と）異なるよう配置する。
+    #   merchant  amount  date   category  payment
+    # C  Cショップ  100    1/20   Bカテゴリ  Bカード
+    # A  Aショップ  300    1/15   未分類     Aカード
+    # B  Bショップ  200    1/10   Aカテゴリ  Aカード
+    let!(:t1) do
+      create(:transaction, user: user, payment_method: pm_b, category: cat_b,
+             merchant_name: "Cショップ", amount: 100, date: Date.new(2026, 1, 20))
+    end
+    let!(:t2) do
+      create(:transaction, user: user, payment_method: pm_a, category: nil,
+             merchant_name: "Aショップ", amount: 300, date: Date.new(2026, 1, 15))
+    end
+    let!(:t3) do
+      create(:transaction, user: user, payment_method: pm_a, category: cat_a,
+             merchant_name: "Bショップ", amount: 200, date: Date.new(2026, 1, 10))
+    end
+
+    # 店舗名（行に一意で現れる）の出現位置で並び順を判定する。
+    def positions(*merchants)
+      merchants.map { |m| response.body.index(m) }
+    end
+
+    it "既定は日付降順（sort 無指定で現状維持）" do
+      get "/transactions", params: { month: "2026-01" }
+      c, a, b = positions("Cショップ", "Aショップ", "Bショップ") # 1/20 > 1/15 > 1/10
+      expect(c).to be < a
+      expect(a).to be < b
+    end
+
+    it "店舗名の昇順・降順で並ぶ" do
+      get "/transactions", params: { month: "2026-01", sort: "merchant", direction: "asc" }
+      a, b, c = positions("Aショップ", "Bショップ", "Cショップ")
+      expect(a).to be < b
+      expect(b).to be < c
+
+      get "/transactions", params: { month: "2026-01", sort: "merchant", direction: "desc" }
+      a, b, c = positions("Aショップ", "Bショップ", "Cショップ")
+      expect(a).to be > b
+      expect(b).to be > c
+    end
+
+    it "金額の昇順で並ぶ（100 < 200 < 300）" do
+      get "/transactions", params: { month: "2026-01", sort: "amount", direction: "asc" }
+      c, b, a = positions("Cショップ", "Bショップ", "Aショップ") # 100 / 200 / 300
+      expect(c).to be < b
+      expect(b).to be < a
+    end
+
+    it "カテゴリ名の昇順で並ぶ（Aカテゴリ→Bカテゴリ→未分類は末尾）" do
+      get "/transactions", params: { month: "2026-01", sort: "category", direction: "asc" }
+      # Aカテゴリ(t3/Bショップ) → Bカテゴリ(t1/Cショップ) → 未分類(t2/Aショップ)
+      b, c, a = positions("Bショップ", "Cショップ", "Aショップ")
+      expect(b).to be < c
+      expect(c).to be < a
+    end
+
+    it "カテゴリ名の降順でも未分類は末尾のまま（NULLS LAST 固定）" do
+      get "/transactions", params: { month: "2026-01", sort: "category", direction: "desc" }
+      # Bカテゴリ(t1/Cショップ) → Aカテゴリ(t3/Bショップ) → 未分類(t2/Aショップ) は末尾。
+      c, b, a = positions("Cショップ", "Bショップ", "Aショップ")
+      expect(c).to be < b
+      expect(b).to be < a
+    end
+
+    it "支払方法名の昇順で並ぶ（Aカード→Bカード）" do
+      get "/transactions", params: { month: "2026-01", sort: "payment_method", direction: "asc" }
+      # pm_a(t2/Aショップ, t3/Bショップ) が pm_b(t1/Cショップ) より先。
+      expect(response.body.index("Aショップ")).to be < response.body.index("Cショップ")
+      expect(response.body.index("Bショップ")).to be < response.body.index("Cショップ")
+    end
+
+    it "絞り込みと併用してもソートできる（金額降順）" do
+      get "/transactions", params: { month: "2026-01", category: "all", sort: "amount", direction: "desc" }
+      a, b, c = positions("Aショップ", "Bショップ", "Cショップ") # 300 > 200 > 100
+      expect(a).to be < b
+      expect(b).to be < c
+    end
+
+    it "不正な sort/direction は既定（日付降順）に倒れて 200（SQLi にならない）" do
+      get "/transactions", params: { month: "2026-01", sort: "name); DROP TABLE users; --", direction: "sideways" }
+      expect(response).to have_http_status(:ok)
+      c, a, b = positions("Cショップ", "Aショップ", "Bショップ") # 既定＝日付降順
+      expect(c).to be < a
+      expect(a).to be < b
+    end
+  end
+
   describe "GET /transactions/:id/edit" do
     before { sign_in }
 
