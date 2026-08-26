@@ -1,6 +1,10 @@
 class TransactionsController < ApplicationController
   include MonthParam
 
+  # 一覧のソート可能列（ホワイトリスト）。ユーザー入力は SQL に補間せず、必ずこのキー経由で
+  # Arel の列に対応づける（SQLi 対策・#147）。カテゴリ/支払方法は関連名で並べる。
+  SORTABLE = %w[date merchant amount category payment_method].freeze
+
   before_action :set_transaction, only: %i[edit update categorize destroy]
 
   def index
@@ -10,13 +14,19 @@ class TransactionsController < ApplicationController
     @keyword = params[:q].to_s.strip
     @categories = Current.user.categories.order(:id)
     @month_options = month_options
+    # 未知の列は既定（日付）、方向は asc 以外を降順に倒す。
+    @sort = SORTABLE.include?(params[:sort]) ? params[:sort] : "date"
+    @direction = params[:direction] == "asc" ? "asc" : "desc"
 
     scope = Current.user.transactions.not_deleted
                    .includes(:category, :payment_method)
                    .in_month(@month.year, @month.month)
     scope = apply_category_filter(scope, @category)
     scope = scope.merchant_prefix(@keyword) if @keyword.present?
-    @transactions = scope.order(effective_date: :desc, id: :desc)
+    # 関連名で並べるときだけ JOIN を強制する（includes と併用で LEFT OUTER JOIN）。
+    scope = scope.references(:category, :payment_method) if %w[category payment_method].include?(@sort)
+    # id を安定タイブレークに付ける。
+    @transactions = scope.order(sort_order).order(id: :desc)
   end
 
   def new
@@ -77,6 +87,21 @@ class TransactionsController < ApplicationController
   end
 
   private
+    # ソート列を Arel ノードで組み立てる。列は @sort（ホワイトリスト）由来で、生 SQL 文字列を
+    # 補間しない。カテゴリソートは未分類（category NULL）を昇順・降順とも末尾に固定する。
+    def sort_order
+      column =
+        case @sort
+        when "merchant"       then Transaction.arel_table[:merchant_name]
+        when "amount"         then Transaction.arel_table[:effective_amount]
+        when "category"       then Category.arel_table[:name]
+        when "payment_method" then PaymentMethod.arel_table[:name]
+        else                       Transaction.arel_table[:effective_date] # date（既定）
+        end
+      node = @direction == "asc" ? column.asc : column.desc
+      @sort == "category" ? node.nulls_last : node
+    end
+
     # 所有権スコープ: 他ユーザー・削除済みは見つからず 404（= 操作不可）。
     def set_transaction
       @transaction = Current.user.transactions.not_deleted.find(params[:id])
