@@ -4,7 +4,8 @@
 <%#       常に同順・全て送信する前提。条件付き表示や未送信になるフィールドを足すと %>
 <%#       行の境界がずれるので、その場合は index 付き name（[0][field]）に変えること。 %>
 <%# 行は <template> で複製されるので id ではなく aria-label で名前を付ける（id 重複を避ける）。 %>
-<tr class="manual-row">
+<%# 行内の入力は表に収める用のコンパクトな枠線スタイル。 %>
+<tr class="manual-row [&_input]:rounded [&_input]:border [&_input]:border-gray-300 [&_input]:px-2 [&_input]:py-1 [&_select]:rounded [&_select]:border [&_select]:border-gray-300 [&_select]:px-2 [&_select]:py-1 [&>td]:py-1 [&>td]:pr-2">
   <td><%= date_field_tag "manual[transactions][][date]", row[:date], "aria-label": "利用日" %></td>
   <td><%= text_field_tag "manual[transactions][][merchant_name]", row[:merchant_name], maxlength: 255, "aria-label": "店舗名" %></td>
   <td><%= number_field_tag "manual[transactions][][amount]", row[:amount], step: 1, "aria-label": "金額" %></td>
@@ -18,5 +19,5 @@
           options_from_collection_for_select(payment_methods, :id, :name, row[:payment_method_id]),
           include_blank: "（デフォルト）", "aria-label": "支払方法" %>
   </td>
-  <td><button type="button" data-action="bulk-entry#removeRow" aria-label="この行を削除">削除</button></td>
+  <td><button type="button" class="link-danger" data-action="bulk-entry#removeRow" aria-label="この行を削除">削除</button></td>
 </tr>

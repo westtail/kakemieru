@@ -1,29 +1,31 @@
-<h1>カテゴリ</h1>
+<h1 class="page-title">カテゴリ</h1>
 
 <section>
-  <h2>初期カテゴリ</h2>
-  <p>初期カテゴリは名前の変更のみできます（削除はできません）。</p>
-  <ul>
+  <h2 class="section-title">初期カテゴリ</h2>
+  <p class="muted">初期カテゴリは名前の変更のみできます（削除はできません）。</p>
+  <ul class="mt-2">
     <% @initial_categories.each do |category| %>
-      <li>
-        <%= category.name %>
-        <%= link_to "名前変更", edit_category_path(category) %>
+      <li class="flex items-center gap-3 border-b border-gray-100 py-2">
+        <span class="flex-1"><%= category.name %></span>
+        <%= link_to "名前変更", edit_category_path(category), class: "link" %>
       </li>
     <% end %>
   </ul>
 </section>
 
 <section>
-  <h2>独自カテゴリ</h2>
+  <h2 class="section-title">独自カテゴリ</h2>
   <ul>
     <% @custom_categories.each do |category| %>
-      <li>
-        <%= category.name %>
-        <%= link_to "名前変更", edit_category_path(category) %>
-        <%= button_to "削除", category_path(category), method: :delete,
+      <li class="flex items-center gap-3 border-b border-gray-100 py-2">
+        <span class="flex-1"><%= category.name %></span>
+        <%= link_to "名前変更", edit_category_path(category), class: "link" %>
+        <%= button_to "削除", category_path(category), method: :delete, class: "link-danger",
               form: { data: { turbo_confirm: "「#{category.name}」を削除します。よろしいですか？" } } %>
       </li>
     <% end %>
   </ul>
-  <%= link_to "カテゴリを追加", new_category_path %>
+  <p class="mt-4">
+    <%= link_to "カテゴリを追加", new_category_path, class: "btn-primary" %>
+  </p>
 </section>

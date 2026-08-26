@@ -77,6 +77,8 @@ RSpec.describe "Imports", type: :request do
       end.not_to change { user.imports.count }
       expect(response).to have_http_status(:unprocessable_entity)
       expect(response.body).to include("error-messages")
+      # CSV 失敗時は CSV タブを維持する（#52）。
+      expect(response.body).to include('data-tabs-initial-value="csv-import"')
     end
 
     it "支払方法未選択では取り込めず、案内へ戻す" do
@@ -133,6 +135,8 @@ RSpec.describe "Imports", type: :request do
       end.not_to change { user.imports.count }
       expect(response).to have_http_status(:unprocessable_entity)
       expect(response.body).to include("error-messages")
+      # 再描画後は手動タブを維持する（復元した入力行を隠さない・#52）。
+      expect(response.body).to include('data-tabs-initial-value="manual-import"')
     end
 
     it "デフォルト支払方法未選択では案内へ戻す" do

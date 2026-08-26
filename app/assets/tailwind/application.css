@@ -1,1 +1,33 @@
 @import "tailwindcss";
+
+/*
+  共通コンポーネントクラス（#52 FE 横断）。
+  Tailwind の Preflight が見出し・リンク・ボタンの既定装飾を消すため、素の <h1>/<a>/<button>
+  は「太さも色も枠も無い黒テキスト」になり、押せる場所が分からなくなる。ここで見た目の語彙を
+  一元化し、各画面の長いユーティリティ羅列を置き換えて統一する。見た目は既存の整備済みページ
+  （明細一覧の「明細を追加」等）に合わせる。
+*/
+@layer components {
+  /* 見出し階層 */
+  .page-title { @apply text-2xl font-bold text-gray-900 mb-4; }
+  .section-title { @apply text-lg font-semibold text-gray-700 mt-6 mb-2; }
+  .muted { @apply text-sm text-gray-500; }
+
+  /* ボタン（枠・余白でクリック可能と分かる形にする）。Tailwind v4 は @apply でカスタム
+     クラスを合成できないため、各変種にベースのユーティリティを直接展開する。 */
+  /* 主要アクション（追加・保存・送信）: 塗りの青で最も目立たせる */
+  .btn-primary { @apply inline-block cursor-pointer rounded px-4 py-2 text-center font-medium no-underline transition-colors bg-blue-600 text-white hover:bg-blue-700; }
+  /* 副次アクション（絞り込み・行追加・戻る）: グレー */
+  .btn-secondary { @apply inline-block cursor-pointer rounded border border-gray-300 bg-gray-100 px-4 py-2 text-center font-medium text-gray-800 no-underline transition-colors hover:bg-gray-200; }
+  /* 破壊的アクション（削除）: 赤の枠線ボタン */
+  .btn-danger { @apply inline-block cursor-pointer rounded border border-red-600 px-4 py-2 text-center font-medium text-red-600 no-underline transition-colors hover:bg-red-600 hover:text-white; }
+
+  /* テキストリンク（インラインの遷移） */
+  .link { @apply text-blue-600 no-underline hover:underline; }
+  .link-danger { @apply text-red-600 no-underline hover:underline; }
+
+  /* フォーム */
+  .field { @apply mb-4; }
+  .field-label { @apply mb-1 block text-sm font-medium text-gray-700; }
+  .field-input { @apply block w-full rounded border border-gray-300 px-3 py-2 focus:border-blue-500 focus:outline-none; }
+}

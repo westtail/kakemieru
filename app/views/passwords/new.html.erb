@@ -1,13 +1,15 @@
-<h1>パスワードの再設定</h1>
+<div class="max-w-md">
+  <h1 class="page-title">パスワードの再設定</h1>
 
-<p>登録済みのメールアドレスに、再設定用のリンクをお送りします。</p>
+  <p class="muted">登録済みのメールアドレスに、再設定用のリンクをお送りします。</p>
 
-<%= form_with url: passwords_path do |form| %>
-  <div>
-    <%= form.label :email_address, "メールアドレス" %><br>
-    <%= form.email_field :email_address, required: true, autofocus: true, autocomplete: "username", placeholder: "登録済みのメールアドレス" %>
-  </div>
-  <%= form.submit "再設定メールを送信" %>
-<% end %>
+  <%= form_with url: passwords_path do |form| %>
+    <div class="field mt-4">
+      <%= form.label :email_address, "メールアドレス", class: "field-label" %>
+      <%= form.email_field :email_address, required: true, autofocus: true, autocomplete: "username", placeholder: "登録済みのメールアドレス", class: "field-input" %>
+    </div>
+    <%= form.submit "再設定メールを送信", class: "btn-primary" %>
+  <% end %>
 
-<p><%= link_to "ログイン画面に戻る", new_session_path %></p>
+  <p class="mt-4"><%= link_to "ログイン画面に戻る", new_session_path, class: "link" %></p>
+</div>

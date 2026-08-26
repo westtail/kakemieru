@@ -1,19 +1,23 @@
-<h1>退会の確認</h1>
+<div class="max-w-md">
+  <h1 class="page-title">退会の確認</h1>
 
-<%= render "shared/error_messages", record: Current.user %>
+  <%= render "shared/error_messages", record: Current.user %>
 
-<p class="text-red-600">退会するとすべてのデータが削除されます。この操作は取り消せません。</p>
+  <p class="mb-4 rounded border border-red-200 bg-red-50 p-3 text-red-600">
+    退会するとすべてのデータが削除されます。この操作は取り消せません。
+  </p>
 
-<%= form_with url: account_path, method: :delete do |form| %>
-  <div>
-    <%= form.label :current_password, "現在のパスワード" %><br>
-    <%= form.password_field :current_password, required: true, autocomplete: "current-password" %>
-  </div>
-  <div>
-    <%= form.label :confirmation, "確認のため「退会する」と入力してください" %><br>
-    <%= form.text_field :confirmation, required: true %>
-  </div>
-  <%= form.submit "退会する" %>
-<% end %>
+  <%= form_with url: account_path, method: :delete do |form| %>
+    <div class="field">
+      <%= form.label :current_password, "現在のパスワード", class: "field-label" %>
+      <%= form.password_field :current_password, required: true, autocomplete: "current-password", class: "field-input" %>
+    </div>
+    <div class="field">
+      <%= form.label :confirmation, "確認のため「退会する」と入力してください", class: "field-label" %>
+      <%= form.text_field :confirmation, required: true, class: "field-input" %>
+    </div>
+    <%= form.submit "退会する", class: "btn-danger" %>
+  <% end %>
 
-<p><%= link_to "キャンセル", account_path %></p>
+  <p class="mt-4"><%= link_to "キャンセル", account_path, class: "link" %></p>
+</div>
