@@ -86,7 +86,38 @@ class TransactionsController < ApplicationController
     render turbo_stream: turbo_stream.remove(@transaction)
   end
 
+  # 選択した複数明細にカテゴリを一括適用する（#149）。手動入力の工数削減。
+  def categorize_all
+    # 配列/ハッシュ型の細工でも 500 にせず倒す（index と同じ方針）。id は文字列要素のみ整数化。
+    raw_ids = params[:transaction_ids]
+    ids = raw_ids.is_a?(Array) ? raw_ids.grep(String).map(&:to_i).reject(&:zero?) : []
+    # category_id も String のみ受ける（配列/ハッシュ細工は未分類=nil に倒す）。
+    category_id = params[:category_id].is_a?(String) ? params[:category_id].presence : nil
+
+    if ids.empty?
+      return redirect_to transactions_path(list_params), alert: "明細を選択してください。"
+    end
+    # 未分類(nil)は許可。それ以外は自分のカテゴリであることを確認（他人/存在しない id を拒否）。
+    if category_id && !Current.user.categories.exists?(id: category_id)
+      return redirect_to transactions_path(list_params), alert: "カテゴリが正しくありません。"
+    end
+
+    # Current.user スコープで他人の id は一致せず更新されない（テナント保護）。updated_at も進める。
+    count = Current.user.transactions.not_deleted.where(id: ids)
+                   .update_all(category_id: category_id, updated_at: Time.current)
+    redirect_to transactions_path(list_params), notice: "#{count}件のカテゴリを変更しました。"
+  rescue ActiveRecord::InvalidForeignKey
+    # 検証通過後・書き込み前にカテゴリが削除された稀なレース（単件 categorize と同じ扱い）。
+    redirect_to transactions_path(list_params), alert: "カテゴリが正しくありません。"
+  end
+
   private
+    # 一覧へ戻るときに引き継ぐ絞り込み/ソートのパラメータ（既知キーのみ）。
+    # category="" は「未分類フィルタ」を意味するため空でも維持する（絞り込み状態を保つ）。
+    def list_params
+      params.permit(:month, :category, :q, :sort, :direction).to_h
+    end
+
     # ソート列を Arel ノードで組み立てる。列は @sort（ホワイトリスト）由来で、生 SQL 文字列を
     # 補間しない。カテゴリソートは未分類（category NULL）を昇順・降順とも末尾に固定する。
     def sort_order
