@@ -91,12 +91,17 @@ class TransactionsController < ApplicationController
     # 配列/ハッシュ型の細工でも 500 にせず倒す（index と同じ方針）。id は文字列要素のみ整数化。
     raw_ids = params[:transaction_ids]
     ids = raw_ids.is_a?(Array) ? raw_ids.grep(String).map(&:to_i).reject(&:zero?) : []
-    # category_id も String のみ受ける（配列/ハッシュ細工は未分類=nil に倒す）。
-    category_id = params[:category_id].is_a?(String) ? params[:category_id].presence : nil
+    raw_category = params[:category_id]
 
     if ids.empty?
       return redirect_to transactions_path(list_params), alert: "明細を選択してください。"
     end
+    # 未分類は空文字("")の String で表す。配列/ハッシュ細工は「未分類指定」と区別して拒否する
+    # （黙って nil 更新＝選択明細のカテゴリを消してしまうのを防ぐ）。
+    if raw_category.present? && !raw_category.is_a?(String)
+      return redirect_to transactions_path(list_params), alert: "カテゴリが正しくありません。"
+    end
+    category_id = raw_category.presence # "" → nil（未分類）、id 文字列 → その id
     # 未分類(nil)は許可。それ以外は自分のカテゴリであることを確認（他人/存在しない id を拒否）。
     if category_id && !Current.user.categories.exists?(id: category_id)
       return redirect_to transactions_path(list_params), alert: "カテゴリが正しくありません。"

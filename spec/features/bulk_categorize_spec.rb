@@ -43,4 +43,29 @@ RSpec.describe "カテゴリの一括適用", type: :feature do
 
     expect(page).to have_text("3件のカテゴリを変更しました")
   end
+
+  it "選択中の行をインライン変更しても選択が保持される（Turbo 差し替え後の復元）" do
+    within("tr", text: "コンビニA") { check "選択" }
+    expect(page).to have_text("1 件選択中")
+
+    # 行のカテゴリをインライン変更 → その行が Turbo Stream で差し替わる。
+    within("tr", text: "コンビニA") { select "食費", from: "カテゴリ" }
+
+    expect(page).to have_text("1 件選択中")
+    within("tr", text: "コンビニA") { expect(page).to have_checked_field("選択") }
+  end
+
+  it "選択中の行を削除すると選択件数が減る" do
+    within("tr", text: "コンビニA") { check "選択" }
+    within("tr", text: "コンビニB") { check "選択" }
+    expect(page).to have_text("2 件選択中")
+
+    within("tr", text: "コンビニB") do
+      click_button "削除"
+      click_button "確定"
+    end
+
+    expect(page).to have_no_content("コンビニB")
+    expect(page).to have_text("1 件選択中")
+  end
 end

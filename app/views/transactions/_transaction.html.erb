@@ -5,7 +5,7 @@
   <td class="py-2 pr-2">
     <%= check_box_tag "transaction_ids[]", transaction.id, false,
           form: "bulk-categorize-form", "aria-label": "選択",
-          data: { "bulk-categorize-target": "row", action: "bulk-categorize#refresh" } %>
+          data: { "bulk-categorize-target": "row", action: "bulk-categorize#toggle" } %>
   </td>
   <td class="py-2 pr-4 whitespace-nowrap"><%= transaction.effective_date.strftime("%-m/%-d") %></td>
   <td class="py-2 pr-4">

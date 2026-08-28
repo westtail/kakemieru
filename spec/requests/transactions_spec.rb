@@ -546,11 +546,13 @@ RSpec.describe "Transactions", type: :request do
       expect(flash[:alert]).to be_present # 有効な id が無く未選択扱い
     end
 
-    it "配列型の category_id 細工は未分類に倒れて 500 にならない" do
+    it "配列型の category_id 細工は alert で拒否し、明細を変更しない" do
+      t1.update!(category: food)
       patch categorize_all_transactions_path,
             params: { transaction_ids: [ t1.id ], category_id: [ food.id.to_s ], month: "2026-01" }
       expect(response).to redirect_to(transactions_path(month: "2026-01"))
-      expect(t1.reload.category_id).to be_nil # 未分類として処理される
+      expect(flash[:alert]).to be_present
+      expect(t1.reload.category_id).to eq(food.id) # 黙って未分類に消さない
     end
 
     it "未ログインはログイン画面へ" do
