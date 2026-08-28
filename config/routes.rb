@@ -30,8 +30,11 @@ Rails.application.routes.draw do
   # 明細。一覧・絞り込み(#43)・編集(#41)・カテゴリ即時変更/削除 Turbo Stream(#44)。
   resources :transactions, only: %i[index new create edit update destroy] do
     member { patch :categorize }
-    # ダッシュボード用の集計 JSON（GET 専用）。CSRF は専用コントローラで隔離（#14）。
-    collection { get :summary, to: "transactions/summaries#show" }
+    collection do
+      patch :categorize_all # 複数明細のカテゴリ一括適用（#149）
+      # ダッシュボード用の集計 JSON（GET 専用）。CSRF は専用コントローラで隔離（#14）。
+      get :summary, to: "transactions/summaries#show"
+    end
   end
 
   # CSV取り込み。取り込み・履歴一覧/詳細（S9 #47）・取り消し（S9 #46）。

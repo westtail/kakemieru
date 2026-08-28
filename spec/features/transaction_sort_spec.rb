@@ -15,7 +15,8 @@ RSpec.describe "明細一覧の列ソート", type: :feature do
   end
 
   # 先頭行の店舗名セル（2列目）。Capybara の待機付きマッチャで遷移完了まで待てる。
-  FIRST_ROW_MERCHANT = "tbody#transactions tr:first-child td:nth-child(2)".freeze
+  # 先頭列はチェックボックス、店舗名は3列目。
+  FIRST_ROW_MERCHANT = "tbody#transactions tr:first-child td:nth-child(3)".freeze
 
   it "店舗名ヘッダーをクリックすると昇順に並び替わる" do
     # 既定は日付降順: 先頭は Cショップ(1/20)。

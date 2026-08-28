@@ -33,22 +33,47 @@
 <% end %>
 
 <% if @transactions.any? %>
-  <table class="mt-4 w-full border-collapse text-sm">
-    <thead>
-      <tr class="border-b border-gray-300 text-left text-gray-600">
-        <th class="py-2 pr-4"><%= sort_header("日付", "date") %></th>
-        <th class="py-2 pr-4"><%= sort_header("店舗名", "merchant") %></th>
-        <th class="py-2 pr-4 text-right"><%= sort_header("金額", "amount") %></th>
-        <th class="py-2 pr-4"><%= sort_header("カテゴリ", "category") %></th>
-        <th class="py-2 pr-4"><%= sort_header("支払方法", "payment_method") %></th>
-        <th class="py-2 pr-4">操作</th>
-      </tr>
-    </thead>
-    <tbody id="transactions">
-      <%= render partial: "transactions/transaction", collection: @transactions, as: :transaction,
-            locals: { categories: @categories } %>
-    </tbody>
-  </table>
+  <div data-controller="bulk-categorize">
+    <%# カテゴリ一括適用バー。行チェックボックスは form 属性でこのフォームに紐づく。 %>
+    <%= form_with url: categorize_all_transactions_path, method: :patch, id: "bulk-categorize-form",
+          class: "mt-4 flex flex-wrap items-center gap-2 rounded border border-gray-200 bg-gray-50 p-2" do %>
+      <%# 現在の絞り込み/ソートを維持して戻る。 %>
+      <%= hidden_field_tag :month, @month.strftime("%Y-%m") %>
+      <%= hidden_field_tag :category, @category unless @category.nil? %>
+      <%= hidden_field_tag :q, @keyword %>
+      <%= hidden_field_tag :sort, @sort %>
+      <%= hidden_field_tag :direction, @direction %>
+
+      <span class="text-sm text-gray-600"><span data-bulk-categorize-target="count">0</span> 件選択中</span>
+      <label class="sr-only" for="bulk_category_id">一括で設定するカテゴリ</label>
+      <%= select_tag :category_id,
+            options_for_select([ [ "未分類", "" ] ] + @categories.map { |c| [ c.name, c.id.to_s ] }),
+            id: "bulk_category_id", class: "rounded border border-gray-300 px-2 py-1" %>
+      <button type="submit" class="btn-primary disabled:opacity-40 disabled:cursor-not-allowed"
+              data-bulk-categorize-target="apply" disabled>選択した明細に一括適用</button>
+    <% end %>
+
+    <table class="mt-2 w-full border-collapse text-sm">
+      <thead>
+        <tr class="border-b border-gray-300 text-left text-gray-600">
+          <th class="py-2 pr-2">
+            <%= check_box_tag "select_all", "1", false, "aria-label": "全選択",
+                  data: { "bulk-categorize-target": "all", action: "bulk-categorize#toggleAll" } %>
+          </th>
+          <th class="py-2 pr-4"><%= sort_header("日付", "date") %></th>
+          <th class="py-2 pr-4"><%= sort_header("店舗名", "merchant") %></th>
+          <th class="py-2 pr-4 text-right"><%= sort_header("金額", "amount") %></th>
+          <th class="py-2 pr-4"><%= sort_header("カテゴリ", "category") %></th>
+          <th class="py-2 pr-4"><%= sort_header("支払方法", "payment_method") %></th>
+          <th class="py-2 pr-4">操作</th>
+        </tr>
+      </thead>
+      <tbody id="transactions">
+        <%= render partial: "transactions/transaction", collection: @transactions, as: :transaction,
+              locals: { categories: @categories } %>
+      </tbody>
+    </table>
+  </div>
 <% else %>
   <p class="mt-4 text-gray-600">該当する明細はありません。</p>
 <% end %>
