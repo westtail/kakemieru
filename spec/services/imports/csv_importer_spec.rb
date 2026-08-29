@@ -32,10 +32,10 @@ RSpec.describe Imports::CsvImporter do
     expect(user.transactions.pluck(:category_id).uniq).to eq([ nil ]) # merchant_classifications 空 = 未分類
   end
 
-  it "学習済みの店舗は取込時に自動分類される（#152 end-to-end）" do
+  it "店舗ルール登録済みの店舗は取込時に自動分類される（ADR-0047 end-to-end）" do
     food = create(:category, user: user, name: "食費")
-    # 手動分類の学習相当（ローソン → 食費）を登録しておく。
-    MerchantClassification.learn_all(user: user, merchant_names: [ "ローソン" ], category_id: food.id)
+    # 店舗ルール（ローソン → 食費）を登録しておく。
+    create(:merchant_classification, user: user, category: food, merchant_name: "ローソン")
 
     result = import(valid_csv)
 

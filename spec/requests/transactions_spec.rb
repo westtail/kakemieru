@@ -358,24 +358,6 @@ RSpec.describe "Transactions", type: :request do
       expect(transaction.category_id).to eq(category.id)
     end
 
-    it "編集でカテゴリを変えると学習する（#152）" do
-      category = create(:category, user: user, name: "食費")
-      patch transaction_path(transaction), params: { transaction: { category_id: category.id } }
-
-      mapping = user.merchant_classifications.find_by(merchant_name: "元の店") # 正規化で一致
-      expect(mapping&.category_id).to eq(category.id)
-    end
-
-    it "カテゴリ以外（金額訂正）だけの編集は既存の学習を消さない（#152 回帰）" do
-      food = create(:category, user: user, name: "食費")
-      MerchantClassification.learn_all(user: user, merchant_names: [ "元の店" ], category_id: food.id)
-
-      patch transaction_path(transaction), params: { transaction: { amount_override: 800 } }
-
-      # カテゴリを触っていないのでマッピングは保持される。
-      expect(user.merchant_classifications.find_by(merchant_name: "元の店")&.category_id).to eq(food.id)
-    end
-
     it "不正値（店舗名空・金額訂正が非整数・不正日付）は 422 で再描画し原本を変えない" do
       patch transaction_path(transaction), params: { transaction: { merchant_name: "" } }
       expect(response).to have_http_status(:unprocessable_entity)
@@ -423,36 +405,6 @@ RSpec.describe "Transactions", type: :request do
       patch categorize_transaction_path(transaction),
             params: { transaction: { category_id: "" } }, as: :turbo_stream
       expect(transaction.reload.category_id).to be_nil
-    end
-
-    it "カテゴリ付与で店舗→カテゴリを学習する（#152）" do
-      patch categorize_transaction_path(transaction),
-            params: { transaction: { category_id: food.id } }, as: :turbo_stream
-
-      mapping = user.merchant_classifications.find_by(merchant_name: "コンビニ")
-      expect(mapping.category_id).to eq(food.id)
-      expect(mapping.source).to eq("user_manual")
-    end
-
-    it "未分類へ戻しても店舗の学習ルールは残る（#152・忘却しない方針）" do
-      MerchantClassification.learn_all(user: user, merchant_names: [ "コンビニ" ], category_id: food.id)
-      transaction.update!(category: food)
-
-      patch categorize_transaction_path(transaction),
-            params: { transaction: { category_id: "" } }, as: :turbo_stream
-
-      # 1件の未分類化で店舗全体の学習は消さない。
-      expect(user.merchant_classifications.find_by(merchant_name: "コンビニ")&.category_id).to eq(food.id)
-    end
-
-    it "学習の失敗（例外）でも主処理（Turbo応答）は 500 にしない（#152 堅牢性）" do
-      allow(MerchantClassification).to receive(:learn_all).and_raise(ActiveRecord::RecordNotUnique.new("race"))
-
-      patch categorize_transaction_path(transaction),
-            params: { transaction: { category_id: food.id } }, as: :turbo_stream
-
-      expect(response).to have_http_status(:ok) # カテゴリ変更自体は成功している
-      expect(transaction.reload.category_id).to eq(food.id)
     end
 
     it "他ユーザーのカテゴリ id では変更されない（500 にしない）" do
@@ -537,23 +489,6 @@ RSpec.describe "Transactions", type: :request do
       expect(t3.reload.category_id).to be_nil # 未選択は変わらない
       follow_redirect!
       expect(response.body).to include("2件")
-    end
-
-    it "一括適用した店舗をそれぞれ学習する（#152）" do
-      patch categorize_all_transactions_path,
-            params: { transaction_ids: [ t1.id, t2.id ], category_id: food.id, month: "2026-01" }
-
-      expect(user.merchant_classifications.where(source: "user_manual").pluck(:merchant_name))
-        .to match_array(%w[a b]) # 正規化（小文字）済み
-      expect(user.merchant_classifications.pluck(:category_id).uniq).to eq([ food.id ])
-    end
-
-    it "一括で未分類化しても店舗の学習ルールは残る（#152・忘却しない方針）" do
-      MerchantClassification.learn_all(user: user, merchant_names: [ "A" ], category_id: food.id)
-      patch categorize_all_transactions_path,
-            params: { transaction_ids: [ t1.id ], category_id: "", month: "2026-01" }
-
-      expect(user.merchant_classifications.find_by(merchant_name: "a")&.category_id).to eq(food.id)
     end
 
     it "category_id 空で未分類に一括設定できる" do

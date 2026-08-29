@@ -1,6 +1,6 @@
-# 店舗名からユーザー個別の merchant_classifications を引き、紐づく category_id を返す（#152）。
-# 一致しなければ nil（= 未分類）。マッピングは手動分類の学習（MerchantClassification.learn）で
-# 蓄積され、次回以降の CSV 取込で自動分類に使われる。
+# 店舗名からユーザーの店舗ルール（merchant_classifications）を引き、紐づく category_id を返す。
+# 一致しなければ nil（= 未分類）。店舗ルールはおすすめからの明示登録で蓄積され（ADR-0047）、
+# 取込時の自動適用（設定ON時）や「更新実行」での未分類への一括適用に使われる。
 class CategoryClassifier
   def self.category_id_for(user, merchant_name)
     category_ids_for(user, [ merchant_name ])[normalize(merchant_name)]

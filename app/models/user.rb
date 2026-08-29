@@ -2,12 +2,13 @@
 #
 # Table name: users
 #
-#  id              :bigint           not null, primary key
-#  admin           :boolean          default(FALSE), not null
-#  email_address   :string           not null
-#  password_digest :string           not null
-#  created_at      :datetime         not null
-#  updated_at      :datetime         not null
+#  id                         :bigint           not null, primary key
+#  admin                      :boolean          default(FALSE), not null
+#  auto_apply_rules_on_import :boolean          default(FALSE), not null
+#  email_address              :string           not null
+#  password_digest            :string           not null
+#  created_at                 :datetime         not null
+#  updated_at                 :datetime         not null
 #
 # Indexes
 #

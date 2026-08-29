@@ -135,14 +135,11 @@ ALTER SEQUENCE public.imports_id_seq OWNED BY public.imports.id;
 
 CREATE TABLE public.merchant_classifications (
     id bigint NOT NULL,
-    classified_at timestamp(6) without time zone,
     created_at timestamp(6) without time zone NOT NULL,
     merchant_name character varying NOT NULL,
-    source character varying NOT NULL,
     updated_at timestamp(6) without time zone NOT NULL,
     user_id bigint NOT NULL,
-    category_id bigint NOT NULL,
-    CONSTRAINT merchant_classifications_source_check CHECK (((source)::text = ANY (ARRAY[('ai'::character varying)::text, ('user_manual'::character varying)::text])))
+    category_id bigint NOT NULL
 );
 
 
@@ -328,7 +325,8 @@ CREATE TABLE public.users (
     created_at timestamp(6) without time zone NOT NULL,
     email_address character varying NOT NULL,
     password_digest character varying NOT NULL,
-    updated_at timestamp(6) without time zone NOT NULL
+    updated_at timestamp(6) without time zone NOT NULL,
+    auto_apply_rules_on_import boolean DEFAULT false NOT NULL
 );
 
 
@@ -739,6 +737,8 @@ ALTER TABLE ONLY public.transactions
 SET search_path TO "$user", public;
 
 INSERT INTO "schema_migrations" (version) VALUES
+('20260829160216'),
+('20260829160215'),
 ('20260829013729'),
 ('20260822161835'),
 ('20260822121953'),
