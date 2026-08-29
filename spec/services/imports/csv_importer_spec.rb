@@ -32,6 +32,19 @@ RSpec.describe Imports::CsvImporter do
     expect(user.transactions.pluck(:category_id).uniq).to eq([ nil ]) # merchant_classifications 空 = 未分類
   end
 
+  it "学習済みの店舗は取込時に自動分類される（#152 end-to-end）" do
+    food = create(:category, user: user, name: "食費")
+    # 手動分類の学習相当（ローソン → 食費）を登録しておく。
+    MerchantClassification.learn(user: user, merchant_name: "ローソン", category_id: food.id)
+
+    result = import(valid_csv)
+
+    lawson = user.transactions.find_by(merchant_name: "ローソン")
+    amazon = user.transactions.find_by(merchant_name: "Amazon")
+    expect(lawson.category_id).to eq(food.id) # 学習済み → 自動分類
+    expect(amazon.category_id).to be_nil      # 未学習 → 未分類
+  end
+
   it "ファイル名は basename 化して source_ref に保存する" do
     result = import(valid_csv, filename: "../../etc/passwd.csv")
     expect(result.import.source_ref).to eq("passwd.csv")
