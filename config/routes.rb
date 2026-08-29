@@ -24,6 +24,9 @@ Rails.application.routes.draw do
   # カテゴリ管理（一覧・追加・名前変更・削除）。show は使わない。
   resources :categories, except: %i[show]
 
+  # 店舗ルール（明示登録・ADR-0047）。カテゴリページから登録/カテゴリ変更/削除する。
+  resources :merchant_rules, only: %i[create update destroy]
+
   # 支払方法管理（一覧・追加・名前/種別変更・削除）。show は使わない。
   resources :payment_methods, except: %i[show]
 

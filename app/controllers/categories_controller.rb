@@ -4,6 +4,10 @@ class CategoriesController < ApplicationController
   def index
     @initial_categories = Current.user.categories.initial.order(:id)
     @custom_categories = Current.user.categories.custom.order(:id)
+    # 店舗ルール（明示登録）とおすすめ（履歴集計）・ADR-0047。
+    @categories = Current.user.categories.order(:id)
+    @merchant_rules = Current.user.merchant_classifications.includes(:category).order(:merchant_name)
+    @recommendations = MerchantRecommendations.new(user: Current.user).call
   end
 
   def new
