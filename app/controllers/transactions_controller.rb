@@ -50,9 +50,13 @@ class TransactionsController < ApplicationController
 
   def update
     if @transaction.update(transaction_update_params)
+      # カテゴリが実際に変わった時だけ学習する。金額/日付の訂正だけの編集で既存の学習を
+      # 消したり上書きしたりしないため（reload で dirty が消えるので前に捕捉する）。
+      category_changed = @transaction.saved_change_to_category_id?
       # effective_date は DB の生成カラム。override 変更後の正しい月を得るため再読込する
       # （update は RETURNING で生成カラムを取り直さないため in-memory は古いまま）。
       @transaction.reload
+      learn_category(@transaction.merchant_name, @transaction.category_id) if category_changed
       redirect_to transactions_path(month: @transaction.effective_date.strftime("%Y-%m")),
                   notice: "明細を更新しました。"
     else
@@ -72,6 +76,7 @@ class TransactionsController < ApplicationController
     # 他ユーザー/存在しない category_id はモデルのテナント整合で拒否される。reload で実際の
     # 保存状態（拒否時は元のカテゴリ）に戻し、その行だけを差し替える。
     @transaction.reload
+    learn_category(@transaction.merchant_name, @transaction.category_id)
     @categories = Current.user.categories.order(:id)
     render turbo_stream: turbo_stream.replace(
       @transaction,
@@ -108,8 +113,10 @@ class TransactionsController < ApplicationController
     end
 
     # Current.user スコープで他人の id は一致せず更新されない（テナント保護）。updated_at も進める。
-    count = Current.user.transactions.not_deleted.where(id: ids)
-                   .update_all(category_id: category_id, updated_at: Time.current)
+    scope = Current.user.transactions.not_deleted.where(id: ids)
+    count = scope.update_all(category_id: category_id, updated_at: Time.current)
+    # 対象の店舗名（distinct）を付与カテゴリで学習/未分類化で忘却する（#152）。
+    scope.distinct.pluck(:merchant_name).each { |name| learn_category(name, category_id) }
     redirect_to transactions_path(list_params), notice: "#{count}件のカテゴリを変更しました。"
   rescue ActiveRecord::InvalidForeignKey
     # 検証通過後・書き込み前にカテゴリが削除された稀なレース（単件 categorize と同じ扱い）。
@@ -117,6 +124,20 @@ class TransactionsController < ApplicationController
   end
 
   private
+    # 手動でカテゴリを付けたら店舗→カテゴリを学習、未分類化したら忘却する（#152）。
+    # 次回同じ店舗の CSV 取込が自動分類される。category_id は呼び出し前に本人のものと確定済み。
+    # 学習は補助機能なので、同店舗の並行操作（RecordNotUnique）やカテゴリ削除レース等が起きても
+    # 主処理（カテゴリ変更自体は成功済み）を 500 にせず、ログのみ残して続行する。
+    def learn_category(merchant_name, category_id)
+      if category_id.present?
+        MerchantClassification.learn(user: Current.user, merchant_name: merchant_name, category_id: category_id)
+      else
+        MerchantClassification.forget(user: Current.user, merchant_name: merchant_name)
+      end
+    rescue ActiveRecord::ActiveRecordError => e
+      Rails.logger.warn("learn_category skipped: #{e.class}")
+    end
+
     # 一覧へ戻るときに引き継ぐ絞り込み/ソートのパラメータ（既知キーのみ）。
     # category="" は「未分類フィルタ」を意味するため空でも維持する（絞り込み状態を保つ）。
     def list_params
