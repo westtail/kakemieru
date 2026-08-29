@@ -31,12 +31,12 @@ RSpec.describe MerchantClassification, type: :model do
     expect(record.errors[:category]).to be_present
   end
 
-  describe ".learn" do
-    it "正規化した店舗名で category を user_manual として記録する" do
-      MerchantClassification.learn(user: user, merchant_name: " Ｌａｗｓｏｎ ", category_id: food.id)
+  describe ".learn_all" do
+    it "正規化＆重複除去した店舗名で category を user_manual として一括記録する" do
+      MerchantClassification.learn_all(user: user, merchant_names: [ " Ｌａｗｓｏｎ ", "lawson", "Amazon" ], category_id: food.id)
 
-      record = user.merchant_classifications.sole
-      expect(record.merchant_name).to eq("lawson") # 正規化
+      expect(user.merchant_classifications.pluck(:merchant_name)).to match_array(%w[lawson amazon]) # 重複は1件
+      record = user.merchant_classifications.find_by(merchant_name: "lawson")
       expect(record.category_id).to eq(food.id)
       expect(record.source).to eq("user_manual")
       expect(record.classified_at).to be_present
@@ -44,36 +44,18 @@ RSpec.describe MerchantClassification, type: :model do
 
     it "同じ店舗を再学習すると上書きする（最新の手動分類を優先）" do
       transport = create(:category, user: user, name: "交通費")
-      MerchantClassification.learn(user: user, merchant_name: "ローソン", category_id: food.id)
-      MerchantClassification.learn(user: user, merchant_name: "ローソン", category_id: transport.id)
+      MerchantClassification.learn_all(user: user, merchant_names: [ "ローソン" ], category_id: food.id)
+      MerchantClassification.learn_all(user: user, merchant_names: [ "ローソン" ], category_id: transport.id)
 
       expect(user.merchant_classifications.count).to eq(1)
       expect(user.merchant_classifications.sole.category_id).to eq(transport.id)
     end
 
-    it "店舗名や category が空なら何もしない" do
-      expect { MerchantClassification.learn(user: user, merchant_name: "  ", category_id: food.id) }
+    it "category_id 空や有効な店舗名が無ければ何もしない" do
+      expect { MerchantClassification.learn_all(user: user, merchant_names: [ "X" ], category_id: nil) }
         .not_to change(MerchantClassification, :count)
-      expect { MerchantClassification.learn(user: user, merchant_name: "X", category_id: nil) }
+      expect { MerchantClassification.learn_all(user: user, merchant_names: [ "  ", "" ], category_id: food.id) }
         .not_to change(MerchantClassification, :count)
-    end
-  end
-
-  describe ".forget" do
-    it "その店舗のマッピングを削除する" do
-      MerchantClassification.learn(user: user, merchant_name: "ローソン", category_id: food.id)
-      expect { MerchantClassification.forget(user: user, merchant_name: "ローソン") }
-        .to change { user.merchant_classifications.count }.from(1).to(0)
-    end
-
-    it "他ユーザーのマッピングは消さない" do
-      other = create(:user)
-      other_cat = create(:category, user: other, name: "食費")
-      MerchantClassification.learn(user: user, merchant_name: "ローソン", category_id: food.id)
-      MerchantClassification.learn(user: other, merchant_name: "ローソン", category_id: other_cat.id)
-
-      MerchantClassification.forget(user: user, merchant_name: "ローソン")
-      expect(other.merchant_classifications.count).to eq(1)
     end
   end
 end

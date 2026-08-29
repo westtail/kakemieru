@@ -36,22 +36,24 @@ class MerchantClassification < ApplicationRecord
   # 他ユーザーの category を紐づけない（複合FKと二層。Transaction のテナント整合に倣う）。
   validate :category_belongs_to_user
 
-  # 手動分類の学習: 正規化店舗名 → category_id を user_manual で upsert する。
-  # 空店舗名は無視。既存があれば上書きして最新の手動分類を優先する。
-  def self.learn(user:, merchant_name:, category_id:)
-    name = CategoryClassifier.normalize(merchant_name)
-    return if name.blank? || category_id.blank?
+  # 手動分類の学習: 複数店舗をまとめて user_manual で upsert する（一括適用の N+1 回避）。
+  # 店舗名は正規化＆重複除去。既存があれば上書きして最新の手動分類を優先する。
+  # upsert なので同店舗の並行学習でも RecordNotUnique にならない（原子的）。テナント整合は
+  # 呼び出し側のカテゴリ所有チェック＋複合FKで担保（upsert はモデル検証を通らない）。
+  # 未分類（category_id 空）や該当店舗なしのときは何もしない（未分類化での忘却はしない）。
+  def self.learn_all(user:, merchant_names:, category_id:)
+    return if category_id.blank?
 
-    record = user.merchant_classifications.find_or_initialize_by(merchant_name: name)
-    record.update!(category_id: category_id, source: "user_manual", classified_at: Time.current)
-  end
+    now = Time.current
+    rows = Array(merchant_names)
+             .filter_map { |name| CategoryClassifier.normalize(name).presence }.uniq
+             .map do |name|
+               { user_id: user.id, merchant_name: name, category_id: category_id,
+                 source: "user_manual", classified_at: now, created_at: now, updated_at: now }
+             end
+    return if rows.empty?
 
-  # 未分類化したときにその店舗のマッピングを削除する（以後は自動分類しない）。
-  def self.forget(user:, merchant_name:)
-    name = CategoryClassifier.normalize(merchant_name)
-    return if name.blank?
-
-    user.merchant_classifications.where(merchant_name: name).delete_all
+    upsert_all(rows, unique_by: %i[user_id merchant_name])
   end
 
   private

@@ -368,7 +368,7 @@ RSpec.describe "Transactions", type: :request do
 
     it "カテゴリ以外（金額訂正）だけの編集は既存の学習を消さない（#152 回帰）" do
       food = create(:category, user: user, name: "食費")
-      MerchantClassification.learn(user: user, merchant_name: "元の店", category_id: food.id)
+      MerchantClassification.learn_all(user: user, merchant_names: [ "元の店" ], category_id: food.id)
 
       patch transaction_path(transaction), params: { transaction: { amount_override: 800 } }
 
@@ -434,14 +434,25 @@ RSpec.describe "Transactions", type: :request do
       expect(mapping.source).to eq("user_manual")
     end
 
-    it "未分類へ戻すと学習を忘却する（#152）" do
-      MerchantClassification.learn(user: user, merchant_name: "コンビニ", category_id: food.id)
+    it "未分類へ戻しても店舗の学習ルールは残る（#152・忘却しない方針）" do
+      MerchantClassification.learn_all(user: user, merchant_names: [ "コンビニ" ], category_id: food.id)
       transaction.update!(category: food)
 
       patch categorize_transaction_path(transaction),
             params: { transaction: { category_id: "" } }, as: :turbo_stream
 
-      expect(user.merchant_classifications.where(merchant_name: "コンビニ")).to be_empty
+      # 1件の未分類化で店舗全体の学習は消さない。
+      expect(user.merchant_classifications.find_by(merchant_name: "コンビニ")&.category_id).to eq(food.id)
+    end
+
+    it "学習の失敗（例外）でも主処理（Turbo応答）は 500 にしない（#152 堅牢性）" do
+      allow(MerchantClassification).to receive(:learn_all).and_raise(ActiveRecord::RecordNotUnique.new("race"))
+
+      patch categorize_transaction_path(transaction),
+            params: { transaction: { category_id: food.id } }, as: :turbo_stream
+
+      expect(response).to have_http_status(:ok) # カテゴリ変更自体は成功している
+      expect(transaction.reload.category_id).to eq(food.id)
     end
 
     it "他ユーザーのカテゴリ id では変更されない（500 にしない）" do
@@ -537,12 +548,12 @@ RSpec.describe "Transactions", type: :request do
       expect(user.merchant_classifications.pluck(:category_id).uniq).to eq([ food.id ])
     end
 
-    it "一括で未分類化すると対象店舗の学習を忘却する（#152）" do
-      MerchantClassification.learn(user: user, merchant_name: "A", category_id: food.id)
+    it "一括で未分類化しても店舗の学習ルールは残る（#152・忘却しない方針）" do
+      MerchantClassification.learn_all(user: user, merchant_names: [ "A" ], category_id: food.id)
       patch categorize_all_transactions_path,
             params: { transaction_ids: [ t1.id ], category_id: "", month: "2026-01" }
 
-      expect(user.merchant_classifications.where(merchant_name: "a")).to be_empty
+      expect(user.merchant_classifications.find_by(merchant_name: "a")&.category_id).to eq(food.id)
     end
 
     it "category_id 空で未分類に一括設定できる" do
