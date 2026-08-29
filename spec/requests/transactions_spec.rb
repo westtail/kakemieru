@@ -585,6 +585,16 @@ RSpec.describe "Transactions", type: :request do
       expect(response.body).to include("適用できる未分類の明細はありませんでした")
     end
 
+    it "適用中にカテゴリ削除レースが起きても 500 にせず穏当に倒す" do
+      allow(RuleApplier).to receive(:new).and_raise(ActiveRecord::InvalidForeignKey.new("race"))
+
+      post apply_rules_transactions_path
+
+      expect(response).to have_http_status(:found) # リダイレクト（500 でない）
+      follow_redirect!
+      expect(response.body).to include("カテゴリが変更されたため適用できませんでした")
+    end
+
     it "未ログインはログイン画面へ" do
       delete "/sign_out"
       post apply_rules_transactions_path

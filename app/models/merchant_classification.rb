@@ -28,7 +28,7 @@ class MerchantClassification < ApplicationRecord
 
   normalizes :merchant_name, with: ->(value) { CategoryClassifier.normalize(value) }
 
-  validates :merchant_name, presence: true, uniqueness: { scope: :user_id }
+  validates :merchant_name, presence: true, length: { maximum: 255 }, uniqueness: { scope: :user_id }
   # 他ユーザーの category を紐づけない（複合FKと二層。Transaction のテナント整合に倣う）。
   validate :category_belongs_to_user
 

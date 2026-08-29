@@ -42,8 +42,11 @@ class AccountsController < ApplicationController
     # チェックボックス未送信は params に現れない。Boolean.cast(nil) は nil を返すため、
     # NOT NULL 列に nil を入れないよう明示的に false へ倒す。
     enabled = ActiveModel::Type::Boolean.new.cast(params.dig(:user, :auto_apply_rules_on_import)) || false
-    Current.user.update(auto_apply_rules_on_import: enabled)
-    redirect_to account_path, notice: "取込設定を保存しました。"
+    if Current.user.update(auto_apply_rules_on_import: enabled)
+      redirect_to account_path, notice: "取込設定を保存しました。"
+    else
+      redirect_to account_path, alert: "取込設定の保存に失敗しました。時間をおいて再度お試しください。"
+    end
   end
 
   def confirm_deletion

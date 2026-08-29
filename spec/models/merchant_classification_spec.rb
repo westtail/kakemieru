@@ -9,6 +9,7 @@ RSpec.describe MerchantClassification, type: :model do
   end
 
   it { is_expected.to validate_presence_of(:merchant_name) }
+  it { is_expected.to validate_length_of(:merchant_name).is_at_most(255) }
 
   it "merchant_name は user ごとに一意（別ユーザーは同名可）" do
     create(:merchant_classification, user: user, category: food, merchant_name: "Amazon")

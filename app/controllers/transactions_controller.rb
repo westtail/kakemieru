@@ -126,6 +126,10 @@ class TransactionsController < ApplicationController
       "適用できる未分類の明細はありませんでした。"
     end
     redirect_back fallback_location: transactions_path(list_params), notice: notice
+  rescue ActiveRecord::InvalidForeignKey
+    # 集計後・更新前に対象カテゴリが削除された稀なレース（categorize_all と同じ扱い）。
+    redirect_back fallback_location: transactions_path(list_params),
+                  alert: "カテゴリが変更されたため適用できませんでした。もう一度お試しください。"
   end
 
   private
