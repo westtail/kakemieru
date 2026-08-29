@@ -561,4 +561,34 @@ RSpec.describe "Transactions", type: :request do
       expect(response).to redirect_to("/sign_in")
     end
   end
+
+  describe "POST /transactions/apply_rules（更新実行・ADR-0047）" do
+    before { sign_in }
+
+    let(:food) { create(:category, user: user, name: "食費") }
+
+    it "店舗ルールを未分類明細へ一括適用し、件数を通知する" do
+      create(:merchant_classification, user: user, category: food, merchant_name: "ローソン")
+      t = create(:transaction, user: user, payment_method: payment_method,
+                 merchant_name: "ローソン", category: nil, date: Date.new(2026, 1, 10))
+
+      post apply_rules_transactions_path
+
+      expect(t.reload.category_id).to eq(food.id)
+      follow_redirect!
+      expect(response.body).to include("1件")
+    end
+
+    it "一致する未分類が無ければその旨を通知する" do
+      post apply_rules_transactions_path
+      follow_redirect!
+      expect(response.body).to include("適用できる未分類の明細はありませんでした")
+    end
+
+    it "未ログインはログイン画面へ" do
+      delete "/sign_out"
+      post apply_rules_transactions_path
+      expect(response).to redirect_to("/sign_in")
+    end
+  end
 end

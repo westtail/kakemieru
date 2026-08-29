@@ -18,6 +18,7 @@ Rails.application.routes.draw do
   get    "account",          to: "accounts#show",             as: :account
   patch  "account/email",    to: "accounts#update_email",     as: :account_email
   patch  "account/password", to: "accounts#update_password",  as: :account_password
+  patch  "account/settings", to: "accounts#update_settings",  as: :account_settings
   get    "account/delete",   to: "accounts#confirm_deletion", as: :confirm_account_deletion
   delete "account",          to: "accounts#destroy"
 
@@ -35,6 +36,7 @@ Rails.application.routes.draw do
     member { patch :categorize }
     collection do
       patch :categorize_all # 複数明細のカテゴリ一括適用（#149）
+      post :apply_rules     # 店舗ルールを未分類明細へ一括適用（更新実行・ADR-0047）
       # ダッシュボード用の集計 JSON（GET 専用）。CSRF は専用コントローラで隔離（#14）。
       get :summary, to: "transactions/summaries#show"
     end

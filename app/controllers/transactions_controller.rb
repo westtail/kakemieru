@@ -116,6 +116,18 @@ class TransactionsController < ApplicationController
     redirect_to transactions_path(list_params), alert: "カテゴリが正しくありません。"
   end
 
+  # 店舗ルールを未分類明細へ一括適用する（更新実行・ADR-0047）。手動分類は上書きしない。
+  # 明細一覧・取込詳細のどちらから押されても元の画面へ戻す（referer 優先）。
+  def apply_rules
+    count = RuleApplier.new(user: Current.user).call
+    notice = if count.positive?
+      "#{count}件の未分類明細に店舗ルールを適用しました。"
+    else
+      "適用できる未分類の明細はありませんでした。"
+    end
+    redirect_back fallback_location: transactions_path(list_params), notice: notice
+  end
+
   private
     # 一覧へ戻るときに引き継ぐ絞り込み/ソートのパラメータ（既知キーのみ）。
     # category="" は「未分類フィルタ」を意味するため空でも維持する（絞り込み状態を保つ）。
