@@ -37,6 +37,13 @@ RSpec.describe MerchantRecommendations, type: :service do
     expect(call).to be_empty
   end
 
+  it "特別ルールを持つ店舗は除外する（被り対策・ADR-0048）" do
+    2.times { tx(merchant: "楽天SP", category: food) }
+    create(:special_rule, user: user, category: food, merchant_name: "楽天SP", amount_min: 1200, amount_max: 1200)
+
+    expect(call).to be_empty
+  end
+
   it "件数の多い順に並べる" do
     3.times { tx(merchant: "スタバ", category: food) }
     2.times { tx(merchant: "ローソン", category: food) }
