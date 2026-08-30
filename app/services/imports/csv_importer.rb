@@ -46,7 +46,7 @@ module Imports
         errors = []
         # 取込時の自動適用はアカウント設定 ON のときだけ（ADR-0047・初期OFF）。OFF なら未分類で
         # 取り込み、ユーザーが「更新実行」で明示適用する。分類は行ごとだと N+1 になるため一括解決。
-        category_ids = if @user.auto_apply_rules_on_import?
+        category_ids = if @user.auto_apply_merchant_rules_on_import?
           CategoryClassifier.category_ids_for(@user, parsed.rows.map { |row| row[:merchant_name] })
         else
           {}

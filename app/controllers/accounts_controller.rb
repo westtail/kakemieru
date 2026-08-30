@@ -40,9 +40,13 @@ class AccountsController < ApplicationController
   # パスワード再確認は求めない。チェックボックス未送信は false として確実に反映する。
   def update_settings
     # チェックボックス未送信は params に現れない。Boolean.cast(nil) は nil を返すため、
-    # NOT NULL 列に nil を入れないよう明示的に false へ倒す。
-    enabled = ActiveModel::Type::Boolean.new.cast(params.dig(:user, :auto_apply_rules_on_import)) || false
-    if Current.user.update(auto_apply_rules_on_import: enabled)
+    # NOT NULL 列に nil を入れないよう明示的に false へ倒す（店舗ルール・特別ルールの2トグル）。
+    cast = ActiveModel::Type::Boolean.new
+    attrs = {
+      auto_apply_merchant_rules_on_import: cast.cast(params.dig(:user, :auto_apply_merchant_rules_on_import)) || false,
+      auto_apply_special_rules_on_import: cast.cast(params.dig(:user, :auto_apply_special_rules_on_import)) || false
+    }
+    if Current.user.update(attrs)
       redirect_to account_path, notice: "取込設定を保存しました。"
     else
       redirect_to account_path, alert: "取込設定の保存に失敗しました。時間をおいて再度お試しください。"

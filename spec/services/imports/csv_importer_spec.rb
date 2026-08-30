@@ -33,7 +33,7 @@ RSpec.describe Imports::CsvImporter do
   end
 
   it "自動適用ON なら店舗ルール登録済みの店舗を取込時に自動分類する（ADR-0047 end-to-end）" do
-    user.update!(auto_apply_rules_on_import: true)
+    user.update!(auto_apply_merchant_rules_on_import: true)
     food = create(:category, user: user, name: "食費")
     create(:merchant_classification, user: user, category: food, merchant_name: "ローソン")
 
