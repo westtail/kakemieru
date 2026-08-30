@@ -1,0 +1,38 @@
+<%= render "shared/error_messages", record: @special_rule %>
+
+<%= form_with model: @special_rule, class: "max-w-md" do |form| %>
+  <div class="field">
+    <%= form.label :merchant_name, "店舗名", class: "field-label" %>
+    <%= form.text_field :merchant_name, required: true, class: "field-input", placeholder: "例: 楽天SP" %>
+  </div>
+
+  <p class="muted">金額・毎月の日のいずれか（または両方）を条件に指定してください。同じ店舗でも金額で別カテゴリに振り分けられます。</p>
+
+  <div class="field">
+    <%= form.label :amount_min, "金額（下限）", class: "field-label" %>
+    <%= form.number_field :amount_min, class: "field-input", placeholder: "例: 1200（完全一致は上限と同じ額）" %>
+  </div>
+  <div class="field">
+    <%= form.label :amount_max, "金額（上限）", class: "field-label" %>
+    <%= form.number_field :amount_max, class: "field-input", placeholder: "例: 1200" %>
+  </div>
+  <div class="field">
+    <%= form.label :day_of_month, "毎月の日（任意・1〜31）", class: "field-label" %>
+    <%= form.number_field :day_of_month, in: 1..31, class: "field-input", placeholder: "例: 27" %>
+  </div>
+
+  <div class="field">
+    <%= form.label :category_id, "カテゴリ", class: "field-label" %>
+    <%= form.collection_select :category_id, @categories, :id, :name, { prompt: "選択してください" }, class: "field-input" %>
+  </div>
+
+  <div class="field">
+    <%= form.label :note, "内容メモ（任意・明細の説明に追記）", class: "field-label" %>
+    <%= form.text_field :note, class: "field-input", placeholder: "例: Netflix月額" %>
+  </div>
+
+  <div class="mt-4 flex items-center gap-3">
+    <%= form.submit submit_label, class: "btn-primary" %>
+    <%= link_to "キャンセル", special_rules_path, class: "link" %>
+  </div>
+<% end %>
