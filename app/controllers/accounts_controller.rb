@@ -36,7 +36,7 @@ class AccountsController < ApplicationController
     end
   end
 
-  # 取込設定（店舗ルールの取込時自動適用トグル・ADR-0047）。低リスクな設定変更のため
+  # 取込設定（店舗ルールの取込時自動適用トグル）。低リスクな設定変更のため
   # パスワード再確認は求めない。チェックボックス未送信は false として確実に反映する。
   def update_settings
     # チェックボックス未送信は params に現れない。Boolean.cast(nil) は nil を返すため、

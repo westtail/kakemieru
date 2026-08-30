@@ -1,4 +1,4 @@
-# 店舗ルール（明示登録の 店舗名 → カテゴリ・ADR-0047）の登録・カテゴリ変更・削除。
+# 店舗ルール（明示登録の 店舗名 → カテゴリ）の登録・カテゴリ変更・削除。
 # 一覧とおすすめの表示は CategoriesController#index が担う。すべて Current.user スコープ。
 class MerchantRulesController < ApplicationController
   before_action :set_rule, only: %i[update destroy]

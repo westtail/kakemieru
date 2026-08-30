@@ -1,4 +1,4 @@
-# 特別ルール（同名店舗を金額・日で判別・ADR-0048）の管理。多項目フォームのため専用ページで
+# 特別ルール（同名店舗を金額・日で判別）の管理。多項目フォームのため専用ページで
 # CRUD する。すべて Current.user スコープ・他ユーザーのルールは 404。
 class SpecialRulesController < ApplicationController
   before_action :set_rule, only: %i[edit update destroy]

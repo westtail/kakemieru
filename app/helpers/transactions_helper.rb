@@ -1,5 +1,5 @@
 module TransactionsHelper
-  # 明細一覧のソート可能なヘッダーリンク（#147）。クリックで昇順、同じ列を再クリックで降順に
+  # 明細一覧のソート可能なヘッダーリンク。クリックで昇順、同じ列を再クリックで降順に
   # トグルする。現在の絞り込み条件（月/カテゴリ/キーワード）は維持したまま sort/direction を差し替える。
   def sort_header(label, key)
     active = @sort == key
