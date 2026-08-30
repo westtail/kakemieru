@@ -108,12 +108,28 @@ class TransactionsController < ApplicationController
     end
 
     # Current.user スコープで他人の id は一致せず更新されない（テナント保護）。updated_at も進める。
-    count = Current.user.transactions.not_deleted.where(id: ids)
-                   .update_all(category_id: category_id, updated_at: Time.current)
+    scope = Current.user.transactions.not_deleted.where(id: ids)
+    count = scope.update_all(category_id: category_id, updated_at: Time.current)
     redirect_to transactions_path(list_params), notice: "#{count}件のカテゴリを変更しました。"
   rescue ActiveRecord::InvalidForeignKey
     # 検証通過後・書き込み前にカテゴリが削除された稀なレース（単件 categorize と同じ扱い）。
     redirect_to transactions_path(list_params), alert: "カテゴリが正しくありません。"
+  end
+
+  # 店舗ルールを未分類明細へ一括適用する（更新実行・ADR-0047）。手動分類は上書きしない。
+  # 明細一覧・取込詳細のどちらから押されても元の画面へ戻す（referer 優先）。
+  def apply_rules
+    count = RuleApplier.new(user: Current.user).call
+    notice = if count.positive?
+      "#{count}件の未分類明細に店舗ルールを適用しました。"
+    else
+      "適用できる未分類の明細はありませんでした。"
+    end
+    redirect_back fallback_location: transactions_path(list_params), notice: notice
+  rescue ActiveRecord::InvalidForeignKey
+    # 集計後・更新前に対象カテゴリが削除された稀なレース（categorize_all と同じ扱い）。
+    redirect_back fallback_location: transactions_path(list_params),
+                  alert: "カテゴリが変更されたため適用できませんでした。もう一度お試しください。"
   end
 
   private

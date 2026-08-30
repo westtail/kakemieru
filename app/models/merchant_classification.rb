@@ -1,30 +1,41 @@
-# 店舗名 → カテゴリキーの全ユーザー共通マッピング（user_id を持たない）。
-# フェーズ1ではテーブルのみで中身は空（自動投入は S6 以降）。category_key は
-# categories.category_key と対応し、ユーザーごとの category に解決する。
+# 店舗ルール（ユーザーが明示登録する 店舗名 → カテゴリ の確定マッピング・ADR-0047）。
+# おすすめ（履歴集計）から登録される、または手動追加される。取込時／更新実行で未分類明細へ
+# 適用する読み取りは CategoryClassifier。merchant_name は CategoryClassifier.normalize で
+# 正規化して保存・照合する（"Amazon"/"amazon"、全角/半角/空白違いを同一キーに揃える）。
 # == Schema Information
 #
 # Table name: merchant_classifications
 #
 #  id            :bigint           not null, primary key
-#  category_key  :string           not null
-#  classified_at :datetime
 #  merchant_name :string           not null
-#  source        :string           not null
 #  created_at    :datetime         not null
 #  updated_at    :datetime         not null
+#  category_id   :bigint           not null
+#  user_id       :bigint           not null
 #
 # Indexes
 #
-#  index_merchant_classifications_on_category_key   (category_key)
-#  index_merchant_classifications_on_merchant_name  (merchant_name) UNIQUE
+#  index_merchant_classifications_on_user_id_and_merchant_name  (user_id,merchant_name) UNIQUE
+#
+# Foreign Keys
+#
+#  fk_merchant_classifications_user_category  ([user_id, category_id] => categories[user_id, id]) ON DELETE => cascade
+#  fk_rails_...                               (user_id => users.id) ON DELETE => cascade
 #
 class MerchantClassification < ApplicationRecord
-  SOURCES = %w[ai user_manual].freeze
+  belongs_to :user
+  belongs_to :category
 
-  # CategoryClassifier と同じ正規化で保存・照合する（大文字小文字/全角/空白違いを吸収）。
   normalizes :merchant_name, with: ->(value) { CategoryClassifier.normalize(value) }
 
-  validates :merchant_name, presence: true, uniqueness: true
-  validates :category_key, presence: true
-  validates :source, presence: true, inclusion: { in: SOURCES }
+  validates :merchant_name, presence: true, length: { maximum: 255 }, uniqueness: { scope: :user_id }
+  # 他ユーザーの category を紐づけない（複合FKと二層。Transaction のテナント整合に倣う）。
+  validate :category_belongs_to_user
+
+  private
+    def category_belongs_to_user
+      return if category.nil? || user.nil?
+
+      errors.add(:category, :invalid) if category.user_id != user_id
+    end
 end

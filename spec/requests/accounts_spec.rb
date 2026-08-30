@@ -8,6 +8,28 @@ RSpec.describe "Accounts", type: :request do
     post "/sign_in", params: { email_address: user.email_address, password: password }
   end
 
+  describe "PATCH /account/settings（取込設定・ADR-0047）" do
+    before { sign_in }
+
+    it "自動適用トグルをオンにできる" do
+      patch account_settings_path, params: { user: { auto_apply_rules_on_import: "1" } }
+      expect(response).to redirect_to(account_path)
+      expect(user.reload.auto_apply_rules_on_import).to be(true)
+    end
+
+    it "チェックボックス未送信はオフとして保存する" do
+      user.update!(auto_apply_rules_on_import: true)
+      patch account_settings_path, params: { user: {} }
+      expect(user.reload.auto_apply_rules_on_import).to be(false)
+    end
+
+    it "未ログインはログイン画面へ" do
+      delete "/sign_out"
+      patch account_settings_path, params: { user: { auto_apply_rules_on_import: "1" } }
+      expect(response).to redirect_to("/sign_in")
+    end
+  end
+
   describe "未認証アクセス" do
     it "各アクションはログイン画面へリダイレクトする" do
       get "/account"

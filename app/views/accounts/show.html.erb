@@ -3,6 +3,18 @@
 <%= render "shared/error_messages", record: Current.user %>
 
 <section class="max-w-md">
+  <h2 class="section-title">取込設定</h2>
+  <%= form_with url: account_settings_path, method: :patch do |form| %>
+    <label class="flex items-center gap-2">
+      <%= check_box_tag "user[auto_apply_rules_on_import]", "1", Current.user.auto_apply_rules_on_import %>
+      <span>CSV取り込み時に、店舗ルールを未分類の明細へ自動で当てる</span>
+    </label>
+    <p class="muted mt-1">オフのときは取り込み後に「更新実行」で手動適用できます（<%= link_to "店舗ルールの管理", categories_path(anchor: "merchant-rules"), class: "link" %>）。</p>
+    <%= form.submit "保存", class: "btn-primary mt-2" %>
+  <% end %>
+</section>
+
+<section class="max-w-md">
   <h2 class="section-title">メールアドレス変更</h2>
   <p class="muted">現在: <%= Current.user.email_address %></p>
   <%= form_with url: account_email_path, method: :patch do |form| %>

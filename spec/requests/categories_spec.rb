@@ -25,6 +25,28 @@ RSpec.describe "Categories", type: :request do
       expect(response).to have_http_status(:ok)
       expect(response.body).to include("初期カテゴリ", "独自カテゴリ", "食費", "推し活")
     end
+
+    it "おすすめ店舗ルール（2回以上分類した未登録店舗）を表示する" do
+      food = create(:category, user: user, name: "食費")
+      pm = create(:payment_method, user: user)
+      2.times do
+        create(:transaction, user: user, payment_method: pm, merchant_name: "ローソン",
+               category: food, date: Date.new(2026, 1, 10))
+      end
+      sign_in
+
+      get "/categories"
+      expect(response.body).to include("おすすめの店舗ルール", "ローソン")
+    end
+
+    it "登録済みの店舗ルールを一覧表示する" do
+      food = create(:category, user: user, name: "食費")
+      create(:merchant_classification, user: user, category: food, merchant_name: "スタバ")
+      sign_in
+
+      get "/categories"
+      expect(response.body).to include("店舗ルール", "スタバ")
+    end
   end
 
   describe "POST /categories（追加）" do
