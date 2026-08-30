@@ -6,10 +6,16 @@
   <h2 class="section-title">取込設定</h2>
   <%= form_with url: account_settings_path, method: :patch do |form| %>
     <label class="flex items-center gap-2">
-      <%= check_box_tag "user[auto_apply_rules_on_import]", "1", Current.user.auto_apply_rules_on_import %>
-      <span>CSV取り込み時に、店舗ルールを未分類の明細へ自動で当てる</span>
+      <%= check_box_tag "user[auto_apply_merchant_rules_on_import]", "1", Current.user.auto_apply_merchant_rules_on_import %>
+      <span>CSV取り込み時に、<strong>店舗ルール</strong>を未分類の明細へ自動で当てる</span>
     </label>
-    <p class="muted mt-1">オフのときは取り込み後に「更新実行」で手動適用できます（<%= link_to "店舗ルールの管理", categories_path(anchor: "merchant-rules"), class: "link" %>）。</p>
+    <label class="mt-2 flex items-center gap-2">
+      <%= check_box_tag "user[auto_apply_special_rules_on_import]", "1", Current.user.auto_apply_special_rules_on_import %>
+      <span>CSV取り込み時に、<strong>特別ルール</strong>（金額・日で判別）を未分類の明細へ自動で当てる</span>
+    </label>
+    <p class="muted mt-1">
+      オフのときは取り込み後に「更新実行」で手動適用できます（<%= link_to "店舗ルール", categories_path(anchor: "merchant-rules"), class: "link" %> / <%= link_to "特別ルール", special_rules_path, class: "link" %>）。
+    </p>
     <%= form.submit "保存", class: "btn-primary mt-2" %>
   <% end %>
 </section>

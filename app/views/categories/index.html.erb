@@ -87,3 +87,12 @@
     <p class="muted mt-4">まだ店舗ルールはありません。上のフォームか「おすすめ」から登録できます。</p>
   <% end %>
 </section>
+
+<%# 特別ルール（同名店舗を金額・日で判別・ADR-0048）への導線。 %>
+<section class="mt-8">
+  <h2 class="section-title">特別ルール</h2>
+  <p class="muted">同じ店舗名でも金額や毎月の日で中身が違う支払い（例:「楽天SP」）を判別して分類します。店舗ルールより優先されます。</p>
+  <p class="mt-2">
+    <%= link_to "特別ルールを管理", special_rules_path, class: "btn-secondary" %>
+  </p>
+</section>

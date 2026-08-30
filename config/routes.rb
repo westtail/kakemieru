@@ -28,6 +28,9 @@ Rails.application.routes.draw do
   # 店舗ルール（明示登録・ADR-0047）。カテゴリページから登録/カテゴリ変更/削除する。
   resources :merchant_rules, only: %i[create update destroy]
 
+  # 特別ルール（同名店舗を金額・日で判別・ADR-0048）。多項目フォームのため専用ページで CRUD。
+  resources :special_rules, except: %i[show]
+
   # 支払方法管理（一覧・追加・名前/種別変更・削除）。show は使わない。
   resources :payment_methods, except: %i[show]
 

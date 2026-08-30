@@ -1,27 +1,46 @@
-# 店舗ルールを未分類の明細へ一括適用する（ADR-0047）。取込時の自動適用（設定ON時）と
-# 「更新実行」ボタンの両方から呼ぶ。対象は本人の未削除・未分類（category_id NULL）明細のみで、
-# 手動で付けたカテゴリは上書きしない。更新した件数を返す。
+# 店舗ルール（ADR-0047）と特別ルール（ADR-0048）を未分類の明細へ一括適用する。「更新実行」
+# ボタンから呼ぶ。対象は本人の未削除・未分類（category_id NULL）明細のみで、手動で付けた
+# カテゴリは上書きしない。特別ルールが一致し note があれば description に追記する。更新件数を返す。
 class RuleApplier
   def initialize(user:)
     @user = user
   end
 
   def call
-    rules = @user.merchant_classifications.pluck(:merchant_name, :category_id).to_h # 正規化済みキー
-    return 0 if rules.empty?
+    matcher = RuleMatcher.new(user: @user, use_merchant: true, use_special: true)
 
-    # 未分類明細を1クエリで読み、店舗名を正規化してルールに当てる。カテゴリ別に id をまとめ、
-    # まとめて update_all（行ごとの update を避ける）。テナント整合は user スコープ＋複合FKで担保。
+    # note 無しはカテゴリ別にまとめて update_all（高速路）。note 有りは description を
+    # 明細ごとに追記する必要があるため行単位で更新する。
     ids_by_category = Hash.new { |hash, key| hash[key] = [] }
+    noted = []
+
     @user.transactions.not_deleted.where(category_id: nil)
-         .pluck(:id, :merchant_name).each do |id, merchant_name|
-      category_id = rules[CategoryClassifier.normalize(merchant_name)]
-      ids_by_category[category_id] << id if category_id
+         .pluck(:id, :merchant_name, :effective_amount, :effective_date, :description)
+         .each do |id, merchant_name, amount, date, description|
+      result = matcher.match(merchant_name: merchant_name, amount: amount, date: date)
+      next if result.nil?
+
+      if result.note.present?
+        noted << { id: id, category_id: result.category_id, description: DescriptionNote.append(description, result.note) }
+      else
+        ids_by_category[result.category_id] << id
+      end
     end
 
+    # 途中の InvalidForeignKey レース（対象カテゴリの同時削除）で部分適用が残らないよう原子的に。
+    # pluck 後〜書込みの間に手動分類/削除が起きても不変条件を破らないよう、書込み時にも
+    # not_deleted・未分類（category_id NULL）を再確認する（対象外を上書きしない）。
     now = Time.current
-    ids_by_category.sum do |category_id, ids|
-      @user.transactions.where(id: ids).update_all(category_id: category_id, updated_at: now)
+    ActiveRecord::Base.transaction do
+      count = ids_by_category.sum do |category_id, ids|
+        @user.transactions.not_deleted.where(id: ids, category_id: nil)
+             .update_all(category_id: category_id, updated_at: now)
+      end
+      noted.each do |row|
+        count += @user.transactions.not_deleted.where(id: row[:id], category_id: nil)
+                      .update_all(category_id: row[:category_id], description: row[:description], updated_at: now)
+      end
+      count
     end
   end
 end
