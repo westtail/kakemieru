@@ -67,7 +67,7 @@ class Transaction < ApplicationRecord
   validates :amount_override, numericality: AMOUNT_NUMERICALITY, allow_nil: true
   validates :merchant_name, presence: true, length: { maximum: 255 }
 
-  # 他ユーザーの user 資源への紐づけを防ぐテナント整合。DB 層の複合FK（#113）と二層防御で、
+  # 他ユーザーの user 資源への紐づけを防ぐテナント整合。DB 層の複合FK と二層防御で、
   # アプリ層はレース時に 500 でなく 422 を返す UX 役割で残す（コントローラの current_user
   # スコープと合わせて三層）。安易に削除しないこと。
   validate :payment_method_belongs_to_user

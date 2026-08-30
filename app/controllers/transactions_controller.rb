@@ -2,7 +2,7 @@ class TransactionsController < ApplicationController
   include MonthParam
 
   # 一覧のソート可能列（ホワイトリスト）。ユーザー入力は SQL に補間せず、必ずこのキー経由で
-  # Arel の列に対応づける（SQLi 対策・#147）。カテゴリ/支払方法は関連名で並べる。
+  # Arel の列に対応づける（SQLi 対策）。カテゴリ/支払方法は関連名で並べる。
   SORTABLE = %w[date merchant amount category payment_method].freeze
 
   before_action :set_transaction, only: %i[edit update categorize destroy]
@@ -86,7 +86,7 @@ class TransactionsController < ApplicationController
     render turbo_stream: turbo_stream.remove(@transaction)
   end
 
-  # 選択した複数明細にカテゴリを一括適用する（#149）。手動入力の工数削減。
+  # 選択した複数明細にカテゴリを一括適用する。手動入力の工数削減。
   def categorize_all
     # 配列/ハッシュ型の細工でも 500 にせず倒す（index と同じ方針）。id は文字列要素のみ整数化。
     raw_ids = params[:transaction_ids]
@@ -116,7 +116,7 @@ class TransactionsController < ApplicationController
     redirect_to transactions_path(list_params), alert: "カテゴリが正しくありません。"
   end
 
-  # 店舗ルールを未分類明細へ一括適用する（更新実行・ADR-0047）。手動分類は上書きしない。
+  # 店舗ルールを未分類明細へ一括適用する（更新実行）。手動分類は上書きしない。
   # 明細一覧・取込詳細のどちらから押されても元の画面へ戻す（referer 優先）。
   def apply_rules
     count = RuleApplier.new(user: Current.user).call

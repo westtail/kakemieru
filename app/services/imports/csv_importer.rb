@@ -44,7 +44,7 @@ module Imports
     private
       def save(parsed, file_hash)
         errors = []
-        # 取込時の自動適用はアカウント設定 ON の種類だけ（ADR-0047/0048・初期OFF）。OFF なら未分類で
+        # 取込時の自動適用はアカウント設定 ON の種類だけ（初期OFF）。OFF なら未分類で
         # 取り込み、ユーザーが「更新実行」で明示適用する。RuleMatcher を1回作りループ内で使う（N+1 回避）。
         matcher = RuleMatcher.new(
           user: @user,

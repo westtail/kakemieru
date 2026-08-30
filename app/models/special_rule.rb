@@ -1,4 +1,4 @@
-# 特別ルール（同名店舗を金額範囲・毎月の日で判別する分類・ADR-0048）。店舗ルール
+# 特別ルール（同名店舗を金額範囲・毎月の日で判別する分類）。店舗ルール
 # （MerchantClassification）より具体的な条件を持ち、照合では優先される（RuleMatcher）。
 # merchant_name は CategoryClassifier.normalize で正規化して保存・照合する。条件（金額範囲・
 # 毎月の日）はすべて AND。OR は同一カテゴリへ複数ルールを作って表現する。

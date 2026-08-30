@@ -33,7 +33,7 @@ class User < ApplicationRecord
   has_many :categories, dependent: :destroy
   has_many :imports, dependent: :destroy
   has_many :payment_methods, dependent: :destroy
-  # 店舗→カテゴリの学習マッピング（#152）。退会・カテゴリ削除は DB の CASCADE でも消える。
+  # 店舗→カテゴリの学習マッピング。退会・カテゴリ削除は DB の CASCADE でも消える。
   has_many :merchant_classifications, dependent: :destroy
   has_many :special_rules, dependent: :destroy
 

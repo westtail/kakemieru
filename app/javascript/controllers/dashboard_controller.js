@@ -135,7 +135,7 @@ export default class extends Controller {
     })
   }
 
-  // 直近数ヶ月の支出推移を棒グラフで描画する（#153）。表示中の月を強調色にする。
+  // 直近数ヶ月の支出推移を棒グラフで描画する。表示中の月を強調色にする。
   renderTrend(data) {
     if (!this.hasTrendCanvasTarget) return
     const totals = data.monthly_totals || []

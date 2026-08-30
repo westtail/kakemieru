@@ -84,7 +84,7 @@ class PaymentMethodsController < ApplicationController
     def payment_method_params
       permitted = params.require(:payment_method).permit(:name, :payment_type)
       # 現金は「自動生成される単一の特別枠・削除不可・種別変更不可」。この不変条件を
-      # ビューだけでなくサーバー側でも強制する（S3 が category_key を permit しないのと同じ思想）:
+      # ビューだけでなくサーバー側でも強制する（カテゴリで category_key を permit しないのと同じ思想）:
       # - 新規で payment_type=cash を送っても種別を落とす → presence 違反で作成させない
       # - 既存の現金レコードの種別は変更させない（名前のみ変更可）
       permitted = permitted.except(:payment_type) if permitted[:payment_type] == "cash" || @payment_method&.cash?

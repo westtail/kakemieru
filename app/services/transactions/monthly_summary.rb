@@ -11,8 +11,8 @@ module Transactions
     def call
       scope = @user.transactions.not_deleted.in_month(@month.year, @month.month)
       names = @user.categories.pluck(:id, :name).to_h
-      amounts = scope.group(:category_id).sum(:effective_amount) # { category_id|nil => amount }
-      counts = scope.group(:category_id).count                   # { category_id|nil => 件数 }
+      amounts = scope.group(:category_id).sum(:effective_amount)
+      counts = scope.group(:category_id).count
 
       categories = amounts.map do |category_id, amount|
         # fetch のデフォルトで、names 取得後にカテゴリが増える稀なレースでも name が nil に

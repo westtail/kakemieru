@@ -1,5 +1,5 @@
 module Transactions
-  # 指定月を末尾に、直近 count ヶ月の月別支出合計を返す（#153・ダッシュボードの推移グラフ用）。
+  # 指定月を末尾に、直近 count ヶ月の月別支出合計を返す（ダッシュボードの推移グラフ用）。
   # 集計は effective_amount + not_deleted。データの無い月は 0 で埋め、古い順で返す。
   # 戻り値: [{ month: "YYYY-MM", total: 整数 }, ...]
   class MonthlyTotals
@@ -11,7 +11,6 @@ module Transactions
 
     def call
       start = @month - (@count - 1).months
-      # 月ごとに合計（キーは date_trunc の月初 Date）。
       sums = @user.transactions.not_deleted
                   .where(effective_date: start...@month.next_month)
                   .group(Arel.sql("date_trunc('month', effective_date)::date"))

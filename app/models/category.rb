@@ -1,7 +1,7 @@
 # ユーザーごとのカテゴリ。
 # - 初期カテゴリ: category_key あり（テンプレ由来）。名前変更のみ可・削除不可。
 # - 独自カテゴリ: category_key が NULL。追加・名前変更・削除すべて可。
-# has_many :transactions / dependent: :nullify は Transaction を作る S7 で追加する（ADR-0024）。
+# has_many :transactions / dependent: :nullify は Transaction を作る段階で追加する。
 # == Schema Information
 #
 # Table name: categories
@@ -33,12 +33,11 @@ class Category < ApplicationRecord
   scope :initial, -> { where.not(category_key: nil) }
   scope :custom, -> { where(category_key: nil) }
 
-  # 初期カテゴリ（テンプレ由来）かどうか。
   def initial?
     category_key.present?
   end
 
-  # 登録時にテンプレート全件をこのユーザーのカテゴリへコピーする（#21 の一部）。
+  # 登録時にテンプレート全件をこのユーザーのカテゴリへコピーする。
   # 検証済みのテンプレ由来データなので insert_all で一括投入する。
   def self.copy_templates_to(user)
     now = Time.current
