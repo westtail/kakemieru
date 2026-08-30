@@ -17,7 +17,7 @@ const CATEGORY_COLORS = [
 // 月次ダッシュボード。月切り替えで GET /transactions/summary を fetch し、
 // 支出合計・カテゴリ別円グラフ・未分類バッジを再描画する。ページ遷移はしない。
 export default class extends Controller {
-  static targets = ["canvas", "trendCanvas", "total", "monthLabel", "uncategorized", "error"]
+  static targets = ["canvas", "trendCanvas", "total", "monthLabel", "uncategorized", "yearOverYear", "error"]
   static values = { summaryUrl: String, transactionsUrl: String, month: String }
 
   connect() {
@@ -92,6 +92,7 @@ export default class extends Controller {
   render(data) {
     if (this.hasMonthLabelTarget) this.monthLabelTarget.textContent = this.formatMonth(data.month)
     if (this.hasTotalTarget) this.totalTarget.textContent = this.formatYen(data.total)
+    this.renderYearOverYear(data.year_over_year)
     this.renderUncategorized(data)
     this.renderChart(data)
     this.renderTrend(data)
@@ -112,6 +113,25 @@ export default class extends Controller {
     } else {
       this.uncategorizedTarget.textContent = ""
     }
+  }
+
+  // 前年同月比を表示する。支出増（当月>前年）は赤、減は緑、前年同月にデータが無ければ灰で注記。
+  renderYearOverYear(yoy) {
+    if (!this.hasYearOverYearTarget) return
+    const target = this.yearOverYearTarget
+    target.classList.remove("text-red-600", "text-green-700", "text-gray-500")
+
+    if (!yoy || yoy.rate === null) {
+      target.textContent = "前年同月比 —（前年同月のデータなし）"
+      target.classList.add("text-gray-500")
+      return
+    }
+
+    const mark = yoy.diff > 0 ? "+" : yoy.diff < 0 ? "−" : "±"
+    const rate = `${mark}${Math.abs(yoy.rate).toFixed(1)}%`
+    const yen = `${mark}¥${Math.abs(yoy.diff).toLocaleString("ja-JP")}`
+    target.textContent = `前年同月比 ${rate}（${yen}）`
+    target.classList.add(yoy.diff > 0 ? "text-red-600" : yoy.diff < 0 ? "text-green-700" : "text-gray-500")
   }
 
   renderChart(data) {

@@ -25,6 +25,17 @@ RSpec.describe "ダッシュボード", type: :feature do
     expect(page).to have_link("未分類 1件 ⚠️")            # 未分類バッジ（件数）
   end
 
+  it "前年同月比を表示する（前年同月にデータがある場合）" do
+    last_year = Date.current.beginning_of_month.prev_year
+    create(:transaction, user: user, payment_method: payment_method,
+           amount: 3100, category: food, date: last_year + 3)
+
+    visit root_path
+
+    # 当月 6,200 vs 前年同月 3,100 → +100.0%（+¥3,100）
+    expect(page).to have_content("前年同月比 +100.0%（+¥3,100）")
+  end
+
   it "月別推移を Chart.js の棒グラフとして6ヶ月分描画する" do
     visit root_path
     expect(page).to have_content("¥6,200") # fetch→描画の完了を待つ

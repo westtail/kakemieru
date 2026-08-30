@@ -34,6 +34,20 @@ RSpec.describe "Transactions::Summaries", type: :request do
       ])
     end
 
+    it "前年同月比（year_over_year）を同梱する" do
+      create(:transaction, user: user, payment_method: payment_method,
+             amount: 6000, category: food, date: Date.new(2026, 4, 10))
+      create(:transaction, user: user, payment_method: payment_method,
+             amount: 5000, category: food, date: Date.new(2025, 4, 10))
+      sign_in
+
+      get "/transactions/summary", params: { month: "2026-04" }
+
+      expect(json["year_over_year"]).to eq(
+        "previous_month" => "2025-04", "previous_total" => 5000, "diff" => 1000, "rate" => 20.0
+      )
+    end
+
     it "直近6ヶ月の推移（monthly_totals）を同梱する（#153）" do
       create(:transaction, user: user, payment_method: payment_method,
              amount: 5000, category: food, date: Date.new(2026, 4, 10))
