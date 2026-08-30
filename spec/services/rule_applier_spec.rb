@@ -5,10 +5,11 @@ RSpec.describe RuleApplier, type: :service do
   let(:payment_method) { create(:payment_method, user: user) }
   let(:food) { create(:category, user: user, name: "食費") }
   let(:transport) { create(:category, user: user, name: "交通費") }
+  let(:hobby) { create(:category, user: user, name: "娯楽") }
 
-  def tx(merchant:, category: nil, date: Date.new(2026, 1, 10))
+  def tx(merchant:, category: nil, amount: 1000, date: Date.new(2026, 1, 10))
     create(:transaction, user: user, payment_method: payment_method,
-           merchant_name: merchant, category: category, date: date)
+           merchant_name: merchant, category: category, amount: amount, date: date)
   end
 
   def apply
@@ -70,5 +71,36 @@ RSpec.describe RuleApplier, type: :service do
   it "店舗ルールが無ければ何もしない" do
     tx(merchant: "ローソン")
     expect(apply).to eq(0)
+  end
+
+  describe "特別ルール（ADR-0048）" do
+    it "金額一致の特別ルールを適用し、note を description に追記する" do
+      create(:special_rule, user: user, category: hobby, merchant_name: "楽天SP",
+             amount_min: 1200, amount_max: 1200, note: "Netflix")
+      t = tx(merchant: "楽天SP", amount: 1200)
+
+      expect(apply).to eq(1)
+      t.reload
+      expect(t.category_id).to eq(hobby.id)
+      expect(t.description).to include("Netflix")
+    end
+
+    it "特別ルールは店舗ルールより優先される" do
+      create(:merchant_classification, user: user, category: food, merchant_name: "楽天SP")
+      create(:special_rule, user: user, category: hobby, merchant_name: "楽天SP", amount_min: 1200, amount_max: 1200)
+      t = tx(merchant: "楽天SP", amount: 1200)
+
+      apply
+      expect(t.reload.category_id).to eq(hobby.id)
+    end
+
+    it "特別ルールに外れると店舗ルールへフォールバックする" do
+      create(:merchant_classification, user: user, category: food, merchant_name: "楽天SP")
+      create(:special_rule, user: user, category: hobby, merchant_name: "楽天SP", amount_min: 1200, amount_max: 1200)
+      t = tx(merchant: "楽天SP", amount: 999)
+
+      apply
+      expect(t.reload.category_id).to eq(food.id)
+    end
   end
 end

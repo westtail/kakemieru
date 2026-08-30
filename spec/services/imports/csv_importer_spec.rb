@@ -54,6 +54,30 @@ RSpec.describe Imports::CsvImporter do
     expect(user.transactions.pluck(:category_id).uniq).to eq([ nil ])
   end
 
+  it "特別ルール自動適用ON なら金額一致で分類し note を description に追記する（ADR-0048）" do
+    user.update!(auto_apply_special_rules_on_import: true)
+    hobby = create(:category, user: user, name: "娯楽")
+    # ローソン ¥1,200 → 娯楽（note）。valid_csv のローソンは 1200 円。
+    create(:special_rule, user: user, category: hobby, merchant_name: "ローソン",
+           amount_min: 1200, amount_max: 1200, note: "コンサートチケット")
+
+    import(valid_csv)
+
+    lawson = user.transactions.find_by(merchant_name: "ローソン")
+    expect(lawson.category_id).to eq(hobby.id)
+    expect(lawson.description).to include("コンサートチケット")
+  end
+
+  it "特別ルール自動適用OFF（既定）なら特別ルールがあっても未分類のまま" do
+    hobby = create(:category, user: user, name: "娯楽")
+    create(:special_rule, user: user, category: hobby, merchant_name: "ローソン",
+           amount_min: 1200, amount_max: 1200, note: "X")
+
+    import(valid_csv)
+
+    expect(user.transactions.pluck(:category_id).uniq).to eq([ nil ])
+  end
+
   it "ファイル名は basename 化して source_ref に保存する" do
     result = import(valid_csv, filename: "../../etc/passwd.csv")
     expect(result.import.source_ref).to eq("passwd.csv")
