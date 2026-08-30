@@ -2,12 +2,13 @@
 #
 # Table name: users
 #
-#  id              :bigint           not null, primary key
-#  admin           :boolean          default(FALSE), not null
-#  email_address   :string           not null
-#  password_digest :string           not null
-#  created_at      :datetime         not null
-#  updated_at      :datetime         not null
+#  id                         :bigint           not null, primary key
+#  admin                      :boolean          default(FALSE), not null
+#  auto_apply_rules_on_import :boolean          default(FALSE), not null
+#  email_address              :string           not null
+#  password_digest            :string           not null
+#  created_at                 :datetime         not null
+#  updated_at                 :datetime         not null
 #
 # Indexes
 #
@@ -31,6 +32,8 @@ class User < ApplicationRecord
   has_many :categories, dependent: :destroy
   has_many :imports, dependent: :destroy
   has_many :payment_methods, dependent: :destroy
+  # 店舗→カテゴリの学習マッピング（#152）。退会・カテゴリ削除は DB の CASCADE でも消える。
+  has_many :merchant_classifications, dependent: :destroy
 
   normalizes :email_address, with: ->(e) { e.strip.downcase }
 
