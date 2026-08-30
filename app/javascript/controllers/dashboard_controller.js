@@ -32,8 +32,12 @@ export default class extends Controller {
   disconnect() {
     window.removeEventListener("popstate", this.onPopState)
     this.pendingController?.abort()
+    // 破棄後は参照を消す。同じ DOM 要素が再接続されると Stimulus は同じ instance を
+    // 再利用するため、破棄済み Chart を掴んだままだと renderChart/renderTrend の update が失敗する。
     this.chart?.destroy()
+    this.chart = null
     this.trendChart?.destroy()
+    this.trendChart = null
   }
 
   prev() {

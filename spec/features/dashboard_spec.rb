@@ -25,6 +25,26 @@ RSpec.describe "ダッシュボード", type: :feature do
     expect(page).to have_link("未分類 1件 ⚠️")            # 未分類バッジ（件数）
   end
 
+  it "月別推移を Chart.js の棒グラフとして6ヶ月分描画する" do
+    visit root_path
+    expect(page).to have_content("¥6,200") # fetch→描画の完了を待つ
+
+    # canvas の有無だけでなく Chart.js インスタンスを取得して実描画を検証する。
+    # importmap の "chart.js" を動的 import し（controller と同一モジュール）、canvas から Chart を引く。
+    chart = page.evaluate_async_script(<<~JS)
+      const done = arguments[arguments.length - 1]
+      import("chart.js").then(({ Chart }) => {
+        const canvas = document.querySelector('canvas[aria-label="月別支出の棒グラフ"]')
+        const instance = Chart.getChart(canvas)
+        done(instance ? { type: instance.config.type, points: instance.data.datasets[0].data.length } : null)
+      }).catch(() => done(null))
+    JS
+
+    expect(chart).not_to be_nil                # Chart.js が生成されている
+    expect(chart["type"]).to eq("bar")         # 棒グラフ
+    expect(chart["points"]).to eq(6)           # 直近6ヶ月分（0埋め含む）
+  end
+
   it "月を切り替えると合計と URL が更新される（ページ遷移なし）" do
     prev_month = (Date.current.beginning_of_month << 1)
     create(:transaction, user: user, payment_method: payment_method,
