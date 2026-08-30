@@ -1,6 +1,12 @@
 <%# 明細1行。Turbo Stream の replace/remove 対象にするため <tr> に dom_id を付与する。 %>
 <%# locals: transaction / categories %>
 <tr id="<%= dom_id(transaction) %>" class="border-b border-gray-100 <%= "bg-yellow-50" if transaction.category.nil? %>">
+  <%# 一括適用の選択。form 属性で一覧上部の一括フォームに紐づける（行内の別フォームと入れ子にしない）。 %>
+  <td class="py-2 pr-2">
+    <%= check_box_tag "transaction_ids[]", transaction.id, false,
+          form: "bulk-categorize-form", "aria-label": "選択",
+          data: { "bulk-categorize-target": "row", action: "bulk-categorize#toggle" } %>
+  </td>
   <td class="py-2 pr-4 whitespace-nowrap"><%= transaction.effective_date.strftime("%-m/%-d") %></td>
   <td class="py-2 pr-4">
     <%= transaction.merchant_name %>

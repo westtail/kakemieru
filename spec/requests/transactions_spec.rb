@@ -470,4 +470,135 @@ RSpec.describe "Transactions", type: :request do
       expect(response).to have_http_status(:not_found)
     end
   end
+
+  describe "PATCH /transactions/categorize_all（カテゴリ一括適用・#149）" do
+    before { sign_in }
+
+    let(:food) { create(:category, user: user, name: "食費") }
+    let!(:t1) { create(:transaction, user: user, payment_method: payment_method, category: nil, merchant_name: "A", date: Date.new(2026, 1, 10)) }
+    let!(:t2) { create(:transaction, user: user, payment_method: payment_method, category: nil, merchant_name: "B", date: Date.new(2026, 1, 11)) }
+    let!(:t3) { create(:transaction, user: user, payment_method: payment_method, category: nil, merchant_name: "C", date: Date.new(2026, 1, 12)) }
+
+    it "選択した複数明細に同じカテゴリを一括適用する" do
+      patch categorize_all_transactions_path,
+            params: { transaction_ids: [ t1.id, t2.id ], category_id: food.id, month: "2026-01" }
+
+      expect(response).to redirect_to(transactions_path(month: "2026-01"))
+      expect(t1.reload.category_id).to eq(food.id)
+      expect(t2.reload.category_id).to eq(food.id)
+      expect(t3.reload.category_id).to be_nil # 未選択は変わらない
+      follow_redirect!
+      expect(response.body).to include("2件")
+    end
+
+    it "category_id 空で未分類に一括設定できる" do
+      t1.update!(category: food)
+      patch categorize_all_transactions_path,
+            params: { transaction_ids: [ t1.id ], category_id: "", month: "2026-01" }
+      expect(t1.reload.category_id).to be_nil
+    end
+
+    it "現在の絞り込み/ソートを維持して一覧へ戻る" do
+      patch categorize_all_transactions_path,
+            params: { transaction_ids: [ t1.id ], category_id: food.id,
+                      month: "2026-01", category: "", q: "", sort: "merchant", direction: "asc" }
+      expect(response).to redirect_to(transactions_path(month: "2026-01", category: "", q: "", sort: "merchant", direction: "asc"))
+    end
+
+    it "他ユーザーの明細 id が混ざっても自分の明細だけ更新する（テナント保護）" do
+      other = create(:user)
+      others_tx = create(:transaction, user: other, payment_method: create(:payment_method, user: other), category: nil)
+
+      patch categorize_all_transactions_path,
+            params: { transaction_ids: [ t1.id, others_tx.id ], category_id: food.id, month: "2026-01" }
+
+      expect(t1.reload.category_id).to eq(food.id)
+      expect(others_tx.reload.category_id).to be_nil # 他人の明細は不変
+    end
+
+    it "他ユーザーのカテゴリは適用できず alert で戻す" do
+      other = create(:user)
+      others_category = create(:category, user: other, name: "他人")
+
+      patch categorize_all_transactions_path,
+            params: { transaction_ids: [ t1.id ], category_id: others_category.id, month: "2026-01" }
+
+      expect(response).to redirect_to(transactions_path(month: "2026-01"))
+      expect(flash[:alert]).to be_present
+      expect(t1.reload.category_id).to be_nil # 変更されない
+    end
+
+    it "明細未選択なら alert で戻す（何も更新しない）" do
+      patch categorize_all_transactions_path, params: { transaction_ids: [], category_id: food.id, month: "2026-01" }
+      expect(response).to redirect_to(transactions_path(month: "2026-01"))
+      expect(flash[:alert]).to be_present
+    end
+
+    it "配列でない細工パラメータでも 500 にならない" do
+      patch categorize_all_transactions_path, params: { transaction_ids: "x", category_id: food.id, month: "2026-01" }
+      expect(response).to have_http_status(:found) # redirect
+    end
+
+    it "配列-of-ハッシュの細工 transaction_ids でも 500 にならない" do
+      patch categorize_all_transactions_path,
+            params: { transaction_ids: [ { k: "1" } ], category_id: food.id, month: "2026-01" }
+      expect(response).to have_http_status(:found)
+      expect(flash[:alert]).to be_present # 有効な id が無く未選択扱い
+    end
+
+    it "配列型の category_id 細工は alert で拒否し、明細を変更しない" do
+      t1.update!(category: food)
+      patch categorize_all_transactions_path,
+            params: { transaction_ids: [ t1.id ], category_id: [ food.id.to_s ], month: "2026-01" }
+      expect(response).to redirect_to(transactions_path(month: "2026-01"))
+      expect(flash[:alert]).to be_present
+      expect(t1.reload.category_id).to eq(food.id) # 黙って未分類に消さない
+    end
+
+    it "未ログインはログイン画面へ" do
+      delete "/sign_out"
+      patch categorize_all_transactions_path, params: { transaction_ids: [ t1.id ], category_id: food.id }
+      expect(response).to redirect_to("/sign_in")
+    end
+  end
+
+  describe "POST /transactions/apply_rules（更新実行・ADR-0047）" do
+    before { sign_in }
+
+    let(:food) { create(:category, user: user, name: "食費") }
+
+    it "店舗ルールを未分類明細へ一括適用し、件数を通知する" do
+      create(:merchant_classification, user: user, category: food, merchant_name: "ローソン")
+      t = create(:transaction, user: user, payment_method: payment_method,
+                 merchant_name: "ローソン", category: nil, date: Date.new(2026, 1, 10))
+
+      post apply_rules_transactions_path
+
+      expect(t.reload.category_id).to eq(food.id)
+      follow_redirect!
+      expect(response.body).to include("1件")
+    end
+
+    it "一致する未分類が無ければその旨を通知する" do
+      post apply_rules_transactions_path
+      follow_redirect!
+      expect(response.body).to include("適用できる未分類の明細はありませんでした")
+    end
+
+    it "適用中にカテゴリ削除レースが起きても 500 にせず穏当に倒す" do
+      allow(RuleApplier).to receive(:new).and_raise(ActiveRecord::InvalidForeignKey.new("race"))
+
+      post apply_rules_transactions_path
+
+      expect(response).to have_http_status(:found) # リダイレクト（500 でない）
+      follow_redirect!
+      expect(response.body).to include("カテゴリが変更されたため適用できませんでした")
+    end
+
+    it "未ログインはログイン画面へ" do
+      delete "/sign_out"
+      post apply_rules_transactions_path
+      expect(response).to redirect_to("/sign_in")
+    end
+  end
 end

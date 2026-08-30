@@ -1,0 +1,30 @@
+<div class="flex items-center justify-between">
+  <h1 class="page-title">特別ルール</h1>
+  <%= link_to "特別ルールを追加", new_special_rule_path, class: "btn-primary" %>
+</div>
+
+<p class="muted mt-1">
+  同じ店舗名でも中身が違う支払い（例: 「楽天SP」に複数のサブスク）を、金額や毎月の日で判別してカテゴリを付けます。
+  名前だけの<%= link_to "店舗ルール", categories_path(anchor: "merchant-rules"), class: "link" %>より優先されます。
+</p>
+
+<% if @special_rules.any? %>
+  <ul class="mt-4">
+    <% @special_rules.each do |rule| %>
+      <li class="flex flex-wrap items-center gap-3 border-b border-gray-100 py-2">
+        <div class="flex-1">
+          <span class="font-medium"><%= rule.merchant_name %></span>
+          <span class="muted">（<%= special_rule_condition_label(rule) %>）→ <%= rule.category.name %></span>
+          <% if rule.note.present? %>
+            <span class="muted">／メモ: <%= rule.note %></span>
+          <% end %>
+        </div>
+        <%= link_to "編集", edit_special_rule_path(rule), class: "link" %>
+        <%= button_to "削除", special_rule_path(rule), method: :delete, class: "link-danger",
+              form: { data: { turbo_confirm: "「#{rule.merchant_name}」の特別ルールを削除します。よろしいですか？" } } %>
+      </li>
+    <% end %>
+  </ul>
+<% else %>
+  <p class="muted mt-4">まだ特別ルールはありません。「特別ルールを追加」から登録できます。</p>
+<% end %>

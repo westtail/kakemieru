@@ -29,3 +29,70 @@
     <%= link_to "カテゴリを追加", new_category_path, class: "btn-primary" %>
   </p>
 </section>
+
+<%# おすすめ店舗ルール（履歴集計・ADR-0047）。2回以上同じカテゴリにした未登録店舗を提案。 %>
+<% if @recommendations.any? %>
+  <section class="mt-8">
+    <h2 class="section-title">おすすめの店舗ルール</h2>
+    <p class="muted">よく同じカテゴリにしている店舗です。登録すると取り込み時や「更新実行」で未分類に自動で当てられます。</p>
+    <ul class="mt-2">
+      <% @recommendations.each do |rec| %>
+        <li class="flex items-center gap-3 border-b border-gray-100 py-2">
+          <span class="flex-1">
+            <span class="font-medium"><%= rec.merchant_name %></span>
+            <span class="muted">→ <%= rec.category_name %>（<%= rec.count %>件）</span>
+          </span>
+          <%= button_to "登録", merchant_rules_path, class: "btn-secondary",
+                params: { merchant_classification: { merchant_name: rec.merchant_name, category_id: rec.category_id } } %>
+        </li>
+      <% end %>
+    </ul>
+  </section>
+<% end %>
+
+<%# 店舗ルール（明示登録・ADR-0047）。手動追加とカテゴリ変更・削除。 %>
+<section id="merchant-rules" class="mt-8">
+  <h2 class="section-title">店舗ルール</h2>
+  <p class="muted">店舗名 → カテゴリの対応を登録しておくと、取り込み時や「更新実行」で未分類の明細に自動で当てられます。</p>
+
+  <%= form_with url: merchant_rules_path, scope: :merchant_classification, method: :post,
+        class: "mt-3 flex flex-wrap items-end gap-2" do |form| %>
+    <div class="field mb-0">
+      <%= form.label :merchant_name, "店舗名", class: "field-label" %>
+      <%= form.text_field :merchant_name, required: true, class: "field-input", placeholder: "例: ローソン" %>
+    </div>
+    <div class="field mb-0">
+      <%= form.label :category_id, "カテゴリ", class: "field-label" %>
+      <%= form.collection_select :category_id, @categories, :id, :name, {}, class: "field-input" %>
+    </div>
+    <%= form.submit "登録", class: "btn-primary" %>
+  <% end %>
+
+  <% if @merchant_rules.any? %>
+    <ul class="mt-4">
+      <% @merchant_rules.each do |rule| %>
+        <li class="flex flex-wrap items-center gap-3 border-b border-gray-100 py-2">
+          <span class="flex-1 font-medium"><%= rule.merchant_name %></span>
+          <%= form_with url: merchant_rule_path(rule), scope: :merchant_classification, method: :patch,
+                class: "flex items-center gap-2" do |form| %>
+            <%= form.collection_select :category_id, @categories, :id, :name, { selected: rule.category_id }, class: "field-input" %>
+            <%= form.submit "変更", class: "btn-secondary" %>
+          <% end %>
+          <%= button_to "削除", merchant_rule_path(rule), method: :delete, class: "link-danger",
+                form: { data: { turbo_confirm: "「#{rule.merchant_name}」の店舗ルールを削除します。よろしいですか？" } } %>
+        </li>
+      <% end %>
+    </ul>
+  <% else %>
+    <p class="muted mt-4">まだ店舗ルールはありません。上のフォームか「おすすめ」から登録できます。</p>
+  <% end %>
+</section>
+
+<%# 特別ルール（同名店舗を金額・日で判別・ADR-0048）への導線。 %>
+<section class="mt-8">
+  <h2 class="section-title">特別ルール</h2>
+  <p class="muted">同じ店舗名でも金額や毎月の日で中身が違う支払い（例:「楽天SP」）を判別して分類します。店舗ルールより優先されます。</p>
+  <p class="mt-2">
+    <%= link_to "特別ルールを管理", special_rules_path, class: "btn-secondary" %>
+  </p>
+</section>

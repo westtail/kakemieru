@@ -18,11 +18,18 @@ Rails.application.routes.draw do
   get    "account",          to: "accounts#show",             as: :account
   patch  "account/email",    to: "accounts#update_email",     as: :account_email
   patch  "account/password", to: "accounts#update_password",  as: :account_password
+  patch  "account/settings", to: "accounts#update_settings",  as: :account_settings
   get    "account/delete",   to: "accounts#confirm_deletion", as: :confirm_account_deletion
   delete "account",          to: "accounts#destroy"
 
   # カテゴリ管理（一覧・追加・名前変更・削除）。show は使わない。
   resources :categories, except: %i[show]
+
+  # 店舗ルール（明示登録・ADR-0047）。カテゴリページから登録/カテゴリ変更/削除する。
+  resources :merchant_rules, only: %i[create update destroy]
+
+  # 特別ルール（同名店舗を金額・日で判別・ADR-0048）。多項目フォームのため専用ページで CRUD。
+  resources :special_rules, except: %i[show]
 
   # 支払方法管理（一覧・追加・名前/種別変更・削除）。show は使わない。
   resources :payment_methods, except: %i[show]
@@ -30,8 +37,12 @@ Rails.application.routes.draw do
   # 明細。一覧・絞り込み(#43)・編集(#41)・カテゴリ即時変更/削除 Turbo Stream(#44)。
   resources :transactions, only: %i[index new create edit update destroy] do
     member { patch :categorize }
-    # ダッシュボード用の集計 JSON（GET 専用）。CSRF は専用コントローラで隔離（#14）。
-    collection { get :summary, to: "transactions/summaries#show" }
+    collection do
+      patch :categorize_all # 複数明細のカテゴリ一括適用（#149）
+      post :apply_rules     # 店舗ルールを未分類明細へ一括適用（更新実行・ADR-0047）
+      # ダッシュボード用の集計 JSON（GET 専用）。CSRF は専用コントローラで隔離（#14）。
+      get :summary, to: "transactions/summaries#show"
+    end
   end
 
   # CSV取り込み。取り込み・履歴一覧/詳細（S9 #47）・取り消し（S9 #46）。
