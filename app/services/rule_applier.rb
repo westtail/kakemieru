@@ -28,13 +28,16 @@ class RuleApplier
     end
 
     # 途中の InvalidForeignKey レース（対象カテゴリの同時削除）で部分適用が残らないよう原子的に。
+    # pluck 後〜書込みの間に手動分類/削除が起きても不変条件を破らないよう、書込み時にも
+    # not_deleted・未分類（category_id NULL）を再確認する（対象外を上書きしない）。
     now = Time.current
     ActiveRecord::Base.transaction do
       count = ids_by_category.sum do |category_id, ids|
-        @user.transactions.where(id: ids).update_all(category_id: category_id, updated_at: now)
+        @user.transactions.not_deleted.where(id: ids, category_id: nil)
+             .update_all(category_id: category_id, updated_at: now)
       end
       noted.each do |row|
-        count += @user.transactions.where(id: row[:id])
+        count += @user.transactions.not_deleted.where(id: row[:id], category_id: nil)
                       .update_all(category_id: row[:category_id], description: row[:description], updated_at: now)
       end
       count
