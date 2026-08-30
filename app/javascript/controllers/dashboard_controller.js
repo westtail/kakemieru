@@ -1,7 +1,11 @@
 import { Controller } from "@hotwired/stimulus"
-import { Chart, PieController, ArcElement, Tooltip, Legend } from "chart.js"
+import {
+  Chart, PieController, ArcElement, Tooltip, Legend,
+  BarController, BarElement, CategoryScale, LinearScale
+} from "chart.js"
 
-Chart.register(PieController, ArcElement, Tooltip, Legend)
+Chart.register(PieController, ArcElement, Tooltip, Legend,
+  BarController, BarElement, CategoryScale, LinearScale)
 
 // カテゴリ別円グラフの配色。自動彩色プラグイン（Colors）を積まない構成のため、
 // スライス色を明示指定する。カテゴリ数がこれを超える場合は先頭から循環させる。
@@ -13,7 +17,7 @@ const CATEGORY_COLORS = [
 // 月次ダッシュボード。月切り替えで GET /transactions/summary を fetch し、
 // 支出合計・カテゴリ別円グラフ・未分類バッジを再描画する。ページ遷移はしない。
 export default class extends Controller {
-  static targets = ["canvas", "total", "monthLabel", "uncategorized", "error"]
+  static targets = ["canvas", "trendCanvas", "total", "monthLabel", "uncategorized", "error"]
   static values = { summaryUrl: String, transactionsUrl: String, month: String }
 
   connect() {
@@ -28,7 +32,12 @@ export default class extends Controller {
   disconnect() {
     window.removeEventListener("popstate", this.onPopState)
     this.pendingController?.abort()
+    // 破棄後は参照を消す。同じ DOM 要素が再接続されると Stimulus は同じ instance を
+    // 再利用するため、破棄済み Chart を掴んだままだと renderChart/renderTrend の update が失敗する。
     this.chart?.destroy()
+    this.chart = null
+    this.trendChart?.destroy()
+    this.trendChart = null
   }
 
   prev() {
@@ -85,6 +94,7 @@ export default class extends Controller {
     if (this.hasTotalTarget) this.totalTarget.textContent = this.formatYen(data.total)
     this.renderUncategorized(data)
     this.renderChart(data)
+    this.renderTrend(data)
   }
 
   renderUncategorized(data) {
@@ -122,6 +132,32 @@ export default class extends Controller {
       type: "pie",
       data: { labels, datasets: [{ data: amounts, backgroundColor: colors }] },
       options: { responsive: true, plugins: { legend: { position: "bottom" } } }
+    })
+  }
+
+  // 直近数ヶ月の支出推移を棒グラフで描画する（#153）。表示中の月を強調色にする。
+  renderTrend(data) {
+    if (!this.hasTrendCanvasTarget) return
+    const totals = data.monthly_totals || []
+    const labels = totals.map((t) => this.formatMonth(t.month))
+    const amounts = totals.map((t) => t.total)
+    const colors = totals.map((t) => (t.month === data.month ? "#2563eb" : "#93c5fd"))
+
+    if (this.trendChart) {
+      this.trendChart.data.labels = labels
+      this.trendChart.data.datasets[0].data = amounts
+      this.trendChart.data.datasets[0].backgroundColor = colors
+      this.trendChart.update()
+      return
+    }
+    this.trendChart = new Chart(this.trendCanvasTarget, {
+      type: "bar",
+      data: { labels, datasets: [{ data: amounts, backgroundColor: colors }] },
+      options: {
+        responsive: true,
+        plugins: { legend: { display: false } },
+        scales: { y: { beginAtZero: true } }
+      }
     })
   }
 

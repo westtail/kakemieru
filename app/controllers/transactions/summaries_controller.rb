@@ -13,7 +13,10 @@ module Transactions
       month = parse_month(params[:month])
       return render json: { error: "月の形式が不正です（YYYY-MM）" }, status: :unprocessable_entity if month.nil?
 
-      render json: MonthlySummary.new(user: Current.user, month: month).call
+      summary = MonthlySummary.new(user: Current.user, month: month).call
+      # 直近6ヶ月の支出推移も同梱する（ダッシュボードの月別グラフ用・#153）。
+      summary[:monthly_totals] = MonthlyTotals.new(user: Current.user, month: month).call
+      render json: summary
     end
 
     private

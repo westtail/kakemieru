@@ -34,6 +34,22 @@ RSpec.describe "Transactions::Summaries", type: :request do
       ])
     end
 
+    it "直近6ヶ月の推移（monthly_totals）を同梱する（#153）" do
+      create(:transaction, user: user, payment_method: payment_method,
+             amount: 5000, category: food, date: Date.new(2026, 4, 10))
+      create(:transaction, user: user, payment_method: payment_method,
+             amount: 3000, category: food, date: Date.new(2026, 2, 10))
+      sign_in
+
+      get "/transactions/summary", params: { month: "2026-04" }
+
+      totals = json["monthly_totals"]
+      expect(totals.length).to eq(6)
+      expect(totals.map { |t| t["month"] }).to eq(%w[2025-11 2025-12 2026-01 2026-02 2026-03 2026-04])
+      expect(totals.last).to eq({ "month" => "2026-04", "total" => 5000 })
+      expect(totals.find { |t| t["month"] == "2026-02" }["total"]).to eq(3000)
+    end
+
     it "未ログインは 401（リダイレクトしない）" do
       get "/transactions/summary", params: { month: "2026-04" }
       expect(response).to have_http_status(:unauthorized)

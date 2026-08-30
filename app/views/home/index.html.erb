@@ -34,6 +34,12 @@
   <%# 未分類バッジ（件数・クリックで未分類フィルタの一覧へ） %>
   <div data-dashboard-target="uncategorized" class="mt-4 text-center"></div>
 
+  <%# 月別支出の推移（直近6ヶ月・棒グラフ・#153） %>
+  <div class="mt-8">
+    <p class="mb-2 text-center text-sm text-gray-600">月別の支出推移</p>
+    <canvas data-dashboard-target="trendCanvas" role="img" aria-label="月別支出の棒グラフ"></canvas>
+  </div>
+
   <%# 取り込み導線 %>
   <div class="mt-6 flex flex-wrap justify-center gap-4">
     <%= link_to "CSV取り込み", new_import_path(anchor: "csv-import"),
