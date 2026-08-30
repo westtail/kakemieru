@@ -80,17 +80,10 @@ module Imports
           payment_method: @payment_method,
           date: row[:date],
           amount: row[:amount],
-          description: description_with_note(row[:description], result),
+          description: DescriptionNote.append(row[:description], result&.note),
           merchant_name: row[:merchant_name],
           category_id: result&.category_id
         )
-      end
-
-      # 特別ルールが note を持つ場合、CSV の説明に「 / 」区切りで追記する（原本は残す）。
-      def description_with_note(base, match)
-        return base if match.nil? || match.note.blank?
-
-        [ base.presence, match.note ].compact.join(" / ")
       end
 
       # ファイル名は表示・保存のみに使う（パス結合に使わない）。basename 化 + 制御文字除去。

@@ -9,11 +9,11 @@ module SpecialRulesHelper
       min = rule.amount_min
       max = rule.amount_max
       if min && max
-        min == max ? "金額 #{yen(min)}" : "金額 #{yen(min)}〜#{yen(max)}"
+        min == max ? "金額 #{format_yen(min)}" : "金額 #{format_yen(min)}〜#{format_yen(max)}"
       elsif min
-        "金額 #{yen(min)} 以上"
+        "金額 #{format_yen(min)} 以上"
       elsif max
-        "金額 #{yen(max)} 以下"
+        "金額 #{format_yen(max)} 以下"
       end
     end
 
@@ -21,7 +21,7 @@ module SpecialRulesHelper
       "毎月#{rule.day_of_month}日" if rule.day_of_month
     end
 
-    def yen(amount)
+    def format_yen(amount)
       "¥#{number_with_delimiter(amount)}"
     end
 end

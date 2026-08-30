@@ -286,7 +286,9 @@ CREATE TABLE public.special_rules (
     category_id bigint NOT NULL,
     note character varying,
     created_at timestamp(6) without time zone NOT NULL,
-    updated_at timestamp(6) without time zone NOT NULL
+    updated_at timestamp(6) without time zone NOT NULL,
+    CONSTRAINT special_rules_amount_range_order CHECK (((amount_min IS NULL) OR (amount_max IS NULL) OR (amount_min <= amount_max))),
+    CONSTRAINT special_rules_day_of_month_range CHECK (((day_of_month IS NULL) OR ((day_of_month >= 1) AND (day_of_month <= 31))))
 );
 
 
@@ -820,6 +822,7 @@ ALTER TABLE ONLY public.transactions
 SET search_path TO "$user", public;
 
 INSERT INTO "schema_migrations" (version) VALUES
+('20260830080730'),
 ('20260830075001'),
 ('20260830075000'),
 ('20260829160216'),

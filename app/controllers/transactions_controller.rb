@@ -121,7 +121,7 @@ class TransactionsController < ApplicationController
   def apply_rules
     count = RuleApplier.new(user: Current.user).call
     notice = if count.positive?
-      "#{count}件の未分類明細に店舗ルールを適用しました。"
+      "#{count}件の未分類明細にルールを適用しました。"
     else
       "適用できる未分類の明細はありませんでした。"
     end

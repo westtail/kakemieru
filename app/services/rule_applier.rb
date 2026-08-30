@@ -21,26 +21,23 @@ class RuleApplier
       next if result.nil?
 
       if result.note.present?
-        noted << { id: id, category_id: result.category_id, description: append_note(description, result.note) }
+        noted << { id: id, category_id: result.category_id, description: DescriptionNote.append(description, result.note) }
       else
         ids_by_category[result.category_id] << id
       end
     end
 
+    # 途中の InvalidForeignKey レース（対象カテゴリの同時削除）で部分適用が残らないよう原子的に。
     now = Time.current
-    count = ids_by_category.sum do |category_id, ids|
-      @user.transactions.where(id: ids).update_all(category_id: category_id, updated_at: now)
+    ActiveRecord::Base.transaction do
+      count = ids_by_category.sum do |category_id, ids|
+        @user.transactions.where(id: ids).update_all(category_id: category_id, updated_at: now)
+      end
+      noted.each do |row|
+        count += @user.transactions.where(id: row[:id])
+                      .update_all(category_id: row[:category_id], description: row[:description], updated_at: now)
+      end
+      count
     end
-    noted.each do |row|
-      count += @user.transactions.where(id: row[:id])
-                    .update_all(category_id: row[:category_id], description: row[:description], updated_at: now)
-    end
-    count
   end
-
-  private
-    # 原本の description を残し、note を「 / 」区切りで追記する。
-    def append_note(description, note)
-      [ description.presence, note ].compact.join(" / ")
-    end
 end

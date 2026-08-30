@@ -102,5 +102,22 @@ RSpec.describe RuleApplier, type: :service do
       apply
       expect(t.reload.category_id).to eq(food.id)
     end
+
+    it "未分類へ戻して再適用しても note を二重に追記しない（冪等）" do
+      create(:special_rule, user: user, category: hobby, merchant_name: "楽天SP",
+             amount_min: 1200, amount_max: 1200, note: "Netflix")
+      t = tx(merchant: "楽天SP", amount: 1200)
+
+      apply
+      first = t.reload.description
+      expect(first).to include("Netflix")
+
+      # 未分類へ戻す（description は追記済みのまま残る）→ 再適用しても Netflix は1回だけ。
+      t.update_columns(category_id: nil)
+      apply
+
+      expect(t.reload.description).to eq(first)
+      expect(t.description.scan("Netflix").size).to eq(1)
+    end
   end
 end

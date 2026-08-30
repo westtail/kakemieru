@@ -17,6 +17,16 @@
 #  category_id   :bigint           not null
 #  user_id       :bigint           not null
 #
+# Indexes
+#
+#  index_special_rules_on_user_id                    (user_id)
+#  index_special_rules_on_user_id_and_merchant_name  (user_id,merchant_name)
+#
+# Foreign Keys
+#
+#  fk_rails_...                    (user_id => users.id) ON DELETE => cascade
+#  fk_special_rules_user_category  ([user_id, category_id] => categories[user_id, id]) ON DELETE => cascade
+#
 class SpecialRule < ApplicationRecord
   belongs_to :user
   belongs_to :category
