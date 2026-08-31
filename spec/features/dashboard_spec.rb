@@ -25,6 +25,19 @@ RSpec.describe "ダッシュボード", type: :feature do
     expect(page).to have_link("未分類 1件 ⚠️")            # 未分類バッジ（件数）
   end
 
+  it "直近3ヶ月平均比を表示する（直前3ヶ月にデータがある場合）" do
+    base = Date.current.beginning_of_month
+    [ 1, 2, 3 ].each do |ago|
+      create(:transaction, user: user, payment_method: payment_method,
+             amount: 3100, category: food, date: (base << ago) + 3)
+    end
+
+    visit root_path
+
+    # 当月 6,200 vs 直前3ヶ月平均 3,100 → +100.0%（+¥3,100）
+    expect(page).to have_content("直近3ヶ月平均比 +100.0%（+¥3,100）")
+  end
+
   it "月平均支出（全体・カテゴリ別）を表示する" do
     visit root_path
     expect(page).to have_content("¥6,200") # fetch→描画の完了を待つ
