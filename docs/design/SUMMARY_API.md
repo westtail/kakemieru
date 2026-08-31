@@ -39,7 +39,7 @@ GET /transactions/summary?month=YYYY-MM
   ],
   "monthly_average": {
     "months": 6,
-    "overall": 10133,
+    "overall": 9500,
     "categories": [
       { "id": 1, "name": "食費", "average": 7000 },
       { "id": 3, "name": "交通費", "average": 2500 }
