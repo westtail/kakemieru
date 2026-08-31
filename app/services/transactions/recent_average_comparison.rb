@@ -25,7 +25,9 @@ module Transactions
       months = totals.size
       baseline = months.zero? ? 0 : (totals.values.sum.to_f / months).round
       diff = @current_total - baseline
-      rate = baseline.zero? ? nil : ((diff.to_f / baseline) * 100).round(1)
+      # 基準が正のときだけ増減率を出す。0（返金相殺）や負（返金超過）は率が定義できないため nil。
+      rate = baseline.positive? ? ((diff.to_f / baseline) * 100).round(1) : nil
+      rate = 0.0 if rate&.zero? # -0.0 を 0.0 に正規化
 
       { window: WINDOW, months: months, baseline: baseline, diff: diff, rate: rate }
     end

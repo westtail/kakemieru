@@ -125,8 +125,15 @@ export default class extends Controller {
     const target = this.recentAverageTarget
     target.classList.remove("text-red-600", "text-green-700", "text-gray-500")
 
-    if (!recent || recent.rate === null) {
-      target.textContent = `直近${recent ? recent.window : 3}ヶ月平均比 —（比較できるデータなし）`
+    const window = recent ? recent.window : 3
+    if (!recent || recent.months === 0) {
+      target.textContent = `直近${window}ヶ月平均比 —（比較できるデータなし）`
+      target.classList.add("text-gray-500")
+      return
+    }
+    if (recent.rate === null) {
+      // データはあるが基準が正でない（返金相殺など）→ 率を出せない。
+      target.textContent = `直近${window}ヶ月平均比 —（比較できません）`
       target.classList.add("text-gray-500")
       return
     }

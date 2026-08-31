@@ -62,6 +62,16 @@ module Transactions
       expect(result[:rate]).to be_nil
     end
 
+    it "直近にデータはあるが基準が0（返金相殺）なら率は nil・months は正" do
+      tx(amount: 3000, date: Date.new(2026, 3, 10))
+      tx(amount: -3000, date: Date.new(2026, 3, 20)) # 相殺 → 当該月の合計 0
+
+      result = call(current_total: 5000)
+      expect(result[:months]).to eq(1)   # データのある月は1（無データではない）
+      expect(result[:baseline]).to eq(0)
+      expect(result[:rate]).to be_nil
+    end
+
     it "率は小数第1位に丸める" do
       tx(amount: 3000, date: Date.new(2026, 3, 10))
       expect(call(current_total: 1000)[:rate]).to eq(-66.7) # (1000-3000)/3000
