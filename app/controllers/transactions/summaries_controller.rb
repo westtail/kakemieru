@@ -16,6 +16,8 @@ module Transactions
       summary = MonthlySummary.new(user: Current.user, month: month).call
       # 直近6ヶ月の支出推移も同梱する（ダッシュボードの月別グラフ用）。
       summary[:monthly_totals] = MonthlyTotals.new(user: Current.user, month: month).call
+      # 月平均支出（全体・カテゴリ別）も同梱する。月に依存しない全期間の平均。
+      summary[:monthly_average] = MonthlyAverage.new(user: Current.user).call
       render json: summary
     end
 

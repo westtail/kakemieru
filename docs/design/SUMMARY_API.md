@@ -36,13 +36,22 @@ GET /transactions/summary?month=YYYY-MM
     { "month": "2026-02", "total": 8000 },
     { "month": "2026-03", "total": 10500 },
     { "month": "2026-04", "total": 12300 }
-  ]
+  ],
+  "monthly_average": {
+    "months": 6,
+    "overall": 9500,
+    "categories": [
+      { "id": 1, "name": "食費", "average": 7000 },
+      { "id": 3, "name": "交通費", "average": 2500 }
+    ]
+  }
 }
 ```
 
 - `total`: 対象月の `effective_amount` の**符号付き合計**（返金明細のマイナスも反映した純額）。
 - `categories`: カテゴリ別の `effective_amount` 合計（`amount`）と**明細件数**（`count`）。**amount 降順**。**未分類**（`id: null`, `name: "未分類"`）も含む。ダッシュボードの「未分類 N件」バッジは未分類の `count` を使う。
 - `monthly_totals`（#153）: `month` を末尾に**直近6ヶ月**の月別支出合計を**古い順**で。データの無い月は `total: 0`。ダッシュボードの月別推移グラフに使う（`Transactions::MonthlyTotals`）。
+- `monthly_average`（#155）: **全期間**の月平均支出（`Transactions::MonthlyAverage`）。`months`（明細のある月数＝分母）・`overall`（全体の月平均）・`categories`（カテゴリ別の月平均・降順）。分母は空の月を除いた「明細のある月数」で全体・カテゴリ別とも共通。各値は四捨五入するため、カテゴリ別の合計と全体は数円ずれ得る。月に依存しない値。
 - 集計対象は `deleted_at IS NULL`（取り消し済みは除外）かつ本人の明細のみ。
 
 ## エラー
