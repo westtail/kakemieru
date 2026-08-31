@@ -135,7 +135,7 @@
 
 ## 実装順序
 
-```
+```text
 1. config/constants にカテゴリ定義（12件）
 2. #23 migration（category_templates / categories / 3インデックス）+ データ投入マイグレーション（RED: schema/rollback 確認）
 3. #24 モデル spec（RED）→ CategoryTemplate / Category 実装（belongs_to :user・バリデーション）→ Category.copy_templates_to（GREEN）

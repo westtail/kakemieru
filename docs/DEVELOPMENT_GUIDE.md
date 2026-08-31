@@ -13,7 +13,7 @@
 
 ## フロー概要
 
-```
+```text
 Issue作成
   ↓
 ADR作成（必要な場合）
@@ -44,7 +44,7 @@ develop → main へPR（機能単位）
 
 ### ブランチ構成
 
-```
+```text
 main
  └── develop ← 通常のPR先
        └── feat/42-user-authentication
@@ -60,13 +60,13 @@ main
 
 ### ブランチ命名規則
 
-```
+```text
 {type}/{issue番号}-{説明}
 ```
 
 #### 例
 
-```
+```text
 feat/42-user-authentication
 fix/17-login-redirect-bug
 chore/3-docker-setup
@@ -127,7 +127,7 @@ ci/8-github-actions-setup
 
 #### `[migration]` Issue 共通チェックリスト
 
-```
+```text
 - [ ] rails db:migrate が正常完了すること
 - [ ] rails db:rollback で down が正常動作すること
 - [ ] rails db:migrate:redo (up→down→up) が通ること
@@ -226,7 +226,7 @@ git push origin v{major}.{minor}.{patch}
 
 各Issueにクローズ時に記録する：
 
-```
+```text
 見積もり: X時間
 実際: X時間
 学び: （任意）

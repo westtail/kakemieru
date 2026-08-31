@@ -45,7 +45,7 @@ generator 出力の取り合いが発生し依存順序の管理が煩雑にな�
 
 依存関係に基づき、**2 PR** に分割する。
 
-```
+```text
 PR-1  feat/16-auth-scaffold      #16 #17  … generator 実行 + データ層
 PR-2  feat/18-auth-sessions      #18      … PR-1 に依存（認証フロー）
 ```
@@ -112,7 +112,7 @@ Issue #17 は `has_many :transactions, :payment_methods, :imports, :categories` 
 
 ## 実装順序
 
-```
+```text
 PR-1  #16 #17
    1. bin/rails generate authentication
    2. マイグレーション修正（admin 追加・email_address 一意インデックス確認）

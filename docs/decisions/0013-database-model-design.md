@@ -75,7 +75,7 @@
 
 ### 3. モデル構成（当時の案 ※現行は ADR-0016/0017 で修正済み）
 
-```
+```text
 User
 ├─ has_many :cards
 ├─ has_many :transactions, through: :cards

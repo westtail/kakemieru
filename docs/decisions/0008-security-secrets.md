@@ -28,7 +28,7 @@
 
 ### 概念
 
-```
+```text
 credentials.yml.enc  ← 暗号化済みファイル（Git にコミット OK）
       ↑ 暗号化
 master.key           ← 復号鍵（Git にコミット NG）
@@ -133,7 +133,7 @@ Dockerfile の `COPY . .` で `master.key` が含まれてしまう。
 イメージの中間レイヤーにも残るため、単純な削除では消えない。
 
 **防ぎ方（`.dockerignore` で除外）**:
-```
+```text
 # .dockerignore
 config/master.key
 config/credentials/*.key

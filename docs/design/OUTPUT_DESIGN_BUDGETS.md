@@ -12,7 +12,7 @@
 
 ## 画面構成
 
-```
+```text
 /budgets
 ├── /budgets/:ym            月次予算画面（例: /budgets/2026-04）
 ├── /budget_templates       予算テンプレート一覧
@@ -109,7 +109,7 @@
 
 ## DBリレーション
 
-```
+```text
 User
 ├── BudgetTemplate
 │   └── BudgetItem（Category × 基本予算額）
