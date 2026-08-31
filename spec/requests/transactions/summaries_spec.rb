@@ -34,6 +34,22 @@ RSpec.describe "Transactions::Summaries", type: :request do
       ])
     end
 
+    it "月平均支出（monthly_average）を同梱する" do
+      # 2ヶ月にデータ → 分母 2。食費 8000 → 平均 4000、全体 4000。
+      create(:transaction, user: user, payment_method: payment_method,
+             amount: 3000, category: food, date: Date.new(2026, 3, 10))
+      create(:transaction, user: user, payment_method: payment_method,
+             amount: 5000, category: food, date: Date.new(2026, 4, 10))
+      sign_in
+
+      get "/transactions/summary", params: { month: "2026-04" }
+
+      expect(json["monthly_average"]).to eq(
+        "months" => 2, "overall" => 4000,
+        "categories" => [ { "id" => food.id, "name" => "食費", "average" => 4000 } ]
+      )
+    end
+
     it "直近6ヶ月の推移（monthly_totals）を同梱する（#153）" do
       create(:transaction, user: user, payment_method: payment_method,
              amount: 5000, category: food, date: Date.new(2026, 4, 10))

@@ -25,6 +25,18 @@ RSpec.describe "ダッシュボード", type: :feature do
     expect(page).to have_link("未分類 1件 ⚠️")            # 未分類バッジ（件数）
   end
 
+  it "月平均支出（全体・カテゴリ別）を表示する" do
+    visit root_path
+    expect(page).to have_content("¥6,200") # fetch→描画の完了を待つ
+
+    # 当月のみ1ヶ月分 → 全体平均 ¥6,200・食費 ¥5,000・未分類 ¥1,200
+    within "#monthly-average" do
+      expect(page).to have_content("月平均支出（全体）")
+      expect(page).to have_content("食費")
+      expect(page).to have_content("¥5,000")
+    end
+  end
+
   it "月別推移を Chart.js の棒グラフとして6ヶ月分描画する" do
     visit root_path
     expect(page).to have_content("¥6,200") # fetch→描画の完了を待つ

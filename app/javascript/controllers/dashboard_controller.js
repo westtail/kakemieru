@@ -17,7 +17,10 @@ const CATEGORY_COLORS = [
 // 月次ダッシュボード。月切り替えで GET /transactions/summary を fetch し、
 // 支出合計・カテゴリ別円グラフ・未分類バッジを再描画する。ページ遷移はしない。
 export default class extends Controller {
-  static targets = ["canvas", "trendCanvas", "total", "monthLabel", "uncategorized", "error"]
+  static targets = [
+    "canvas", "trendCanvas", "total", "monthLabel", "uncategorized",
+    "monthlyAverageOverall", "monthlyAverageCategories", "error"
+  ]
   static values = { summaryUrl: String, transactionsUrl: String, month: String }
 
   connect() {
@@ -92,6 +95,7 @@ export default class extends Controller {
   render(data) {
     if (this.hasMonthLabelTarget) this.monthLabelTarget.textContent = this.formatMonth(data.month)
     if (this.hasTotalTarget) this.totalTarget.textContent = this.formatYen(data.total)
+    this.renderMonthlyAverage(data.monthly_average)
     this.renderUncategorized(data)
     this.renderChart(data)
     this.renderTrend(data)
@@ -112,6 +116,30 @@ export default class extends Controller {
     } else {
       this.uncategorizedTarget.textContent = ""
     }
+  }
+
+  // 月平均支出（全体＋カテゴリ別）を表示する。データが無ければ「—」。
+  renderMonthlyAverage(avg) {
+    const hasData = avg && avg.months > 0
+    if (this.hasMonthlyAverageOverallTarget) {
+      this.monthlyAverageOverallTarget.textContent = hasData ? this.formatYen(avg.overall) : "—"
+    }
+    if (!this.hasMonthlyAverageCategoriesTarget) return
+
+    const list = this.monthlyAverageCategoriesTarget
+    list.innerHTML = ""
+    if (!hasData) return
+
+    avg.categories.forEach((category) => {
+      const item = document.createElement("li")
+      item.className = "flex justify-between border-b border-gray-100 py-1 text-sm"
+      const name = document.createElement("span")
+      name.textContent = category.name
+      const amount = document.createElement("span")
+      amount.textContent = this.formatYen(category.average)
+      item.append(name, amount)
+      list.appendChild(item)
+    })
   }
 
   renderChart(data) {
