@@ -52,7 +52,7 @@
 
 CSV・OCR・API連携など入力経路に関わらず、複数の Transaction を1つの操作としてまとめる器。
 
-```
+```text
 imports
   id
   user_id
@@ -71,7 +71,7 @@ imports
 
 ### 2. `import_id = NULL` の意味を明文化
 
-```
+```text
 import_id あり → 何らかの取り込み操作由来（CSV・OCR・API など）
 import_id なし → ユーザーによる手動1件入力
 ```

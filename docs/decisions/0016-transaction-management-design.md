@@ -51,7 +51,7 @@
 
 ### 1. 原本と編集値を1テーブルに同居
 
-```
+```text
 transactions
   description      CSV生文字（不変）
   amount           CSV原本金額（不変）
@@ -72,7 +72,7 @@ transactions
 
 ### 2. imports テーブルで取り込み履歴を管理
 
-```
+```text
 imports
   user_id
   payment_method_id

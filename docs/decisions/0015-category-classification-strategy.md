@@ -57,7 +57,7 @@ CSVから取り込んだ明細をカテゴリ（食費・交通費など）に�
 
 ### 2. 店舗単位でカテゴリをキャッシュする
 
-```
+```text
 merchant_classifications
   merchant_name   店舗名（CSVの表記）
   category_key    カテゴリキー（category_templates.category_key と対応）

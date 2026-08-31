@@ -18,7 +18,7 @@ PROJECT_ABOUT.mdでDocker化は既に決定済みだが、具体的な構成を�
 
 **決定**: Ruby公式イメージをベースにする
 
-```
+```text
 web:  ruby:3.x-slim
 db:   postgres:16-alpine
 ```
@@ -115,7 +115,7 @@ Gem のコンパイルに使用。**本番イメージには含まれない**。
 1 つの Dockerfile に `FROM ... AS ステージ名` で複数のステージを定義する書き方。
 従来はローカル用・本番用でファイルを分けていたが、1 ファイルにまとめられる。
 
-```
+```text
 # 従来（ファイル分割）     # マルチステージ（1ファイル）
 Dockerfile.dev            FROM ruby AS base
 Dockerfile                FROM base AS build_tools
@@ -126,7 +126,7 @@ Dockerfile                FROM base AS build_tools
 
 ### このプロジェクトのステージ構成
 
-```
+```text
 base（ランタイムのみ）
   └── build_tools（コンパイラ追加）
         ├── development   ← ローカル開発用

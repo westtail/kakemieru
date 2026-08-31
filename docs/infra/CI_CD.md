@@ -137,7 +137,7 @@ concurrency: deploy-group
 
 ## 全体の流れ
 
-```
+```text
 PRを作成
   └─ CI が自動実行
        ├─ scan_ruby  （Rubyセキュリティ）

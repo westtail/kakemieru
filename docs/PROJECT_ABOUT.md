@@ -55,7 +55,7 @@
 
 ### v1（現在開発予定）
 
-```
+```text
 Backend:    Ruby on Rails 8
 Database:   PostgreSQL
 Frontend:   Hotwire (Turbo + Stimulus)
@@ -69,7 +69,7 @@ CI/CD:      GitHub Actions
 
 ### v2（将来のリプレイス）
 
-```
+```text
 Frontend:   React
 Backend:    Go
 API:        RESTful / GraphQL
@@ -94,7 +94,7 @@ API:        RESTful / GraphQL
 
 ### 期待値
 
-```
+```text
 ユーザー: 50-100人
 月に2-5人が投げ銭: 500-1,000円/回
 合計: 月1,000-3,000円
@@ -102,7 +102,7 @@ API:        RESTful / GraphQL
 
 ### 優先順位
 
-```
+```text
 1. 学習・技術習得（最優先）
 2. ポートフォリオ作成
 3. サーバー代ペイ（おまけ程度）
@@ -139,7 +139,7 @@ API:        RESTful / GraphQL
 
 **データモデル**:
 
-```
+```text
 User（ユーザー）
 ├─ PaymentMethod（支払い手段: クレカ・QR・現金など）
 ├─ Import（CSV取り込み履歴）

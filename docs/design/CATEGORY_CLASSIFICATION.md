@@ -11,7 +11,7 @@ CSVから取り込んだ明細を「食費」「交通費」などのカテゴ�
 
 カテゴリはユーザーごとに独立して保持する（テンプレートコピー方式）。
 
-```
+```text
 category_templates（システム管理・不変）
   id
   category_key  "food" / "transport" など
@@ -37,7 +37,7 @@ categories（ユーザーごと）
 
 店舗名単位でカテゴリをキャッシュし、AI コストを最小化する。
 
-```
+```text
 merchant_classifications
   id
   merchant_name      CSVに出てくる店舗名（例: "マクドナルド"）
@@ -68,7 +68,7 @@ merchant_classifications
 - 割り当てると `merchant_classifications` に `source = user_manual` で保存
 - 次回同じ店舗の明細は自動分類される
 
-```
+```text
 未分類明細
   → merchant_name 編集（"PayPay" → "ローソン"）
     → 分類済みならそのままカテゴリ確定
@@ -93,7 +93,7 @@ merchant_classifications
 
 ## UX フロー（フェーズ1）
 
-```
+```text
 CSV取り込み
   ↓
 明細一覧表示

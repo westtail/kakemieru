@@ -21,7 +21,7 @@
 
 ## モデル構成
 
-```
+```text
 User
 ├─ has_many :payment_methods
 ├─ has_many :transactions        # user_id を直接持つ
@@ -428,7 +428,7 @@ diff = this_year - last_year
 
 ### 持ち越しの確定フロー
 
-```
+```text
 月末
 → 差分確認（有効予算 - 実績 をカテゴリ別に表示）
 →「差分を翌月へ持ち越す」確定ボタン
@@ -442,7 +442,7 @@ diff = this_year - last_year
 
 ### モデル全体構成（フェーズ1＋2）
 
-```
+```text
 User
 ├─ has_many :payment_methods
 ├─ has_many :transactions                      # user_id 直接保持
@@ -539,7 +539,7 @@ Carryover
 
 **`confirmed_at` の状態遷移**
 
-```
+```text
 NULL（未確定）
   ↓ 「差分を翌月へ持ち越す」ボタンを押す
   ↓ Carryover レコードを生成

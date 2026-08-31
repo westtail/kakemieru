@@ -27,7 +27,7 @@ DB設計レビューにより、実装前に対処すべき CRITICAL な問題�
 - 新規ユーザー登録時に `category_templates` の内容を `categories` にコピーして初期セットを生成
 - コピー後はユーザーが自由に名前変更・追加・削除できる
 
-```
+```text
 category_templates（システム管理・不変）
   category_key  "food" / "transport" / "daily" など
   name          "食費" / "交通費" / "日用品" など
@@ -57,7 +57,7 @@ categories（ユーザーごと）
 
 ### 決定：transactions に user_id を直接保持
 
-```
+```text
 transactions
   user_id   直接保持（非正規化）
 ```

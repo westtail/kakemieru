@@ -142,7 +142,7 @@ end
 ## ポートフォリオ向け構成パターン
 
 ### パターン A: シンプル重視
-```
+```text
 Rails 8 Built-in Authentication のみ
 ```
 - メール+パスワード認証
@@ -150,7 +150,7 @@ Rails 8 Built-in Authentication のみ
 - Rails の仕組みを示せる
 
 ### パターン B: モダン重視（推奨）
-```
+```text
 Rails 8 Built-in + webauthn-rails + OmniAuth
 ```
 - パスキー対応（業界トレンド）
@@ -158,7 +158,7 @@ Rails 8 Built-in + webauthn-rails + OmniAuth
 - 最新技術のキャッチアップをアピール
 
 ### パターン C: 実戦派
-```
+```text
 Devise v5.0.0 + devise-passkeys + OmniAuth
 ```
 - 豊富な機能
@@ -166,7 +166,7 @@ Devise v5.0.0 + devise-passkeys + OmniAuth
 - 大規模プロジェクトでの採用実績多数
 
 ### パターン D: 技術チャレンジ
-```
+```text
 Rails 8 Built-in + Rodauth
 ```
 - 60以上の認証機能から必要なものだけ有効化

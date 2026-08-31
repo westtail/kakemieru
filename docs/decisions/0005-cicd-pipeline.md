@@ -44,7 +44,7 @@
 
 **決定**: テスト実行とLintチェックの2段階
 
-```
+```text
 ci.yml
 ├── Step 1: テスト実行（RSpec）
 └── Step 2: Lintチェック（RuboCop）

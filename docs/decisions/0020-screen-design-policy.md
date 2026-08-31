@@ -27,7 +27,7 @@
 - CSV 取り込みと同じ Import の仕組みに乗れる
 - Transaction の `import_id = NULL` = 手動1件入力 の定義を維持できる
 
-```
+```text
 入力経路と Import の対応
   CSV 取り込み    → Import（source_type: csv）         + Transaction N件
   手動まとめ入力  → Import（source_type: manual_bulk）  + Transaction N件
@@ -48,7 +48,7 @@
 
 取り込み操作は `/imports/new` に集約するが、アクセス導線を複数用意する。
 
-```
+```text
 ダッシュボード  → [CSV取り込み] ボタン
 明細一覧        → [CSV取り込み] ボタン（データがない月は特に目立つ）
 グローバルナビ  → [+ 取り込み] 常設
@@ -83,7 +83,7 @@ Rails 8 + Hotwire（Turbo + Stimulus）を基本とし、JS は最小限に限�
 
 JSON を返す API エンドポイントとは異なり、HTML を返すことで部分更新を実現する。JS をほぼ書かずに「ページ遷移なし・即時反映」という API 的な UX を得られる。
 
-```
+```text
 カテゴリ変更の流れ
   セレクト変更
   → POST /transactions/:id

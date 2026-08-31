@@ -94,7 +94,7 @@ ADR-0019 決定#3（案Y）に従い、登録成功時に `PaymentMethod.create_
 
 ## 実装順序
 
-```
+```text
 1. config/constants/payment_methods.rb + application.rb require
 2. #28 migration（テーブル+3インデックス+CHECK）→ 可逆性・schema 確認
 3. #30 モデル spec(RED) → PaymentMethod + User 関連 + create_default_for(GREEN)
