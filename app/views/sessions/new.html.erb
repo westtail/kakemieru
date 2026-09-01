@@ -1,15 +1,17 @@
-<h1>ログイン</h1>
+<div class="max-w-md">
+  <h1 class="page-title">ログイン</h1>
 
-<%= form_with url: session_path do |form| %>
-  <div>
-    <%= form.label :email_address, "メールアドレス" %><br>
-    <%= form.email_field :email_address, required: true, autofocus: true, autocomplete: "username", placeholder: "メールアドレスを入力" %>
-  </div>
-  <div>
-    <%= form.label :password, "パスワード" %><br>
-    <%= form.password_field :password, required: true, autocomplete: "current-password", placeholder: "パスワードを入力", maxlength: 72 %>
-  </div>
-  <%= form.submit "ログイン" %>
-<% end %>
+  <%= form_with url: session_path do |form| %>
+    <div class="field">
+      <%= form.label :email_address, "メールアドレス", class: "field-label" %>
+      <%= form.email_field :email_address, required: true, autofocus: true, autocomplete: "username", placeholder: "メールアドレスを入力", class: "field-input" %>
+    </div>
+    <div class="field">
+      <%= form.label :password, "パスワード", class: "field-label" %>
+      <%= form.password_field :password, required: true, autocomplete: "current-password", placeholder: "パスワードを入力", maxlength: 72, class: "field-input" %>
+    </div>
+    <%= form.submit "ログイン", class: "btn-primary" %>
+  <% end %>
 
-<p><%= link_to "パスワードをお忘れですか？", new_password_path %></p>
+  <p class="mt-4"><%= link_to "パスワードをお忘れですか？", new_password_path, class: "link" %></p>
+</div>

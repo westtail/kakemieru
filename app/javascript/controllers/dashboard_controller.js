@@ -1,7 +1,11 @@
 import { Controller } from "@hotwired/stimulus"
-import { Chart, PieController, ArcElement, Tooltip, Legend } from "chart.js"
+import {
+  Chart, PieController, ArcElement, Tooltip, Legend,
+  BarController, BarElement, CategoryScale, LinearScale
+} from "chart.js"
 
-Chart.register(PieController, ArcElement, Tooltip, Legend)
+Chart.register(PieController, ArcElement, Tooltip, Legend,
+  BarController, BarElement, CategoryScale, LinearScale)
 
 // カテゴリ別円グラフの配色。自動彩色プラグイン（Colors）を積まない構成のため、
 // スライス色を明示指定する。カテゴリ数がこれを超える場合は先頭から循環させる。
@@ -13,7 +17,10 @@ const CATEGORY_COLORS = [
 // 月次ダッシュボード。月切り替えで GET /transactions/summary を fetch し、
 // 支出合計・カテゴリ別円グラフ・未分類バッジを再描画する。ページ遷移はしない。
 export default class extends Controller {
-  static targets = ["canvas", "total", "monthLabel", "uncategorized", "error"]
+  static targets = [
+    "canvas", "trendCanvas", "total", "monthLabel", "uncategorized", "recentAverage",
+    "monthlyAverageOverall", "monthlyAverageCategories", "error"
+  ]
   static values = { summaryUrl: String, transactionsUrl: String, month: String }
 
   connect() {
@@ -28,7 +35,12 @@ export default class extends Controller {
   disconnect() {
     window.removeEventListener("popstate", this.onPopState)
     this.pendingController?.abort()
+    // 破棄後は参照を消す。同じ DOM 要素が再接続されると Stimulus は同じ instance を
+    // 再利用するため、破棄済み Chart を掴んだままだと renderChart/renderTrend の update が失敗する。
     this.chart?.destroy()
+    this.chart = null
+    this.trendChart?.destroy()
+    this.trendChart = null
   }
 
   prev() {
@@ -83,8 +95,11 @@ export default class extends Controller {
   render(data) {
     if (this.hasMonthLabelTarget) this.monthLabelTarget.textContent = this.formatMonth(data.month)
     if (this.hasTotalTarget) this.totalTarget.textContent = this.formatYen(data.total)
+    this.renderRecentAverage(data.recent_average)
+    this.renderMonthlyAverage(data.monthly_average)
     this.renderUncategorized(data)
     this.renderChart(data)
+    this.renderTrend(data)
   }
 
   renderUncategorized(data) {
@@ -102,6 +117,56 @@ export default class extends Controller {
     } else {
       this.uncategorizedTarget.textContent = ""
     }
+  }
+
+  // 直近3ヶ月平均との比較を表示する。支出増（当月>平均）は赤、減は緑、直近にデータが無ければ灰で注記。
+  renderRecentAverage(recent) {
+    if (!this.hasRecentAverageTarget) return
+    const target = this.recentAverageTarget
+    target.classList.remove("text-red-600", "text-green-700", "text-gray-500")
+
+    const window = recent ? recent.window : 3
+    if (!recent || recent.months === 0) {
+      target.textContent = `直近${window}ヶ月平均比 —（比較できるデータなし）`
+      target.classList.add("text-gray-500")
+      return
+    }
+    if (recent.rate === null) {
+      // データはあるが基準が正でない（返金相殺など）→ 率を出せない。
+      target.textContent = `直近${window}ヶ月平均比 —（比較できません）`
+      target.classList.add("text-gray-500")
+      return
+    }
+
+    const mark = recent.diff > 0 ? "+" : recent.diff < 0 ? "−" : "±"
+    const rate = `${mark}${Math.abs(recent.rate).toFixed(1)}%`
+    const yen = `${mark}¥${Math.abs(recent.diff).toLocaleString("ja-JP")}`
+    target.textContent = `直近${recent.window}ヶ月平均比 ${rate}（${yen}）`
+    target.classList.add(recent.diff > 0 ? "text-red-600" : recent.diff < 0 ? "text-green-700" : "text-gray-500")
+  }
+
+  // 月平均支出（全体＋カテゴリ別）を表示する。データが無ければ「—」。
+  renderMonthlyAverage(avg) {
+    const hasData = avg && avg.months > 0
+    if (this.hasMonthlyAverageOverallTarget) {
+      this.monthlyAverageOverallTarget.textContent = hasData ? this.formatYen(avg.overall) : "—"
+    }
+    if (!this.hasMonthlyAverageCategoriesTarget) return
+
+    const list = this.monthlyAverageCategoriesTarget
+    list.innerHTML = ""
+    if (!hasData) return
+
+    avg.categories.forEach((category) => {
+      const item = document.createElement("li")
+      item.className = "flex justify-between border-b border-gray-100 py-1 text-sm"
+      const name = document.createElement("span")
+      name.textContent = category.name
+      const amount = document.createElement("span")
+      amount.textContent = this.formatYen(category.average)
+      item.append(name, amount)
+      list.appendChild(item)
+    })
   }
 
   renderChart(data) {
@@ -122,6 +187,32 @@ export default class extends Controller {
       type: "pie",
       data: { labels, datasets: [{ data: amounts, backgroundColor: colors }] },
       options: { responsive: true, plugins: { legend: { position: "bottom" } } }
+    })
+  }
+
+  // 直近数ヶ月の支出推移を棒グラフで描画する。表示中の月を強調色にする。
+  renderTrend(data) {
+    if (!this.hasTrendCanvasTarget) return
+    const totals = data.monthly_totals || []
+    const labels = totals.map((t) => this.formatMonth(t.month))
+    const amounts = totals.map((t) => t.total)
+    const colors = totals.map((t) => (t.month === data.month ? "#2563eb" : "#93c5fd"))
+
+    if (this.trendChart) {
+      this.trendChart.data.labels = labels
+      this.trendChart.data.datasets[0].data = amounts
+      this.trendChart.data.datasets[0].backgroundColor = colors
+      this.trendChart.update()
+      return
+    }
+    this.trendChart = new Chart(this.trendCanvasTarget, {
+      type: "bar",
+      data: { labels, datasets: [{ data: amounts, backgroundColor: colors }] },
+      options: {
+        responsive: true,
+        plugins: { legend: { display: false } },
+        scales: { y: { beginAtZero: true } }
+      }
     })
   }
 

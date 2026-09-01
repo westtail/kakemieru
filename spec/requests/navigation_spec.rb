@@ -24,6 +24,20 @@ RSpec.describe "グローバルナビ", type: :request do
       expect(response.body).to include('id="global-nav"')
     end
 
+    it "現在のページのナビ項目を現在地として強調する（aria-current=page + nav-link-active）" do
+      get categories_path
+      # カテゴリのリンクがアクティブ表示になる。
+      expect(response.body).to match(%r{<a[^>]*class="nav-link-active"[^>]*>\s*カテゴリ})
+      expect(response.body).to include('aria-current="page"')
+    end
+
+    it "別ページでは無関係のナビ項目はアクティブにならない" do
+      get payment_methods_path
+      # 支払方法がアクティブ、カテゴリは非アクティブ（nav-link）。
+      expect(response.body).to match(%r{<a[^>]*class="nav-link-active"[^>]*>\s*支払方法})
+      expect(response.body).to match(%r{<a[^>]*class="nav-link"[^>]*>\s*カテゴリ})
+    end
+
     it "「取り込み」はドロップダウンで CSV/手動/履歴の3項目を持つ" do
       get "/"
       expect(response.body).to include('data-controller="dropdown"')

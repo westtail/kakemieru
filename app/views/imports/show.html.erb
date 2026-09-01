@@ -15,6 +15,12 @@
   <dd><%= @import.row_count %>件（<%= import_status_label(@import.row_count, @active_count) %>）</dd>
 </dl>
 
+<%# 更新実行: 取込後に残った未分類へ店舗ルールを当てる（設定OFFでも手動で適用可）。 %>
+<div class="mt-4">
+  <%= button_to "店舗ルールを未分類に適用", apply_rules_transactions_path, class: "btn-secondary",
+        form: { data: { turbo_confirm: "未分類の明細に店舗ルールを当てます。よろしいですか？" } } %>
+</div>
+
 <h2 class="mt-6 text-lg font-bold">含まれる明細</h2>
 <% if @transactions.any? %>
   <table class="mt-2 w-full border-collapse text-sm">

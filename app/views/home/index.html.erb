@@ -19,6 +19,8 @@
   <div class="mt-4 text-center">
     <p class="text-sm text-gray-600">支出合計</p>
     <p data-dashboard-target="total" class="text-3xl font-bold">—</p>
+    <%# 直近3ヶ月平均との比較 %>
+    <p data-dashboard-target="recentAverage" class="mt-1 text-sm"></p>
   </div>
 
   <%# 読み込みエラー %>
@@ -33,6 +35,19 @@
 
   <%# 未分類バッジ（件数・クリックで未分類フィルタの一覧へ） %>
   <div data-dashboard-target="uncategorized" class="mt-4 text-center"></div>
+
+  <%# 月別支出の推移（直近6ヶ月・棒グラフ） %>
+  <div class="mt-8">
+    <p class="mb-2 text-center text-sm text-gray-600">月別の支出推移</p>
+    <canvas data-dashboard-target="trendCanvas" role="img" aria-label="月別支出の棒グラフ"></canvas>
+  </div>
+
+  <%# 月平均支出（実データのある月数で平均・全体＋カテゴリ別） %>
+  <div id="monthly-average" class="mt-8">
+    <p class="mb-1 text-center text-sm text-gray-600">月平均支出（全体）</p>
+    <p data-dashboard-target="monthlyAverageOverall" class="text-center text-2xl font-bold">—</p>
+    <ul data-dashboard-target="monthlyAverageCategories" class="mt-2"></ul>
+  </div>
 
   <%# 取り込み導線 %>
   <div class="mt-6 flex flex-wrap justify-center gap-4">

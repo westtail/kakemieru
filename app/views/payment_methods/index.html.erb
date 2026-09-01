@@ -1,5 +1,5 @@
 <div class="max-w-2xl mx-auto p-4">
-  <h1 class="text-xl font-bold mb-4">支払方法</h1>
+  <h1 class="page-title">支払方法</h1>
 
   <ul id="payment-methods">
     <% @payment_methods.each do |payment_method| %>
@@ -9,14 +9,14 @@
     <% end %>
   </ul>
 
-  <p class="text-sm text-gray-500 mt-2">「現金」は自動で用意され、削除できません（名前は変更できます）。</p>
+  <p class="muted mt-2">「現金」は自動で用意され、削除できません（名前は変更できます）。</p>
 
   <p class="mt-4">
-    <%= link_to "支払方法を追加", new_payment_method_path, class: "text-blue-600 hover:underline" %>
+    <%= link_to "支払方法を追加", new_payment_method_path, class: "btn-primary" %>
   </p>
 
   <section class="mt-8">
-    <h2 class="text-lg font-semibold mb-2 text-gray-600">アーカイブ済み</h2>
+    <h2 class="section-title">アーカイブ済み</h2>
     <%# 明細/取り込み履歴を持つため物理削除できない支払方法。空でも append 先として常に描画する。 %>
     <ul id="archived-payment-methods">
       <% @archived_payment_methods.each do |payment_method| %>

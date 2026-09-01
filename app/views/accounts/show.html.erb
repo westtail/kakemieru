@@ -1,43 +1,61 @@
-<h1>アカウント設定</h1>
+<h1 class="page-title">アカウント設定</h1>
 
 <%= render "shared/error_messages", record: Current.user %>
 
-<section>
-  <h2>メールアドレス変更</h2>
-  <p>現在: <%= Current.user.email_address %></p>
+<section class="max-w-md">
+  <h2 class="section-title">取込設定</h2>
+  <%= form_with url: account_settings_path, method: :patch do |form| %>
+    <label class="flex items-center gap-2">
+      <%= check_box_tag "user[auto_apply_merchant_rules_on_import]", "1", Current.user.auto_apply_merchant_rules_on_import %>
+      <span>CSV取り込み時に、<strong>店舗ルール</strong>を未分類の明細へ自動で当てる</span>
+    </label>
+    <label class="mt-2 flex items-center gap-2">
+      <%= check_box_tag "user[auto_apply_special_rules_on_import]", "1", Current.user.auto_apply_special_rules_on_import %>
+      <span>CSV取り込み時に、<strong>特別ルール</strong>（金額・日で判別）を未分類の明細へ自動で当てる</span>
+    </label>
+    <p class="muted mt-1">
+      オフのときは取り込み後に「更新実行」で手動適用できます（<%= link_to "店舗ルール", categories_path(anchor: "merchant-rules"), class: "link" %> / <%= link_to "特別ルール", special_rules_path, class: "link" %>）。
+    </p>
+    <%= form.submit "保存", class: "btn-primary mt-2" %>
+  <% end %>
+</section>
+
+<section class="max-w-md">
+  <h2 class="section-title">メールアドレス変更</h2>
+  <p class="muted">現在: <%= Current.user.email_address %></p>
   <%= form_with url: account_email_path, method: :patch do |form| %>
-    <div>
-      <%= form.label :email_address, "新しいメールアドレス" %><br>
-      <%= form.email_field :email_address, required: true, autocomplete: "email" %>
+    <div class="field mt-2">
+      <%= form.label :email_address, "新しいメールアドレス", class: "field-label" %>
+      <%= form.email_field :email_address, required: true, autocomplete: "email", class: "field-input" %>
     </div>
-    <div>
-      <%= form.label :current_password, "現在のパスワード" %><br>
-      <%= form.password_field :current_password, required: true, autocomplete: "current-password" %>
+    <div class="field">
+      <%= form.label :current_password, "現在のパスワード", class: "field-label" %>
+      <%= form.password_field :current_password, required: true, autocomplete: "current-password", class: "field-input" %>
     </div>
-    <%= form.submit "メールアドレスを変更" %>
+    <%= form.submit "メールアドレスを変更", class: "btn-primary" %>
   <% end %>
 </section>
 
-<section>
-  <h2>パスワード変更</h2>
+<section class="max-w-md">
+  <h2 class="section-title">パスワード変更</h2>
   <%= form_with url: account_password_path, method: :patch do |form| %>
-    <div>
-      <%= form.label :current_password, "現在のパスワード" %><br>
-      <%= form.password_field :current_password, required: true, autocomplete: "current-password" %>
+    <div class="field">
+      <%= form.label :current_password, "現在のパスワード", class: "field-label" %>
+      <%= form.password_field :current_password, required: true, autocomplete: "current-password", class: "field-input" %>
     </div>
-    <div>
-      <%= form.label :password, "新しいパスワード" %><br>
-      <%= form.password_field :password, required: true, autocomplete: "new-password", maxlength: 72 %>
+    <div class="field">
+      <%= form.label :password, "新しいパスワード", class: "field-label" %>
+      <%= form.password_field :password, required: true, autocomplete: "new-password", maxlength: 72, class: "field-input" %>
     </div>
-    <div>
-      <%= form.label :password_confirmation, "新しいパスワード（確認）" %><br>
-      <%= form.password_field :password_confirmation, required: true, autocomplete: "new-password", maxlength: 72 %>
+    <div class="field">
+      <%= form.label :password_confirmation, "新しいパスワード（確認）", class: "field-label" %>
+      <%= form.password_field :password_confirmation, required: true, autocomplete: "new-password", maxlength: 72, class: "field-input" %>
     </div>
-    <%= form.submit "パスワードを変更" %>
+    <%= form.submit "パスワードを変更", class: "btn-primary" %>
   <% end %>
 </section>
 
 <section>
-  <h2>退会</h2>
-  <p><%= link_to "退会手続きへ", confirm_account_deletion_path %></p>
+  <h2 class="section-title">退会</h2>
+  <p><%= link_to "退会手続きへ", confirm_account_deletion_path, class: "link-danger" %></p>
 </section>

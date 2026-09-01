@@ -135,13 +135,11 @@ ALTER SEQUENCE public.imports_id_seq OWNED BY public.imports.id;
 
 CREATE TABLE public.merchant_classifications (
     id bigint NOT NULL,
-    category_key character varying NOT NULL,
-    classified_at timestamp(6) without time zone,
     created_at timestamp(6) without time zone NOT NULL,
     merchant_name character varying NOT NULL,
-    source character varying NOT NULL,
     updated_at timestamp(6) without time zone NOT NULL,
-    CONSTRAINT merchant_classifications_source_check CHECK (((source)::text = ANY (ARRAY[('ai'::character varying)::text, ('user_manual'::character varying)::text])))
+    user_id bigint NOT NULL,
+    category_id bigint NOT NULL
 );
 
 
@@ -275,6 +273,45 @@ ALTER SEQUENCE public.solid_cache_entries_id_seq OWNED BY public.solid_cache_ent
 
 
 --
+-- Name: special_rules; Type: TABLE; Schema: public; Owner: -
+--
+
+CREATE TABLE public.special_rules (
+    id bigint NOT NULL,
+    user_id bigint NOT NULL,
+    merchant_name character varying NOT NULL,
+    amount_min integer,
+    amount_max integer,
+    day_of_month integer,
+    category_id bigint NOT NULL,
+    note character varying,
+    created_at timestamp(6) without time zone NOT NULL,
+    updated_at timestamp(6) without time zone NOT NULL,
+    CONSTRAINT special_rules_amount_range_order CHECK (((amount_min IS NULL) OR (amount_max IS NULL) OR (amount_min <= amount_max))),
+    CONSTRAINT special_rules_day_of_month_range CHECK (((day_of_month IS NULL) OR ((day_of_month >= 1) AND (day_of_month <= 31))))
+);
+
+
+--
+-- Name: special_rules_id_seq; Type: SEQUENCE; Schema: public; Owner: -
+--
+
+CREATE SEQUENCE public.special_rules_id_seq
+    START WITH 1
+    INCREMENT BY 1
+    NO MINVALUE
+    NO MAXVALUE
+    CACHE 1;
+
+
+--
+-- Name: special_rules_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: -
+--
+
+ALTER SEQUENCE public.special_rules_id_seq OWNED BY public.special_rules.id;
+
+
+--
 -- Name: transactions; Type: TABLE; Schema: public; Owner: -
 --
 
@@ -327,7 +364,9 @@ CREATE TABLE public.users (
     created_at timestamp(6) without time zone NOT NULL,
     email_address character varying NOT NULL,
     password_digest character varying NOT NULL,
-    updated_at timestamp(6) without time zone NOT NULL
+    updated_at timestamp(6) without time zone NOT NULL,
+    auto_apply_merchant_rules_on_import boolean DEFAULT false NOT NULL,
+    auto_apply_special_rules_on_import boolean DEFAULT false NOT NULL
 );
 
 
@@ -397,6 +436,13 @@ ALTER TABLE ONLY public.sessions ALTER COLUMN id SET DEFAULT nextval('public.ses
 --
 
 ALTER TABLE ONLY public.solid_cache_entries ALTER COLUMN id SET DEFAULT nextval('public.solid_cache_entries_id_seq'::regclass);
+
+
+--
+-- Name: special_rules id; Type: DEFAULT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.special_rules ALTER COLUMN id SET DEFAULT nextval('public.special_rules_id_seq'::regclass);
 
 
 --
@@ -486,6 +532,14 @@ ALTER TABLE ONLY public.solid_cache_entries
 
 
 --
+-- Name: special_rules special_rules_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.special_rules
+    ADD CONSTRAINT special_rules_pkey PRIMARY KEY (id);
+
+
+--
 -- Name: transactions transactions_pkey; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -553,17 +607,10 @@ CREATE UNIQUE INDEX index_imports_on_user_id_and_file_hash ON public.imports USI
 
 
 --
--- Name: index_merchant_classifications_on_category_key; Type: INDEX; Schema: public; Owner: -
+-- Name: index_merchant_classifications_on_user_id_and_merchant_name; Type: INDEX; Schema: public; Owner: -
 --
 
-CREATE INDEX index_merchant_classifications_on_category_key ON public.merchant_classifications USING btree (category_key);
-
-
---
--- Name: index_merchant_classifications_on_merchant_name; Type: INDEX; Schema: public; Owner: -
---
-
-CREATE UNIQUE INDEX index_merchant_classifications_on_merchant_name ON public.merchant_classifications USING btree (merchant_name);
+CREATE UNIQUE INDEX index_merchant_classifications_on_user_id_and_merchant_name ON public.merchant_classifications USING btree (user_id, merchant_name);
 
 
 --
@@ -609,6 +656,20 @@ CREATE INDEX index_solid_cache_entries_on_key_hash_and_byte_size ON public.solid
 
 
 --
+-- Name: index_special_rules_on_user_id; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX index_special_rules_on_user_id ON public.special_rules USING btree (user_id);
+
+
+--
+-- Name: index_special_rules_on_user_id_and_merchant_name; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX index_special_rules_on_user_id_and_merchant_name ON public.special_rules USING btree (user_id, merchant_name);
+
+
+--
 -- Name: index_transactions_on_import_id; Type: INDEX; Schema: public; Owner: -
 --
 
@@ -651,6 +712,14 @@ CREATE UNIQUE INDEX index_users_on_email_address ON public.users USING btree (em
 
 
 --
+-- Name: merchant_classifications fk_merchant_classifications_user_category; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.merchant_classifications
+    ADD CONSTRAINT fk_merchant_classifications_user_category FOREIGN KEY (user_id, category_id) REFERENCES public.categories(user_id, id) ON DELETE CASCADE;
+
+
+--
 -- Name: transactions fk_rails_13f89a78a2; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -667,6 +736,14 @@ ALTER TABLE ONLY public.imports
 
 
 --
+-- Name: special_rules fk_rails_70504f2e6a; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.special_rules
+    ADD CONSTRAINT fk_rails_70504f2e6a FOREIGN KEY (user_id) REFERENCES public.users(id) ON DELETE CASCADE;
+
+
+--
 -- Name: sessions fk_rails_758836b4f0; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -680,6 +757,14 @@ ALTER TABLE ONLY public.sessions
 
 ALTER TABLE ONLY public.transactions
     ADD CONSTRAINT fk_rails_77364e6416 FOREIGN KEY (user_id) REFERENCES public.users(id) ON DELETE CASCADE;
+
+
+--
+-- Name: merchant_classifications fk_rails_872595a7d4; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.merchant_classifications
+    ADD CONSTRAINT fk_rails_872595a7d4 FOREIGN KEY (user_id) REFERENCES public.users(id) ON DELETE CASCADE;
 
 
 --
@@ -707,6 +792,14 @@ ALTER TABLE ONLY public.payment_methods
 
 
 --
+-- Name: special_rules fk_special_rules_user_category; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.special_rules
+    ADD CONSTRAINT fk_special_rules_user_category FOREIGN KEY (user_id, category_id) REFERENCES public.categories(user_id, id) ON DELETE CASCADE;
+
+
+--
 -- Name: transactions fk_transactions_user_category; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -729,6 +822,12 @@ ALTER TABLE ONLY public.transactions
 SET search_path TO "$user", public;
 
 INSERT INTO "schema_migrations" (version) VALUES
+('20260830080730'),
+('20260830075001'),
+('20260830075000'),
+('20260829160216'),
+('20260829160215'),
+('20260829013729'),
 ('20260822161835'),
 ('20260822121953'),
 ('20260814135612'),

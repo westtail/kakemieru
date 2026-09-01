@@ -15,12 +15,59 @@ RSpec.describe "ダッシュボード", type: :feature do
     sign_in_as(user)
   end
 
-  it "当月の支出合計・円グラフ・未分類バッジを表示する" do
+  it "当月の支出合計・円グラフ・月別推移・未分類バッジを表示する" do
     visit root_path
 
-    expect(page).to have_content("¥6,200")               # 合計（fetch 完了後）
-    expect(page).to have_css("canvas")                    # 円グラフ
-    expect(page).to have_link("未分類 1件 ⚠️")           # 未分類バッジ（件数）
+    expect(page).to have_content("¥6,200")                # 合計（fetch 完了後）
+    expect(page).to have_content("月別の支出推移")         # 推移セクション（#153）
+    expect(page).to have_css('canvas[aria-label="カテゴリ別支出の円グラフ"]')
+    expect(page).to have_css('canvas[aria-label="月別支出の棒グラフ"]') # 推移の棒グラフ
+    expect(page).to have_link("未分類 1件 ⚠️")            # 未分類バッジ（件数）
+  end
+
+  it "直近3ヶ月平均比を表示する（直前3ヶ月にデータがある場合）" do
+    base = Date.current.beginning_of_month
+    [ 1, 2, 3 ].each do |ago|
+      create(:transaction, user: user, payment_method: payment_method,
+             amount: 3100, category: food, date: (base << ago) + 3)
+    end
+
+    visit root_path
+
+    # 当月 6,200 vs 直前3ヶ月平均 3,100 → +100.0%（+¥3,100）
+    expect(page).to have_content("直近3ヶ月平均比 +100.0%（+¥3,100）")
+  end
+
+  it "月平均支出（全体・カテゴリ別）を表示する" do
+    visit root_path
+    expect(page).to have_content("¥6,200") # fetch→描画の完了を待つ
+
+    # 当月のみ1ヶ月分 → 全体平均 ¥6,200・食費 ¥5,000・未分類 ¥1,200
+    within "#monthly-average" do
+      expect(page).to have_content("月平均支出（全体）")
+      expect(page).to have_content("食費")
+      expect(page).to have_content("¥5,000")
+    end
+  end
+
+  it "月別推移を Chart.js の棒グラフとして6ヶ月分描画する" do
+    visit root_path
+    expect(page).to have_content("¥6,200") # fetch→描画の完了を待つ
+
+    # canvas の有無だけでなく Chart.js インスタンスを取得して実描画を検証する。
+    # importmap の "chart.js" を動的 import し（controller と同一モジュール）、canvas から Chart を引く。
+    chart = page.evaluate_async_script(<<~JS)
+      const done = arguments[arguments.length - 1]
+      import("chart.js").then(({ Chart }) => {
+        const canvas = document.querySelector('canvas[aria-label="月別支出の棒グラフ"]')
+        const instance = Chart.getChart(canvas)
+        done(instance ? { type: instance.config.type, points: instance.data.datasets[0].data.length } : null)
+      }).catch(() => done(null))
+    JS
+
+    expect(chart).not_to be_nil                # Chart.js が生成されている
+    expect(chart["type"]).to eq("bar")         # 棒グラフ
+    expect(chart["points"]).to eq(6)           # 直近6ヶ月分（0埋め含む）
   end
 
   it "月を切り替えると合計と URL が更新される（ページ遷移なし）" do

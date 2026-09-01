@@ -19,7 +19,7 @@ Railsプロジェクト（kakemieru）のGit運用方針を決定する必要が
 
 **決定**: `{type}/{issue番号}-{説明}` 形式を採用
 
-```
+```text
 feat/42-user-authentication
 fix/17-login-redirect-bug
 chore/3-docker-setup
@@ -33,7 +33,7 @@ chore/3-docker-setup
 
 **決定**: Git Flow（developブランチあり）を採用
 
-```
+```text
 main ← develop ← feat/xxx, fix/xxx
 ```
 

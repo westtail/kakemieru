@@ -8,6 +8,42 @@ RSpec.describe "Accounts", type: :request do
     post "/sign_in", params: { email_address: user.email_address, password: password }
   end
 
+  describe "PATCH /account/settings（取込設定・ADR-0047/0048）" do
+    before { sign_in }
+
+    it "店舗ルール・特別ルールの自動適用トグルを個別にオンにできる" do
+      patch account_settings_path, params: { user: {
+        auto_apply_merchant_rules_on_import: "1", auto_apply_special_rules_on_import: "1"
+      } }
+      expect(response).to redirect_to(account_path)
+      user.reload
+      expect(user.auto_apply_merchant_rules_on_import).to be(true)
+      expect(user.auto_apply_special_rules_on_import).to be(true)
+    end
+
+    it "片方だけオンにできる（未送信の他方はオフ）" do
+      user.update!(auto_apply_merchant_rules_on_import: true, auto_apply_special_rules_on_import: true)
+      patch account_settings_path, params: { user: { auto_apply_special_rules_on_import: "1" } }
+      user.reload
+      expect(user.auto_apply_merchant_rules_on_import).to be(false) # 未送信はオフ
+      expect(user.auto_apply_special_rules_on_import).to be(true)
+    end
+
+    it "両方未送信は両方オフとして保存する" do
+      user.update!(auto_apply_merchant_rules_on_import: true, auto_apply_special_rules_on_import: true)
+      patch account_settings_path, params: { user: {} }
+      user.reload
+      expect(user.auto_apply_merchant_rules_on_import).to be(false)
+      expect(user.auto_apply_special_rules_on_import).to be(false)
+    end
+
+    it "未ログインはログイン画面へ" do
+      delete "/sign_out"
+      patch account_settings_path, params: { user: { auto_apply_merchant_rules_on_import: "1" } }
+      expect(response).to redirect_to("/sign_in")
+    end
+  end
+
   describe "未認証アクセス" do
     it "各アクションはログイン画面へリダイレクトする" do
       get "/account"

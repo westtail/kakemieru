@@ -22,7 +22,7 @@
 
 Rails（ActiveRecord）では `belongs_to :parent` を宣言した時点で、子テーブルに `parent_id` カラムが必要になる。これは規約であり、親子関係があれば**直近の親の id を子が持つのは当然の構造**。
 
-```
+```text
 User → PaymentMethod → Import → Transaction
          user_id         payment_method_id   import_id
                                              （直近の親）
@@ -32,7 +32,7 @@ User → PaymentMethod → Import → Transaction
 
 直近の親だけ持つ（正規化）か、さらに上の祖先の id も冗長に持つか（非正規化）が設計上の選択肢。
 
-```
+```ruby
 # 正規化（辿る）
 transaction.import.payment_method.user
 
@@ -93,7 +93,7 @@ KakeMieru 内でも以下のモデルは `user_id` を直接持たない。
 
 ### 判断基準
 
-```
+```text
 「WHERE user_id = ? で直接検索・集計の起点になるか」
          ↓
     YES → user_id を直接持つ

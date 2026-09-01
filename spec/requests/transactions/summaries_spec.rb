@@ -34,6 +34,57 @@ RSpec.describe "Transactions::Summaries", type: :request do
       ])
     end
 
+    it "直近3ヶ月平均比（recent_average）を同梱する" do
+      # 当月 2026-04=6000、直前3ヶ月 2026-01/02/03 に 3000/5000/4000 → 平均 4000。
+      create(:transaction, user: user, payment_method: payment_method,
+             amount: 6000, category: food, date: Date.new(2026, 4, 10))
+      create(:transaction, user: user, payment_method: payment_method,
+             amount: 3000, category: food, date: Date.new(2026, 1, 10))
+      create(:transaction, user: user, payment_method: payment_method,
+             amount: 5000, category: food, date: Date.new(2026, 2, 10))
+      create(:transaction, user: user, payment_method: payment_method,
+             amount: 4000, category: food, date: Date.new(2026, 3, 10))
+      sign_in
+
+      get "/transactions/summary", params: { month: "2026-04" }
+
+      expect(json["recent_average"]).to eq(
+        "window" => 3, "months" => 3, "baseline" => 4000, "diff" => 2000, "rate" => 50.0
+      )
+    end
+
+    it "月平均支出（monthly_average）を同梱する" do
+      # 2ヶ月にデータ → 分母 2。食費 8000 → 平均 4000、全体 4000。
+      create(:transaction, user: user, payment_method: payment_method,
+             amount: 3000, category: food, date: Date.new(2026, 3, 10))
+      create(:transaction, user: user, payment_method: payment_method,
+             amount: 5000, category: food, date: Date.new(2026, 4, 10))
+      sign_in
+
+      get "/transactions/summary", params: { month: "2026-04" }
+
+      expect(json["monthly_average"]).to eq(
+        "months" => 2, "overall" => 4000,
+        "categories" => [ { "id" => food.id, "name" => "食費", "average" => 4000 } ]
+      )
+    end
+
+    it "直近6ヶ月の推移（monthly_totals）を同梱する（#153）" do
+      create(:transaction, user: user, payment_method: payment_method,
+             amount: 5000, category: food, date: Date.new(2026, 4, 10))
+      create(:transaction, user: user, payment_method: payment_method,
+             amount: 3000, category: food, date: Date.new(2026, 2, 10))
+      sign_in
+
+      get "/transactions/summary", params: { month: "2026-04" }
+
+      totals = json["monthly_totals"]
+      expect(totals.length).to eq(6)
+      expect(totals.map { |t| t["month"] }).to eq(%w[2025-11 2025-12 2026-01 2026-02 2026-03 2026-04])
+      expect(totals.last).to eq({ "month" => "2026-04", "total" => 5000 })
+      expect(totals.find { |t| t["month"] == "2026-02" }["total"]).to eq(3000)
+    end
+
     it "未ログインは 401（リダイレクトしない）" do
       get "/transactions/summary", params: { month: "2026-04" }
       expect(response).to have_http_status(:unauthorized)

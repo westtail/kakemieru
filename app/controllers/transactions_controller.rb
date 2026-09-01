@@ -1,6 +1,10 @@
 class TransactionsController < ApplicationController
   include MonthParam
 
+  # 一覧のソート可能列（ホワイトリスト）。ユーザー入力は SQL に補間せず、必ずこのキー経由で
+  # Arel の列に対応づける（SQLi 対策）。カテゴリ/支払方法は関連名で並べる。
+  SORTABLE = %w[date merchant amount category payment_method].freeze
+
   before_action :set_transaction, only: %i[edit update categorize destroy]
 
   def index
@@ -10,13 +14,19 @@ class TransactionsController < ApplicationController
     @keyword = params[:q].to_s.strip
     @categories = Current.user.categories.order(:id)
     @month_options = month_options
+    # 未知の列は既定（日付）、方向は asc 以外を降順に倒す。
+    @sort = SORTABLE.include?(params[:sort]) ? params[:sort] : "date"
+    @direction = params[:direction] == "asc" ? "asc" : "desc"
 
     scope = Current.user.transactions.not_deleted
                    .includes(:category, :payment_method)
                    .in_month(@month.year, @month.month)
     scope = apply_category_filter(scope, @category)
     scope = scope.merchant_prefix(@keyword) if @keyword.present?
-    @transactions = scope.order(effective_date: :desc, id: :desc)
+    # 関連名で並べるときだけ JOIN を強制する（includes と併用で LEFT OUTER JOIN）。
+    scope = scope.references(:category, :payment_method) if %w[category payment_method].include?(@sort)
+    # id を安定タイブレークに付ける。
+    @transactions = scope.order(sort_order).order(id: :desc)
   end
 
   def new
@@ -76,7 +86,74 @@ class TransactionsController < ApplicationController
     render turbo_stream: turbo_stream.remove(@transaction)
   end
 
+  # 選択した複数明細にカテゴリを一括適用する。手動入力の工数削減。
+  def categorize_all
+    # 配列/ハッシュ型の細工でも 500 にせず倒す（index と同じ方針）。id は文字列要素のみ整数化。
+    raw_ids = params[:transaction_ids]
+    ids = raw_ids.is_a?(Array) ? raw_ids.grep(String).map(&:to_i).reject(&:zero?) : []
+    raw_category = params[:category_id]
+
+    if ids.empty?
+      return redirect_to transactions_path(list_params), alert: "明細を選択してください。"
+    end
+    # 未分類は空文字("")の String で表す。配列/ハッシュ細工は「未分類指定」と区別して拒否する
+    # （黙って nil 更新＝選択明細のカテゴリを消してしまうのを防ぐ）。
+    if raw_category.present? && !raw_category.is_a?(String)
+      return redirect_to transactions_path(list_params), alert: "カテゴリが正しくありません。"
+    end
+    category_id = raw_category.presence # "" → nil（未分類）、id 文字列 → その id
+    # 未分類(nil)は許可。それ以外は自分のカテゴリであることを確認（他人/存在しない id を拒否）。
+    if category_id && !Current.user.categories.exists?(id: category_id)
+      return redirect_to transactions_path(list_params), alert: "カテゴリが正しくありません。"
+    end
+
+    # Current.user スコープで他人の id は一致せず更新されない（テナント保護）。updated_at も進める。
+    scope = Current.user.transactions.not_deleted.where(id: ids)
+    count = scope.update_all(category_id: category_id, updated_at: Time.current)
+    redirect_to transactions_path(list_params), notice: "#{count}件のカテゴリを変更しました。"
+  rescue ActiveRecord::InvalidForeignKey
+    # 検証通過後・書き込み前にカテゴリが削除された稀なレース（単件 categorize と同じ扱い）。
+    redirect_to transactions_path(list_params), alert: "カテゴリが正しくありません。"
+  end
+
+  # 店舗ルールを未分類明細へ一括適用する（更新実行）。手動分類は上書きしない。
+  # 明細一覧・取込詳細のどちらから押されても元の画面へ戻す（referer 優先）。
+  def apply_rules
+    count = RuleApplier.new(user: Current.user).call
+    notice = if count.positive?
+      "#{count}件の未分類明細にルールを適用しました。"
+    else
+      "適用できる未分類の明細はありませんでした。"
+    end
+    redirect_back fallback_location: transactions_path(list_params), notice: notice
+  rescue ActiveRecord::InvalidForeignKey
+    # 集計後・更新前に対象カテゴリが削除された稀なレース（categorize_all と同じ扱い）。
+    redirect_back fallback_location: transactions_path(list_params),
+                  alert: "カテゴリが変更されたため適用できませんでした。もう一度お試しください。"
+  end
+
   private
+    # 一覧へ戻るときに引き継ぐ絞り込み/ソートのパラメータ（既知キーのみ）。
+    # category="" は「未分類フィルタ」を意味するため空でも維持する（絞り込み状態を保つ）。
+    def list_params
+      params.permit(:month, :category, :q, :sort, :direction).to_h
+    end
+
+    # ソート列を Arel ノードで組み立てる。列は @sort（ホワイトリスト）由来で、生 SQL 文字列を
+    # 補間しない。カテゴリソートは未分類（category NULL）を昇順・降順とも末尾に固定する。
+    def sort_order
+      column =
+        case @sort
+        when "merchant"       then Transaction.arel_table[:merchant_name]
+        when "amount"         then Transaction.arel_table[:effective_amount]
+        when "category"       then Category.arel_table[:name]
+        when "payment_method" then PaymentMethod.arel_table[:name]
+        else                       Transaction.arel_table[:effective_date] # date（既定）
+        end
+      node = @direction == "asc" ? column.asc : column.desc
+      @sort == "category" ? node.nulls_last : node
+    end
+
     # 所有権スコープ: 他ユーザー・削除済みは見つからず 404（= 操作不可）。
     def set_transaction
       @transaction = Current.user.transactions.not_deleted.find(params[:id])

@@ -44,8 +44,13 @@ module Imports
     private
       def save(parsed, file_hash)
         errors = []
-        # 分類は行ごとに引くと N+1 になるため、店舗名→category_id をまとめて解決する。
-        category_ids = CategoryClassifier.category_ids_for(@user, parsed.rows.map { |row| row[:merchant_name] })
+        # 取込時の自動適用はアカウント設定 ON の種類だけ（初期OFF）。OFF なら未分類で
+        # 取り込み、ユーザーが「更新実行」で明示適用する。RuleMatcher を1回作りループ内で使う（N+1 回避）。
+        matcher = RuleMatcher.new(
+          user: @user,
+          use_merchant: @user.auto_apply_merchant_rules_on_import?,
+          use_special: @user.auto_apply_special_rules_on_import?
+        )
         import = nil
         ActiveRecord::Base.transaction do
           import = @user.imports.create!(
@@ -57,7 +62,7 @@ module Imports
             imported_at: Time.current
           )
           parsed.rows.each_with_index do |row, index|
-            transaction = build_transaction(import, row, category_ids)
+            transaction = build_transaction(import, row, matcher)
             errors << "#{index + 1}件目: #{transaction.errors.full_messages.join('、')}" unless transaction.save
           end
           # 1行でも保存に失敗したら Import ごとロールバック（原子性）。
@@ -67,15 +72,17 @@ module Imports
         errors.any? ? failure(errors) : Result.new(import: import, errors: [])
       end
 
-      def build_transaction(import, row, category_ids)
+      def build_transaction(import, row, matcher)
+        # 取込時は override が無いので実効値 == 原本。matcher に原本の金額・日を渡す。
+        result = matcher.match(merchant_name: row[:merchant_name], amount: row[:amount], date: row[:date])
         import.transactions.build(
           user: @user,
           payment_method: @payment_method,
           date: row[:date],
           amount: row[:amount],
-          description: row[:description],
+          description: DescriptionNote.append(row[:description], result&.note),
           merchant_name: row[:merchant_name],
-          category_id: category_ids[CategoryClassifier.normalize(row[:merchant_name])]
+          category_id: result&.category_id
         )
       end
 

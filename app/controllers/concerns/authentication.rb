@@ -51,7 +51,7 @@ module Authentication
     end
 
     # セッション cookie の有効期間。permanent（実質無期限）だと盗難 cookie の有効期間が
-    # 長期化するため、妥当な期間で失効させる（ADR-0022 リリースゲート）。
+    # 長期化するため、妥当な期間で失効させる。
     SESSION_DURATION = 3.days
 
     def start_new_session_for(user)

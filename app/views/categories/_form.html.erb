@@ -3,11 +3,11 @@
 <%= render "shared/error_messages", record: @category %>
 
 <%= form_with model: @category do |form| %>
-  <div>
-    <%= form.label :name, "カテゴリ名" %><br>
-    <%= form.text_field :name, required: true, autofocus: true %>
+  <div class="field">
+    <%= form.label :name, "カテゴリ名", class: "field-label" %>
+    <%= form.text_field :name, required: true, autofocus: true, class: "field-input" %>
   </div>
-  <%= form.submit submit_label %>
+  <%= form.submit submit_label, class: "btn-primary" %>
 <% end %>
 
-<p><%= link_to "カテゴリ一覧に戻る", categories_path %></p>
+<p class="mt-4"><%= link_to "カテゴリ一覧に戻る", categories_path, class: "link" %></p>

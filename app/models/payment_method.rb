@@ -1,7 +1,7 @@
 # ユーザーごとの支払方法。
 # - 現金（payment_type: cash）: 登録時に1件自動生成。削除不可・名前変更のみ可。
 # - それ以外: ユーザーが自由に追加・名前/種別変更・削除できる。
-# has_many :transactions（S7）/ :imports（S5）は関連先が作られてから追加する（ADR-0025）。
+# has_many :transactions / :imports は関連先が作られてから追加する。
 # == Schema Information
 #
 # Table name: payment_methods
@@ -55,7 +55,7 @@ class PaymentMethod < ApplicationRecord
     update!(archived_at: Time.current)
   end
 
-  # 登録時に現金を1件生成する（#21）。
+  # 登録時に現金を1件生成する。
   def self.create_default_for(user)
     user.payment_methods.create!(name: PaymentMethodCatalog::DEFAULT_CASH_NAME, payment_type: "cash")
   end
