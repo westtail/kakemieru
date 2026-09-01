@@ -18,7 +18,7 @@ const CATEGORY_COLORS = [
 // 支出合計・カテゴリ別円グラフ・未分類バッジを再描画する。ページ遷移はしない。
 export default class extends Controller {
   static targets = [
-    "canvas", "trendCanvas", "total", "monthLabel", "uncategorized",
+    "canvas", "trendCanvas", "total", "monthLabel", "uncategorized", "recentAverage",
     "monthlyAverageOverall", "monthlyAverageCategories", "error"
   ]
   static values = { summaryUrl: String, transactionsUrl: String, month: String }
@@ -95,6 +95,7 @@ export default class extends Controller {
   render(data) {
     if (this.hasMonthLabelTarget) this.monthLabelTarget.textContent = this.formatMonth(data.month)
     if (this.hasTotalTarget) this.totalTarget.textContent = this.formatYen(data.total)
+    this.renderRecentAverage(data.recent_average)
     this.renderMonthlyAverage(data.monthly_average)
     this.renderUncategorized(data)
     this.renderChart(data)
@@ -116,6 +117,32 @@ export default class extends Controller {
     } else {
       this.uncategorizedTarget.textContent = ""
     }
+  }
+
+  // 直近3ヶ月平均との比較を表示する。支出増（当月>平均）は赤、減は緑、直近にデータが無ければ灰で注記。
+  renderRecentAverage(recent) {
+    if (!this.hasRecentAverageTarget) return
+    const target = this.recentAverageTarget
+    target.classList.remove("text-red-600", "text-green-700", "text-gray-500")
+
+    const window = recent ? recent.window : 3
+    if (!recent || recent.months === 0) {
+      target.textContent = `直近${window}ヶ月平均比 —（比較できるデータなし）`
+      target.classList.add("text-gray-500")
+      return
+    }
+    if (recent.rate === null) {
+      // データはあるが基準が正でない（返金相殺など）→ 率を出せない。
+      target.textContent = `直近${window}ヶ月平均比 —（比較できません）`
+      target.classList.add("text-gray-500")
+      return
+    }
+
+    const mark = recent.diff > 0 ? "+" : recent.diff < 0 ? "−" : "±"
+    const rate = `${mark}${Math.abs(recent.rate).toFixed(1)}%`
+    const yen = `${mark}¥${Math.abs(recent.diff).toLocaleString("ja-JP")}`
+    target.textContent = `直近${recent.window}ヶ月平均比 ${rate}（${yen}）`
+    target.classList.add(recent.diff > 0 ? "text-red-600" : recent.diff < 0 ? "text-green-700" : "text-gray-500")
   }
 
   // 月平均支出（全体＋カテゴリ別）を表示する。データが無ければ「—」。

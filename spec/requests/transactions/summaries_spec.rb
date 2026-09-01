@@ -34,6 +34,25 @@ RSpec.describe "Transactions::Summaries", type: :request do
       ])
     end
 
+    it "直近3ヶ月平均比（recent_average）を同梱する" do
+      # 当月 2026-04=6000、直前3ヶ月 2026-01/02/03 に 3000/5000/4000 → 平均 4000。
+      create(:transaction, user: user, payment_method: payment_method,
+             amount: 6000, category: food, date: Date.new(2026, 4, 10))
+      create(:transaction, user: user, payment_method: payment_method,
+             amount: 3000, category: food, date: Date.new(2026, 1, 10))
+      create(:transaction, user: user, payment_method: payment_method,
+             amount: 5000, category: food, date: Date.new(2026, 2, 10))
+      create(:transaction, user: user, payment_method: payment_method,
+             amount: 4000, category: food, date: Date.new(2026, 3, 10))
+      sign_in
+
+      get "/transactions/summary", params: { month: "2026-04" }
+
+      expect(json["recent_average"]).to eq(
+        "window" => 3, "months" => 3, "baseline" => 4000, "diff" => 2000, "rate" => 50.0
+      )
+    end
+
     it "月平均支出（monthly_average）を同梱する" do
       # 2ヶ月にデータ → 分母 2。食費 8000 → 平均 4000、全体 4000。
       create(:transaction, user: user, payment_method: payment_method,
