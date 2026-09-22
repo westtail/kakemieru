@@ -1,0 +1,30 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <title><%= content_for(:title) || "掛け見える | 家計を、見える化。" %></title>
+    <%= render "shared/head_tags" %>
+  </head>
+
+  <body class="text-gray-900">
+    <header class="flex items-center justify-between gap-2 px-4 py-3 border-b border-gray-200 bg-white">
+      <%= link_to "掛け見える", root_path, class: "font-bold text-gray-900 no-underline" %>
+      <nav class="flex items-center gap-3">
+        <%= link_to "ログイン", new_session_path, class: "link" %>
+        <%= link_to "新規登録", new_registration_path, class: "btn-primary" %>
+      </nav>
+    </header>
+
+    <%# フラッシュ（退会後リダイレクト等）は本文の外に置く %>
+    <div class="max-w-3xl mx-auto px-4">
+      <%= render "shared/flash" %>
+    </div>
+
+    <main>
+      <%= yield %>
+    </main>
+
+    <footer class="border-t border-gray-200 py-6 text-center text-sm text-gray-500">
+      &copy; 2026 掛け見える
+    </footer>
+  </body>
+</html>
