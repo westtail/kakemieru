@@ -1,7 +1,7 @@
 <%# ログイン時のみ表示する全ページ共通のグローバルナビ。 %>
 <% if authenticated? %>
   <header id="global-nav" class="flex items-center flex-wrap gap-2 px-4 py-3 border-b border-gray-200 bg-gray-50">
-    <%= link_to "掛け見える", root_path, class: "mr-2 font-bold text-gray-900 no-underline" %>
+    <%= link_to "Kakemieru", root_path, class: "mr-2 font-bold text-gray-900 no-underline" %>
     <nav class="flex flex-wrap items-center gap-1">
       <%= nav_link "明細", transactions_path, "transactions" %>
       <div class="relative" data-controller="dropdown">
