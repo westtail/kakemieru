@@ -24,7 +24,7 @@ RSpec.describe "取り込みドロップダウン", type: :feature do
     expect(page).to have_link("取り込み履歴")
 
     # メニュー外（ダッシュボードの見出し）をクリックすると閉じる
-    find("p", text: "支出合計").click
+    find("span", text: "支出合計").click
     expect(page).to have_no_link("取り込み履歴")
   end
 

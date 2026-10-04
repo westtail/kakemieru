@@ -1,7 +1,7 @@
 <%# ログイン時のみ表示する全ページ共通のグローバルナビ。 %>
 <% if authenticated? %>
-  <header id="global-nav" class="flex items-center flex-wrap gap-2 px-4 py-3 border-b border-gray-200 bg-gray-50">
-    <%= link_to "Kakemieru", root_path, class: "mr-2 font-bold text-gray-900 no-underline" %>
+  <header id="global-nav" class="app-header flex items-center flex-wrap gap-2 px-4 py-3">
+    <%= link_to "Kakemieru", root_path, class: "app-logo mr-2 font-bold no-underline" %>
     <nav class="flex flex-wrap items-center gap-1">
       <%= nav_link "明細", transactions_path, "transactions" %>
       <div class="relative" data-controller="dropdown">
@@ -11,15 +11,15 @@
                 aria-haspopup="true" aria-expanded="false"
                 <%= 'aria-current="page"'.html_safe if nav_active?("imports") %>>取り込み <span aria-hidden="true">▾</span></button>
         <div data-dropdown-target="menu"
-             class="hidden absolute left-0 mt-1 w-48 bg-white border border-gray-200 rounded shadow z-10">
+             class="app-menu hidden absolute left-0 mt-1 w-48 rounded shadow z-10">
           <%= link_to "CSVから取り込む", new_import_path(anchor: "csv-import"),
-                class: "block px-4 py-2 text-gray-700 no-underline hover:bg-gray-100",
+                class: "block px-4 py-2 no-underline",
                 data: { action: "dropdown#close" } %>
           <%= link_to "手動でまとめて入力", new_import_path(anchor: "manual-import"),
-                class: "block px-4 py-2 text-gray-700 no-underline hover:bg-gray-100",
+                class: "block px-4 py-2 no-underline",
                 data: { action: "dropdown#close" } %>
           <%= link_to "取り込み履歴", imports_path,
-                class: "block px-4 py-2 text-gray-700 no-underline hover:bg-gray-100",
+                class: "block px-4 py-2 no-underline",
                 data: { action: "dropdown#close" } %>
         </div>
       </div>
@@ -28,6 +28,6 @@
       <%= nav_link "アカウント", account_path, "accounts" %>
     </nav>
     <%= button_to "ログアウト", sign_out_path, method: :delete, form_class: "ml-auto",
-          class: "rounded px-2 py-1 text-gray-500 no-underline hover:bg-gray-100 hover:text-gray-700" %>
+          class: "nav-link" %>
   </header>
 <% end %>
