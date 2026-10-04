@@ -6,12 +6,18 @@ RSpec.describe "Home", type: :request do
       it "公開ランディングページを表示する（リダイレクトしない）" do
         get root_path
         expect(response).to have_http_status(:success)
-        expect(response.body).to include("家計を、見える化。")
+        expect(response.body).to include("家計を、", "見える化。")
+        expect(response.body).to include("できること", "使い方は3ステップ")
       end
 
       it "新規登録・ログインへの導線を渡す" do
         get root_path
         expect(response.body).to include(new_registration_path, new_session_path)
+      end
+
+      it "カテゴリ別ドーナツ（プレビュー）にアクセシブルな名前を付ける" do
+        get root_path
+        expect(response.body).to include('aria-label="カテゴリ別支出の円グラフ"')
       end
 
       it "ログイン必須のダッシュボード（Stimulus canvas）は出さない" do
