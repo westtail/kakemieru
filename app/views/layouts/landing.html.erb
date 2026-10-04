@@ -1,21 +1,31 @@
 <!DOCTYPE html>
-<html>
+<html lang="ja">
   <head>
     <title><%= content_for(:title) || "掛け見える | 家計を、見える化。" %></title>
     <%= render "shared/head_tags" %>
+
+    <%# デザインシステムのフォント（本文=Zen Kaku Gothic New / 数字=Roboto Mono）。
+        公開 LP でのみ読み込む（認証後の家計データ画面から Google への IP/Referer 送出を避ける）。
+        Referer 漏洩を抑えるため referrerpolicy=no-referrer を付与する。 %>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link rel="stylesheet" referrerpolicy="no-referrer"
+          href="https://fonts.googleapis.com/css2?family=Zen+Kaku+Gothic+New:wght@400;500;700;900&family=Roboto+Mono:wght@400;500;700&display=swap">
   </head>
 
-  <body class="text-gray-900">
-    <header class="flex items-center justify-between gap-2 px-4 py-3 border-b border-gray-200 bg-white">
-      <%= link_to "掛け見える", root_path, class: "font-bold text-gray-900 no-underline" %>
-      <nav class="flex items-center gap-3">
-        <%= link_to "ログイン", new_session_path, class: "link" %>
-        <%= link_to "新規登録", new_registration_path, class: "btn-primary" %>
+  <body class="lp">
+    <header class="lp-header">
+      <%= link_to root_path, class: "lp-logo" do %>
+        <span class="lp-seal">掛</span>掛け見える
+      <% end %>
+      <nav class="lp-nav">
+        <%= link_to "ログイン", new_session_path, class: "lp-btn lp-btn-ghost" %>
+        <%= link_to "新規登録", new_registration_path, class: "lp-btn lp-btn-ink" %>
       </nav>
     </header>
 
     <%# フラッシュ（退会後リダイレクト等）は本文の外に置く %>
-    <div class="max-w-3xl mx-auto px-4">
+    <div class="lp-wrap lp-flash">
       <%= render "shared/flash" %>
     </div>
 
@@ -23,8 +33,8 @@
       <%= yield %>
     </main>
 
-    <footer class="border-t border-gray-200 py-6 text-center text-sm text-gray-500">
-      &copy; 2026 掛け見える
+    <footer class="lp-footer">
+      &copy; <%= Date.current.year %> 掛け見える
     </footer>
   </body>
 </html>
