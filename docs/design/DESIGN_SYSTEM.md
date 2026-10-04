@@ -182,7 +182,7 @@ CSS 変数として定義する（ライトを既定とし、ダークは role �
 
 - トークンは `app/assets/tailwind/application.css` 冒頭の `:root` に CSS 変数で定義（ダークは `@media (prefers-color-scheme: dark)` と `:root[data-theme="dark"]` で再定義）。
 - コンポーネントは `@layer components` に展開（Tailwind v4 は `@apply` でのカスタムクラス合成が不可のため、各クラスにユーティリティを直接展開する／または `var(--token)` を直接指定）。
-- Google Fonts はレイアウトの `<head>`（共通パーシャル `shared/_head_tags`）で読み込む。フォールバックスタックを必ず指定。
+- Google Fonts は**公開 LP の landing レイアウトでのみ**読み込む（`referrerpolicy="no-referrer"` 付き）。認証後の家計データ画面から Google へ IP/Referer を送らないため、共通パーシャル `shared/_head_tags` には置かない。フォールバックスタックを必ず指定。全画面へフォントを広げる段階（移行4）では、プライバシーとサプライチェーンの観点からフォントのセルフホスト化を行う。
 - グラフは Chart.js（既存のダッシュボードで使用中）を流用。ドーナツ＝カテゴリ別、配色は本書 §2 のカテゴリ配色。
 
 ### 段階的移行
