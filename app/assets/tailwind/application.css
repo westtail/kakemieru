@@ -72,7 +72,31 @@ input:focus-visible, select:focus-visible, textarea:focus-visible, summary:focus
   .app-menu { background: var(--card); border: 1px solid var(--line); }
   .app-menu a { color: var(--ink-2); }
   .app-menu a:hover { background: var(--paper-2); color: var(--ink); }
+
+  /* 汎用コンポーネント（LP の lp-* から汎用化。ダッシュボード等で共用） */
+  .num { font-family:"Roboto Mono", ui-monospace, SFMono-Regular, Menlo, monospace; font-variant-numeric: tabular-nums; }
+  .card { background: var(--card); border: 1px solid var(--line); border-radius: 14px; padding: 20px; box-shadow: 0 6px 18px rgba(32,43,69,.05); }
+  .badge { display: inline-block; font-size: 11px; font-weight: 800; color: var(--stamp); background: var(--stamp-bg); border-radius: 5px; padding: 2px 7px; text-decoration: none; }
+  /* 枠線ボタン（インク） */
+  .btn-outline { @apply inline-block cursor-pointer rounded px-4 py-2 text-center font-medium no-underline transition-colors;
+    border: 1.5px solid var(--ink); color: var(--ink); background: transparent; }
+  .btn-outline:hover { background: var(--paper-2); }
 }
+
+/* ダッシュボード（home#index） */
+.iconbtn { display: inline-grid; place-items: center; width: 34px; height: 34px; border: 1px solid var(--line); background: var(--card); color: var(--ink); border-radius: 8px; cursor: pointer; font-size: 15px; }
+.dash-row { display: flex; align-items: center; gap: 20px; flex-wrap: wrap; }
+.dash-donut { position: relative; width: 168px; height: 168px; flex: none; }
+.dash-legend { flex: 1; min-width: 150px; display: flex; flex-direction: column; gap: 9px; margin: 0; padding: 0; list-style: none; font-size: 13.5px; color: var(--ink-2); }
+.dash-legend li { display: flex; align-items: center; gap: 9px; }
+.dash-legend i { width: 11px; height: 11px; border-radius: 50%; flex: none; }
+.dash-legend b { margin-left: auto; color: var(--ink); font-weight: 700; }
+.dash-trend { position: relative; height: 160px; }
+.dash-avg { margin: 10px 0 0; padding: 0; list-style: none; }
+.dash-avg li { display: flex; justify-content: space-between; padding: 8px 0; border-bottom: 1px dotted var(--line); font-size: 13.5px; }
+.dash-avg li:last-child { border-bottom: 0; }
+.dash-avg .nm { color: var(--ink-2); }
+.divider { border-top: 1.5px dashed var(--ink-2); margin: 16px 0 12px; }
 
 /* reduced-motion: 共通コンポーネントのトランジションも抑制 */
 @media (prefers-reduced-motion: reduce) {
