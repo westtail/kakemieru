@@ -60,8 +60,7 @@
   padding:14px 20px; background:color-mix(in srgb, var(--paper) 80%, #fff); border-bottom:1px solid var(--line); }
 .lp-logo { display:inline-flex; align-items:center; gap:10px; font-weight:900; font-size:19px;
   letter-spacing:.03em; white-space:nowrap; text-decoration:none; }
-.lp-seal { width:32px; height:32px; border:2px solid var(--stamp); color:var(--stamp); border-radius:8px;
-  display:grid; place-items:center; font-size:13px; font-weight:900; transform:rotate(-7deg); flex:none; }
+.lp-logomark { width:30px; height:30px; color:var(--stamp); flex:none; }
 .lp-nav { display:flex; align-items:center; gap:10px; }
 
 /* ボタン */

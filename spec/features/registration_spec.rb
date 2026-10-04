@@ -9,7 +9,7 @@ RSpec.describe "サインアップ", type: :feature do
     click_button "登録"
 
     expect(page).to have_current_path("/")
-    expect(page).to have_content("掛け見える")
+    expect(page).to have_content("Kakemieru")
   end
 
   it "サーバ側バリデーションエラーではメッセージが表示され登録されない" do
