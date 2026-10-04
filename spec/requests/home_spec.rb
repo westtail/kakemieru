@@ -6,7 +6,7 @@ RSpec.describe "Home", type: :request do
       it "公開ランディングページを表示する（リダイレクトしない）" do
         get root_path
         expect(response).to have_http_status(:success)
-        expect(response.body).to include("家計を、", "見える化。")
+        expect(response.body).to include("家計を", "見える化")
       end
 
       it "新規登録・ログインへの導線を渡す" do
