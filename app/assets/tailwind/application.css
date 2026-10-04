@@ -1,44 +1,82 @@
 @import "tailwindcss";
 
 /*
-  共通コンポーネントクラス（FE 横断）。
-  Tailwind の Preflight が見出し・リンク・ボタンの既定装飾を消すため、素の <h1>/<a>/<button>
-  は「太さも色も枠も無い黒テキスト」になり、押せる場所が分からなくなる。ここで見た目の語彙を
-  一元化し、各画面の長いユーティリティ羅列を置き換えて統一する。見た目は既存の整備済みページ
-  （明細一覧の「明細を追加」等）に合わせる。
+  デザインシステム「家計簿ノート」(docs/design/DESIGN_SYSTEM.md / ADR-0050) のトークン＝全画面の基盤。
+  ダークは本PR（色のみ先行）では用意せず、専用PRで :root[data-theme="dark"] を追加する。
+*/
+:root {
+  --paper:#f7f4ec; --paper-2:#efeadd; --ink:#202b45; --ink-2:#4a5680;
+  --stamp:#c23b2b; --stamp-bg:#f8ece7; --line:#e7e1d2; --card:#ffffff; --teal:#2f6d8a; --bar-bg:#ddd6c6;
+  --ok:#2f7a55; --ok-bg:#e9f3ee; --alert:#c23b2b; --alert-bg:#fbece9; --warn:#d8a23a; --warn-bg:#f7eed8;
+  color-scheme: light;
+}
+
+/* ベース: 紙地＋インク文字を全画面へ（本文フォントは後続PRでセルフホスト化して適用）。 */
+body { background: var(--paper); color: var(--ink); }
+
+/* 操作要素の可視フォーカス（朱リング）。 */
+a:focus-visible, button:focus-visible, [role="button"]:focus-visible,
+input:focus-visible, select:focus-visible, textarea:focus-visible, summary:focus-visible {
+  outline: 2px solid var(--stamp); outline-offset: 2px;
+}
+
+/*
+  共通コンポーネントクラス（FE 横断）。Preflight が素の h1/a/button の装飾を消すため、ここで
+  見た目の語彙を一元化する。配色をデザインシステム「家計簿ノート」のトークンへ移行。
+  レイアウト（余白・角丸・太さ）は踏襲し、本PRは“色のみ”変更する。Tailwind v4 は @apply で
+  カスタムクラスを合成できないため、レイアウトは @apply、配色は var(--token) 直書きで組む。
 */
 @layer components {
   /* 見出し階層 */
-  .page-title { @apply text-2xl font-bold text-gray-900 mb-4; }
-  .section-title { @apply text-lg font-semibold text-gray-700 mt-6 mb-2; }
-  .muted { @apply text-sm text-gray-500; }
+  .page-title { @apply text-2xl font-bold mb-4; color: var(--ink); }
+  .section-title { @apply text-lg font-semibold mt-6 mb-2; color: var(--ink); }
+  .muted { @apply text-sm; color: var(--ink-2); }
 
-  /* ボタン（枠・余白でクリック可能と分かる形にする）。Tailwind v4 は @apply でカスタム
-     クラスを合成できないため、各変種にベースのユーティリティを直接展開する。 */
-  /* 主要アクション（追加・保存・送信）: 塗りの青で最も目立たせる */
-  .btn-primary { @apply inline-block cursor-pointer rounded px-4 py-2 text-center font-medium no-underline transition-colors bg-blue-600 text-white hover:bg-blue-700; }
-  /* 副次アクション（絞り込み・行追加・戻る）: グレー */
-  .btn-secondary { @apply inline-block cursor-pointer rounded border border-gray-300 bg-gray-100 px-4 py-2 text-center font-medium text-gray-800 no-underline transition-colors hover:bg-gray-200; }
-  /* 破壊的アクション（削除）: 赤の枠線ボタン */
-  .btn-danger { @apply inline-block cursor-pointer rounded border border-red-600 px-4 py-2 text-center font-medium text-red-600 no-underline transition-colors hover:bg-red-600 hover:text-white; }
+  /* ボタン（形は維持し配色のみ移行） */
+  /* 主要アクション: インク紺の塗りで最も目立たせる */
+  .btn-primary { @apply inline-block cursor-pointer rounded px-4 py-2 text-center font-medium no-underline transition-colors;
+    background: var(--ink); color: var(--paper); }
+  .btn-primary:hover { background: color-mix(in srgb, var(--ink) 86%, #fff); }
+  /* 副次アクション: 紙トーンの塗り（枠線＋淡面）。※役割・形は維持 */
+  .btn-secondary { @apply inline-block cursor-pointer rounded px-4 py-2 text-center font-medium no-underline transition-colors;
+    border: 1px solid var(--line); background: var(--paper-2); color: var(--ink); }
+  .btn-secondary:hover { background: color-mix(in srgb, var(--paper-2) 88%, #000); }
+  /* 破壊的アクション: 朱の枠線→hoverで塗り */
+  .btn-danger { @apply inline-block cursor-pointer rounded px-4 py-2 text-center font-medium no-underline transition-colors;
+    border: 1px solid var(--alert); color: var(--alert); }
+  .btn-danger:hover { background: var(--alert); color: #fff; }
 
-  /* テキストリンク（インラインの遷移） */
-  .link { @apply text-blue-600 no-underline hover:underline; }
-  .link-danger { @apply text-red-600 no-underline hover:underline; }
+  /* テキストリンク: 藍で被リンク性を保つ（強調/警告は朱） */
+  .link { @apply no-underline hover:underline; color: var(--teal); }
+  .link-danger { @apply no-underline hover:underline; color: var(--alert); }
 
-  /* グローバルナビ: 非アクティブはグレー、現在地は青で強調して「今どこか」を分かるようにする */
-  .nav-link { @apply rounded px-2 py-1 text-gray-600 no-underline transition-colors hover:bg-gray-100 hover:text-gray-900; }
-  .nav-link-active { @apply rounded bg-blue-50 px-2 py-1 font-semibold text-blue-700 no-underline; }
+  /* グローバルナビ: 非アクティブは補助色、現在地は朱で強調（コントラスト確保のため bold） */
+  .nav-link { @apply rounded px-2 py-1 no-underline transition-colors; color: var(--ink-2); cursor: pointer; }
+  .nav-link:hover { background: var(--paper-2); color: var(--ink); }
+  .nav-link-active { @apply rounded px-2 py-1 font-bold no-underline; background: var(--stamp-bg); color: var(--stamp); }
 
-  /* フラッシュメッセージ（notice=緑 / alert=赤）。flash と組み合わせて色を付ける */
+  /* フラッシュ（notice=緑系 / alert=朱系）: 淡背景＋同系枠＋AAを満たす濃文字 */
   .flash { @apply mb-4 flex items-start gap-2 rounded border px-4 py-3 transition-opacity duration-500; }
-  .flash-notice { @apply border-green-200 bg-green-50 text-green-800; }
-  .flash-alert { @apply border-red-200 bg-red-50 text-red-800; }
+  .flash-notice { border-color: var(--ok); background: var(--ok-bg); color: #1f5a3e; }
+  .flash-alert { border-color: var(--alert); background: var(--alert-bg); color: #8f2b22; }
 
   /* フォーム */
   .field { @apply mb-4; }
-  .field-label { @apply mb-1 block text-sm font-medium text-gray-700; }
-  .field-input { @apply block w-full rounded border border-gray-300 px-3 py-2 focus:border-blue-500 focus:outline-none; }
+  .field-label { @apply mb-1 block text-sm font-medium; color: var(--ink-2); }
+  .field-input { @apply block w-full rounded px-3 py-2; border: 1px solid var(--line); background: var(--card); color: var(--ink); }
+  .field-input:focus-visible { border-color: var(--stamp); outline: 2px solid var(--stamp); outline-offset: 1px; }
+
+  /* グローバルナビ（ログイン時のヘッダーとドロップダウン）。素ユーティリティの掃き出し先。 */
+  .app-header { border-bottom: 1px solid var(--line); background: var(--paper-2); }
+  .app-logo { color: var(--ink); }
+  .app-menu { background: var(--card); border: 1px solid var(--line); }
+  .app-menu a { color: var(--ink-2); }
+  .app-menu a:hover { background: var(--paper-2); color: var(--ink); }
+}
+
+/* reduced-motion: 共通コンポーネントのトランジションも抑制 */
+@media (prefers-reduced-motion: reduce) {
+  .btn-primary, .btn-secondary, .btn-danger, .nav-link, .flash { transition: none; }
 }
 
 /*
@@ -46,8 +84,7 @@
   既存ページに影響しないよう全て .lp 配下にスコープする。全画面への展開は段階的。
 */
 .lp {
-  --paper:#f7f4ec; --paper-2:#efeadd; --ink:#202b45; --ink-2:#4a5680;
-  --stamp:#c23b2b; --stamp-bg:#f8ece7; --line:#e7e1d2; --card:#ffffff; --teal:#2f6d8a;
+  /* トークンは :root に昇格済み（ここでは参照のみ）。LP は本文フォントを適用する。 */
   margin:0; background:var(--paper); color:var(--ink);
   font-family:"Zen Kaku Gothic New", system-ui, -apple-system, "Hiragino Kaku Gothic ProN", "Noto Sans JP", sans-serif;
 }
