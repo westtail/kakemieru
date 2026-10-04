@@ -81,6 +81,22 @@ input:focus-visible, select:focus-visible, textarea:focus-visible, summary:focus
   .btn-outline { @apply inline-block cursor-pointer rounded px-4 py-2 text-center font-medium no-underline transition-colors;
     border: 1.5px solid var(--ink); color: var(--ink); background: transparent; }
   .btn-outline:hover { background: var(--paper-2); }
+
+  /* 補助バッジ（中立） */
+  .badge-mut { color: var(--ink-2); background: var(--paper-2); }
+  /* インラインのフォーム操作子（絞り込み・カテゴリ選択など） */
+  .ctl { border: 1px solid var(--line); background: var(--card); color: var(--ink); border-radius: 8px; padding: 7px 10px; font: inherit; font-size: 14px; }
+  /* 一覧テーブル（明細など） */
+  .tbl { width: 100%; min-width: 600px; border-collapse: collapse; font-size: 13.5px; }
+  .tbl th { text-align: left; color: var(--ink-2); font-weight: 700; font-size: 12px; padding: 8px 10px; border-bottom: 2px solid var(--line); white-space: nowrap; }
+  .tbl td { padding: 11px 10px; border-bottom: 1px solid var(--line); vertical-align: middle; }
+  .tbl tr.is-uncat { background: var(--stamp-bg); }
+  /* 操作バー（一括適用など） */
+  .barbox { background: var(--paper-2); border: 1px solid var(--line); border-radius: 10px; }
+  /* ソート可能な見出しリンク */
+  .th-sort { color: var(--ink-2); }
+  .th-sort:hover { color: var(--ink); }
+  .th-sort-active { color: var(--ink); font-weight: 700; }
 }
 
 /* ダッシュボード（home#index） */
