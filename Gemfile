@@ -7,7 +7,7 @@ gem "propshaft"
 # Tailwind CSS（standalone バイナリ方式・Node 不要）[https://github.com/rails/tailwindcss-rails]
 gem "tailwindcss-rails"
 # Use postgresql as the database for Active Record
-gem "pg", "~> 1.1"
+gem "pg", "~> 1.7"
 # CSV 取り込みで使用。Ruby 3.4 で csv は default gem 対象外になり、Bundler 配下では
 # Gemfile 宣言が必須（require "csv" が LoadError になる）。Ruby 3.4.9 同梱の 3.3.2 に固定。
 gem "csv", "3.3.2"
