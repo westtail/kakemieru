@@ -1,6 +1,6 @@
 module ImportsHelper
   STATUS_LABELS = { imported: "取込済", partial: "一部取消", canceled: "取消済" }.freeze
-  STATUS_CLASSES = { imported: "text-gray-700", partial: "text-orange-700", canceled: "text-gray-500" }.freeze
+  STATUS_CLASSES = { imported: "badge badge-mut", partial: "badge badge-warn", canceled: "badge badge-mut" }.freeze
 
   # 取り込みの状態。row_count=原本件数, active_count=未削除件数。
   def import_status(row_count, active_count)
