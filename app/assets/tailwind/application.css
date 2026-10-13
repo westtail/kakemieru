@@ -97,6 +97,19 @@ input:focus-visible, select:focus-visible, textarea:focus-visible, summary:focus
   .th-sort { color: var(--ink-2); }
   .th-sort:hover { color: var(--ink); }
   .th-sort-active { color: var(--ink); font-weight: 700; }
+
+  /* フォームのエラー/警告ボックス */
+  .alert { border: 1px solid var(--alert); background: var(--alert-bg); color: #8f2b22; border-radius: 10px; padding: 12px 14px; }
+  /* 画面内タブ（取り込みの CSV/手動 など。能動状態は JS が .subtab-active を付与） */
+  .subtabs { border-bottom: 1px solid var(--line); }
+  .subtab { color: var(--ink-2); border-bottom: 2px solid transparent; }
+  .subtab-active { color: var(--stamp); border-bottom-color: var(--stamp); }
+  /* 警告バッジ（淡い琥珀＋濃文字で AA 確保） */
+  .badge-warn { color: #6e4e12; background: var(--warn-bg); }
+  /* 破壊的な確定ボタン（塗り） */
+  .btn-alert { @apply inline-block cursor-pointer rounded px-4 py-2 text-center font-medium no-underline transition-colors;
+    background: var(--alert); color: #fff; }
+  .btn-alert:hover { background: color-mix(in srgb, var(--alert) 88%, #000); }
 }
 
 /* ダッシュボード（home#index） */
