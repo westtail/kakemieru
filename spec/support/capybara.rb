@@ -27,24 +27,19 @@ cuprite_options = {
   browser_options: { "no-sandbox" => nil, "disable-dev-shm-usage" => nil }
 }
 
-# テスト実行中は外部ホストへの通信を遮断する。
-# LP レイアウトが Google Fonts を <link> で読み込むため、遮断しないとヘッドレス Chrome が
-# 実際に fonts.googleapis.com を取得しにいく。外部へ出られない/遅い環境では読み込みが
-# 終わらず Ferrum::PendingConnectionsError で feature spec が落ちる（＝ネットワークの
-# 機嫌でテストが赤くなり「赤 = コードが壊れた」が成立しなくなる）。
+# テスト実行中は外部ホストへの通信を遮断する（背景・決定・運用注意は ADR-0023 セクション6）。
+# 遮断しないとヘッドレス Chrome が実際に外部へ取りに行き、ネットワークが遅い/届かない環境では
+# Ferrum::PendingConnectionsError で feature spec が落ちる。
 #
-# 方針は許可リスト（whitelist）。テスト用アプリサーバ自身のオリジンだけを通し、他は
-# Ferrum が abort する。ブロックリストと違い、新たな外部依存が増えても自動的に塞がる。
-#
-# 注意点:
-# - Ferrum の照合は url.match(regexp) の部分一致なので、先頭の \A は必須。外すと
-#   http://web.evil.com/ のようなホスト偽装を許してしまう。
-# - whitelist と blacklist は併用できない（Ferrum が ArgumentError を投げる）。
-# - 外部ホストへの visit も遮断される。メール本文を辿る spec は絶対 URL ではなく
-#   パスを取り出すこと（test 環境の default_url_options は example.com のため）。
+# 許可リスト方式で、テスト用アプリサーバ自身のオリジンだけを通す。注意点:
+# - 先頭の \A は必須。Ferrum の照合は url.match(regexp) の部分一致なので、外すと
+#   http://web.evil.com/ のようなホスト名偽装を許してしまう。
+# - WebSocket は CDP の Fetch ドメインが傍受しないため、この仕組みでは塞げない。
+#   ActionCable 等を入れるときは別の手当てが要る（ws/wss を許可リストに書いても効かない）。
+# - 外部ホストへの visit も遮断される。メール本文を辿る spec は絶対 URL ではなくパスを使うこと。
 allowed_hostnames = [ app_hostname, "127.0.0.1", "localhost", "[::1]" ].uniq
 cuprite_options[:url_whitelist] = [
-  %r{\A(?:https?|wss?)://(#{allowed_hostnames.map { |host| Regexp.escape(host) }.join("|")})(?::\d+)?(?:[/?#]|\z)}i
+  %r{\Ahttps?://(#{allowed_hostnames.map { |host| Regexp.escape(host) }.join("|")})(?::\d+)?(?:[/?#]|\z)}i
 ]
 
 if remote_chrome
