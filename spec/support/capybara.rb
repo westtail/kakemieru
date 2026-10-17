@@ -10,6 +10,9 @@ require "capybara/cuprite"
 require "resolv"
 
 remote_chrome = ENV["CHROME_URL"].presence || ENV["CHROME_HOST"].presence
+# リモート Chrome から見たアプリのホスト名。app_host と下部の許可リストの両方で使うため、
+# 既定値をここ 1 箇所だけに持つ（2 箇所に書くと片方だけ変えた時に静かに全遮断になる）。
+app_hostname = ENV["CAPYBARA_APP_HOST"].presence || "web"
 
 Capybara.server = :puma, { Silent: true }
 Capybara.default_max_wait_time = 5
@@ -24,13 +27,33 @@ cuprite_options = {
   browser_options: { "no-sandbox" => nil, "disable-dev-shm-usage" => nil }
 }
 
+# テスト実行中は外部ホストへの通信を遮断する。
+# LP レイアウトが Google Fonts を <link> で読み込むため、遮断しないとヘッドレス Chrome が
+# 実際に fonts.googleapis.com を取得しにいく。外部へ出られない/遅い環境では読み込みが
+# 終わらず Ferrum::PendingConnectionsError で feature spec が落ちる（＝ネットワークの
+# 機嫌でテストが赤くなり「赤 = コードが壊れた」が成立しなくなる）。
+#
+# 方針は許可リスト（whitelist）。テスト用アプリサーバ自身のオリジンだけを通し、他は
+# Ferrum が abort する。ブロックリストと違い、新たな外部依存が増えても自動的に塞がる。
+#
+# 注意点:
+# - Ferrum の照合は url.match(regexp) の部分一致なので、先頭の \A は必須。外すと
+#   http://web.evil.com/ のようなホスト偽装を許してしまう。
+# - whitelist と blacklist は併用できない（Ferrum が ArgumentError を投げる）。
+# - 外部ホストへの visit も遮断される。メール本文を辿る spec は絶対 URL ではなく
+#   パスを取り出すこと（test 環境の default_url_options は example.com のため）。
+allowed_hostnames = [ app_hostname, "127.0.0.1", "localhost", "[::1]" ].uniq
+cuprite_options[:url_whitelist] = [
+  %r{\A(?:https?|wss?)://(#{allowed_hostnames.map { |host| Regexp.escape(host) }.join("|")})(?::\d+)?(?:[/?#]|\z)}i
+]
+
 if remote_chrome
   # テストプロセスの Puma を全 IF で待受けし、Chrome からコンテナ名で解決させる。
   # Chrome は DNS リバインディング対策でホスト名の CDP を拒否するため、接続先は IP に解決する。
   server_port = Integer(ENV.fetch("CAPYBARA_SERVER_PORT", "4444"))
   Capybara.server_host = "0.0.0.0"
   Capybara.server_port = server_port
-  Capybara.app_host = "http://#{ENV.fetch('CAPYBARA_APP_HOST', 'web')}:#{server_port}"
+  Capybara.app_host = "http://#{app_hostname}:#{server_port}"
 
   chrome_url = ENV.fetch("CHROME_URL") do
     host = ENV.fetch("CHROME_HOST", "chrome")
