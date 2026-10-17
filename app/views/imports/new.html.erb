@@ -1,7 +1,7 @@
 <h1 class="page-title">取り込み</h1>
 
 <% if @errors.present? %>
-  <div class="error-messages mb-4 rounded border border-red-200 bg-red-50 p-3 text-red-600">
+  <div class="error-messages alert mb-4">
     <ul class="list-disc pl-5">
       <% @errors.each do |error| %>
         <li><%= error %></li>
@@ -12,10 +12,10 @@
 
 <%# CSV / 手動 をタブで切り替え、選んだ方だけ表示する（初期タブは URL の hash で決まる）。 %>
 <div data-controller="tabs" data-tabs-initial-value="<%= @active_tab %>">
-  <div class="flex gap-1 border-b border-gray-200" role="tablist">
-    <button type="button" role="tab" class="-mb-px cursor-pointer border-b-2 border-transparent px-4 py-2 font-medium text-gray-500"
+  <div class="subtabs flex gap-1" role="tablist">
+    <button type="button" role="tab" class="subtab -mb-px cursor-pointer px-4 py-2 font-medium"
             data-tabs-target="tab" data-tab-name="csv-import" data-action="tabs#select">CSVから取り込む</button>
-    <button type="button" role="tab" class="-mb-px cursor-pointer border-b-2 border-transparent px-4 py-2 font-medium text-gray-500"
+    <button type="button" role="tab" class="subtab -mb-px cursor-pointer px-4 py-2 font-medium"
             data-tabs-target="tab" data-tab-name="manual-import" data-action="tabs#select">手動でまとめて入力</button>
   </div>
 
@@ -44,12 +44,11 @@
               prompt: "支払方法を選択してください", required: true, id: "manual_payment_method_id", class: "field-input" %>
       </div>
 
-      <div class="overflow-x-auto">
-        <table class="mt-2 w-full border-collapse text-sm">
+      <div class="overflow-x-auto mt-2">
+        <table class="tbl">
           <thead>
-            <tr class="border-b border-gray-300 text-left text-gray-600">
-              <th class="py-2 pr-3">利用日</th><th class="py-2 pr-3">店舗名</th><th class="py-2 pr-3">金額</th>
-              <th class="py-2 pr-3">カテゴリ</th><th class="py-2 pr-3">支払方法</th><th></th>
+            <tr>
+              <th>利用日</th><th>店舗名</th><th>金額</th><th>カテゴリ</th><th>支払方法</th><th></th>
             </tr>
           </thead>
           <tbody data-bulk-entry-target="list">
