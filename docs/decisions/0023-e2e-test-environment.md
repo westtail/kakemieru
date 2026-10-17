@@ -61,6 +61,31 @@ Chrome コンテナがそこへアクセスする。Docker 越しに疎通させ
 - 保存先 `tmp/screenshots/`（gitignore）
 - example 失敗時に自動保存し、原因調査に使う
 
+### 6. 外部ホストへの通信は許可リストで遮断（決定）
+
+**背景**: LP レイアウトが Google Fonts を `<link>` で読み込むため、feature spec 実行時に
+ヘッドレス Chrome が実際に `fonts.googleapis.com` を取得しにいく。外部へ出られない環境
+（オフライン・制限のある回線・CI の外部障害）では読み込みが終わらず
+`Ferrum::PendingConnectionsError` で落ちる。実測で `landing_spec.rb` が単独 4/4 失敗した。
+
+**何が問題か**: テストがネットワークの機嫌で赤くなると「赤 = コードが壊れた」が成立しなくなり、
+赤信号そのものの価値が下がる。
+
+**決定**: Cuprite の `url_whitelist` で、テスト用アプリサーバ自身のオリジンだけを許可し、
+他はすべて Ferrum に abort させる。ブロックリストではなく許可リストにしたのは、新しい外部依存が
+増えたときに自動的に塞がるため。
+
+**運用上の注意**:
+
+- Ferrum の照合は `url.match(regexp)` の**部分一致**。パターン先頭の `\A` は必須で、外すと
+  `http://web.evil.com/` のようなホスト名偽装を許してしまう。
+- `url_whitelist` と `url_blacklist` は併用できない（Ferrum が `ArgumentError`）。
+- **外部ホストへの `visit` も遮断される**。test 環境の `default_url_options` は `example.com`
+  なので、メール本文を辿る spec は絶対 URL ではなくパスを取り出すこと。
+- CI はインターネットに出られるため、遮断設定が外れても他の spec は緑のままになる。
+  これを検知するため `spec/features/external_request_blocking_spec.rb` で設定の存在と
+  実際に abort されることの両方を検証している。
+
 ---
 
 ## テスト方針
