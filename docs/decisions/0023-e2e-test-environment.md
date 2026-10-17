@@ -75,6 +75,12 @@ Chrome コンテナがそこへアクセスする。Docker 越しに疎通させ
 他はすべて Ferrum に abort させる。ブロックリストではなく許可リストにしたのは、新しい外部依存が
 増えたときに自動的に塞がるため。
 
+**許可するオリジン**: `CAPYBARA_APP_HOST`（既定 `web`。リモートモード）/ `127.0.0.1` /
+`localhost` / `[::1]`（ローカルモード = CI は Capybara 既定の `127.0.0.1:<ランダムポート>`
+を使うため）。スキームは `http` / `https` のみ。`CAPYBARA_APP_HOST` の既定値は
+`Capybara.app_host` と許可リストで共有している（2 箇所に書くと片方だけ変えた時に静かに
+全遮断になるため）。
+
 **運用上の注意**:
 
 - Ferrum の照合は `url.match(regexp)` の**部分一致**。パターン先頭の `\A` は必須で、外すと
@@ -82,6 +88,9 @@ Chrome コンテナがそこへアクセスする。Docker 越しに疎通させ
 - `url_whitelist` と `url_blacklist` は併用できない（Ferrum が `ArgumentError`）。
 - **外部ホストへの `visit` も遮断される**。test 環境の `default_url_options` は `example.com`
   なので、メール本文を辿る spec は絶対 URL ではなくパスを取り出すこと。
+- **WebSocket は塞げない**。CDP の Fetch ドメインが WebSocket ハンドシェイクを傍受しない
+  ため、許可リストに `ws`/`wss` を書いても効果がない（実測で外部 `ws://` は abort されず
+  接続待ちのままになることを確認）。ActionCable や外部 ws 依存を入れる際は別の手当てが要る。
 - CI はインターネットに出られるため、遮断設定が外れても他の spec は緑のままになる。
   これを検知するため `spec/features/external_request_blocking_spec.rb` で設定の存在と
   実際に abort されることの両方を検証している。
