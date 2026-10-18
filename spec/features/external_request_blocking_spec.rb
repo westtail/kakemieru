@@ -23,8 +23,16 @@ RSpec.describe "E2E ドライバの外部通信遮断", type: :feature do
     end
 
     it "アプリ自身のオリジンは許可する" do
+      # ループバックは設定で常に許可している（ローカル Chrome モード = CI 用）。
+      # アプリのホストは CAPYBARA_APP_HOST で変えられるので、期待値は実際の設定から組み立てる。
+      # ここをハードコードすると、設定が正しいのに env を変えただけで落ちてしまう。
+      urls = [ "http://127.0.0.1:3000/", "http://localhost:4444/imports" ]
+      # ローカル Chrome モード（CI）では app_host が nil なので、この1件は検証対象から外れる。
+      # その場合もループバック2件で「アプリのオリジンが通ること」は担保される。
+      urls << "#{Capybara.app_host}/transactions" if Capybara.app_host
+
       aggregate_failures do
-        [ "http://web:4444/transactions", "http://127.0.0.1:3000/", "http://localhost:4444/imports" ].each do |url|
+        urls.each do |url|
           expect(allowed?(url)).to be(true), "#{url} が遮断されている"
         end
       end
@@ -37,7 +45,7 @@ RSpec.describe "E2E ドライバの外部通信遮断", type: :feature do
           "https://example.com/",
           "http://web.evil.com/",          # 先頭一致を外すと通ってしまうケース
           "http://localhost.evil.com/x",
-          "http://web:4444@evil.com/"      # userinfo による偽装
+          "http://web:4444@evil.com/"      # userinfo でアプリのホスト名を騙る偽装（env に依らず遮断されるべき）
         ].each do |url|
           expect(allowed?(url)).to be(false), "#{url} が許可されている"
         end
