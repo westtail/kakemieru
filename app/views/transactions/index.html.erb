@@ -1,5 +1,5 @@
 <div class="flex items-center justify-between flex-wrap gap-2">
-  <h1 class="text-2xl font-black">明細</h1>
+  <h1 class="page-title mb-0">明細</h1>
   <div class="flex items-center gap-2 flex-wrap">
     <%# 更新実行: 店舗ルールを未分類明細へ一括適用（手動分類は上書きしない）。 %>
     <%= button_to "店舗ルールを未分類に適用", apply_rules_transactions_path, class: "btn-outline",
@@ -30,7 +30,7 @@
       <%= label_tag "q", "キーワード", class: "field-label" %>
       <%= text_field_tag "q", @keyword, id: "q", placeholder: "店舗名で検索", class: "ctl w-full" %>
     </div>
-    <%= submit_tag "絞り込む", class: "btn-secondary cursor-pointer" %>
+    <%= submit_tag "絞り込む", class: "btn-secondary" %>
   <% end %>
 </div>
 

@@ -86,6 +86,11 @@ input:focus-visible, select:focus-visible, textarea:focus-visible, summary:focus
   .badge-mut { color: var(--ink-2); background: var(--paper-2); }
   /* インラインのフォーム操作子（絞り込み・カテゴリ選択など） */
   .ctl { border: 1px solid var(--line); background: var(--card); color: var(--ink); border-radius: 8px; padding: 7px 10px; font: inherit; font-size: 14px; }
+  /* 設定系の一覧行（カテゴリ・支払方法・特別ルール）。折り返しが要る行は flex-wrap を足す */
+  .list-row { @apply flex items-center gap-3 py-2; border-bottom: 1px solid var(--line); }
+  .list-row:last-child { border-bottom: 0; }
+  /* 非活性の行（アーカイブ済みなど）。サイズは変えず色だけ落とす */
+  .list-row-mut { color: var(--ink-2); }
   /* 一覧テーブル（明細など） */
   .tbl { width: 100%; min-width: 600px; border-collapse: collapse; font-size: 13.5px; }
   .tbl th { text-align: left; color: var(--ink-2); font-weight: 700; font-size: 12px; padding: 8px 10px; border-bottom: 2px solid var(--line); white-space: nowrap; }
@@ -106,10 +111,6 @@ input:focus-visible, select:focus-visible, textarea:focus-visible, summary:focus
   .subtab-active { color: var(--stamp); border-bottom-color: var(--stamp); }
   /* 警告バッジ（淡い琥珀＋濃文字で AA 確保） */
   .badge-warn { color: #6e4e12; background: var(--warn-bg); }
-  /* 破壊的な確定ボタン（塗り） */
-  .btn-alert { @apply inline-block cursor-pointer rounded px-4 py-2 text-center font-medium no-underline transition-colors;
-    background: var(--alert); color: #fff; }
-  .btn-alert:hover { background: color-mix(in srgb, var(--alert) 88%, #000); }
 }
 
 /* ダッシュボード（home#index） */
@@ -129,7 +130,7 @@ input:focus-visible, select:focus-visible, textarea:focus-visible, summary:focus
 
 /* reduced-motion: 共通コンポーネントのトランジションも抑制 */
 @media (prefers-reduced-motion: reduce) {
-  .btn-primary, .btn-secondary, .btn-danger, .nav-link, .flash { transition: none; }
+  .btn-primary, .btn-secondary, .btn-danger, .btn-outline, .nav-link, .flash { transition: none; }
 }
 
 /*
