@@ -163,6 +163,46 @@ git switch -c {type}/{issue番号}-{説明}
 
 カバレッジ目標: 80%以上
 
+#### 実装中のループ（テストの回し方）
+
+全体スイートは約30秒。実装中は絞り込んで回す。
+
+```bash
+# 失敗した example だけ再実行（直前の実行結果を spec/examples.txt に記録している）
+docker compose exec web bundle exec rspec --only-failures
+
+# 失敗を1本ずつ潰す
+docker compose exec web bundle exec rspec --next-failure
+
+# 注目中の example だけ回す（spec に fit / fdescribe を付ける）
+docker compose exec web bundle exec rspec spec/models/user_spec.rb
+
+# 遅い example を調べる
+docker compose exec web env PROFILE=1 bundle exec rspec
+```
+
+`fit` / `fdescribe` は**消し忘れても CI では無効**になる（絞り込んだまま緑になるのを防ぐため）。
+ただしローカルでは効き続けるのでコミット前に外すこと。
+
+#### 順序依存の調べ方
+
+spec はランダム順で実行される。順序依存のバグは実行ごとに出たり出なかったりする。
+
+```bash
+# 失敗したときの seed で再現する（seed は実行ログの末尾に出る）
+docker compose exec web bundle exec rspec --seed 12345
+
+# 原因の組み合わせを二分探索で特定する
+docker compose exec web bundle exec rspec --seed 12345 --bisect
+```
+
+落とし穴:
+
+- **seed は失敗したログから拾う**。再実行すると別の seed になり再現できない
+- **`--seed` は同じ spec 集合に対してのみ同じ順序になる**。全体で落ちたなら再現も全体実行で行う。
+  ファイルを指定して絞ると順序が変わって再現しない
+- `--only-failures` / `--next-failure` は `spec/examples.txt` 依存の**ローカル専用**機能
+
 ### 5. コミット
 
 ```bash
