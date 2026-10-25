@@ -25,7 +25,7 @@
     </ul>
     <% if @archived_payment_methods.empty? %>
       <%# 1件目をアーカイブしたら Turbo Stream 側でこの空メッセージを消す。 %>
-      <p id="archived-empty" class="text-sm text-gray-400">アーカイブ済みの支払方法はありません。</p>
+      <p id="archived-empty" class="muted">アーカイブ済みの支払方法はありません。</p>
     <% end %>
   </section>
 </div>
