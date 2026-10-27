@@ -22,7 +22,7 @@ RSpec.describe "ダッシュボード", type: :feature do
     expect(page).to have_content("月別の支出推移")         # 推移セクション（#153）
     expect(page).to have_css('canvas[aria-label="カテゴリ別支出の円グラフ"]')
     expect(page).to have_css('canvas[aria-label="月別支出の棒グラフ"]') # 推移の棒グラフ
-    expect(page).to have_link("未分類 1件 ⚠️")            # 未分類バッジ（件数）
+    expect(page).to have_link("未分類 1件")            # 未分類バッジ（件数）
   end
 
   it "直近3ヶ月平均比を表示する（直前3ヶ月にデータがある場合）" do
@@ -92,6 +92,6 @@ RSpec.describe "ダッシュボード", type: :feature do
   it "未分類バッジのリンク先は当月の未分類フィルタ一覧" do
     visit root_path
     month = Date.current.strftime("%Y-%m")
-    expect(page).to have_link("未分類 1件 ⚠️", href: "/transactions?month=#{month}&category=")
+    expect(page).to have_link("未分類 1件", href: "/transactions?month=#{month}&category=")
   end
 end

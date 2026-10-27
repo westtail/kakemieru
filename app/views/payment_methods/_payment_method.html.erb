@@ -1,9 +1,9 @@
 <%# アクティブな支払方法1行。Turbo Stream の remove 対象にするため dom_id を付与する。 %>
 <%# locals: payment_method / active_count / archivable %>
-<li id="<%= dom_id(payment_method) %>" class="flex items-center gap-3 py-2 border-b border-gray-100">
+<li id="<%= dom_id(payment_method) %>" class="list-row">
   <span class="flex-1">
     <%= payment_method.name %>
-    <span class="text-sm text-gray-500">（<%= PaymentMethodCatalog::LABELS[payment_method.payment_type] %>）</span>
+    <span class="muted">（<%= PaymentMethodCatalog::LABELS[payment_method.payment_type] %>）</span>
   </span>
   <%= link_to "名前変更", edit_payment_method_path(payment_method), class: "link" %>
   <% unless payment_method.cash? %>

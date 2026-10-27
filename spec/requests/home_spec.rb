@@ -3,9 +3,20 @@ require "rails_helper"
 RSpec.describe "Home", type: :request do
   describe "GET /" do
     context "未認証のとき" do
-      it "ログイン画面にリダイレクトする" do
+      it "公開ランディングページを表示する（リダイレクトしない）" do
         get root_path
-        expect(response).to redirect_to("/sign_in")
+        expect(response).to have_http_status(:success)
+        expect(response.body).to include("家計を", "見える化")
+      end
+
+      it "新規登録・ログインへの導線を渡す" do
+        get root_path
+        expect(response.body).to include(new_registration_path, new_session_path)
+      end
+
+      it "ログイン必須のダッシュボードは出さない" do
+        get root_path
+        expect(response.body).not_to include('data-controller="dashboard"')
       end
     end
 

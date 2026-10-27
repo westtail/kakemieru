@@ -5,7 +5,7 @@
   <p class="muted">初期カテゴリは名前の変更のみできます（削除はできません）。</p>
   <ul class="mt-2">
     <% @initial_categories.each do |category| %>
-      <li class="flex items-center gap-3 border-b border-gray-100 py-2">
+      <li class="list-row">
         <span class="flex-1"><%= category.name %></span>
         <%= link_to "名前変更", edit_category_path(category), class: "link" %>
       </li>
@@ -17,7 +17,7 @@
   <h2 class="section-title">独自カテゴリ</h2>
   <ul>
     <% @custom_categories.each do |category| %>
-      <li class="flex items-center gap-3 border-b border-gray-100 py-2">
+      <li class="list-row">
         <span class="flex-1"><%= category.name %></span>
         <%= link_to "名前変更", edit_category_path(category), class: "link" %>
         <%= button_to "削除", category_path(category), method: :delete, class: "link-danger",
@@ -37,7 +37,7 @@
     <p class="muted">よく同じカテゴリにしている店舗です。登録すると取り込み時や「更新実行」で未分類に自動で当てられます。</p>
     <ul class="mt-2">
       <% @recommendations.each do |rec| %>
-        <li class="flex items-center gap-3 border-b border-gray-100 py-2">
+        <li class="list-row">
           <span class="flex-1">
             <span class="font-medium"><%= rec.merchant_name %></span>
             <span class="muted">→ <%= rec.category_name %>（<%= rec.count %>件）</span>
@@ -71,7 +71,7 @@
   <% if @merchant_rules.any? %>
     <ul class="mt-4">
       <% @merchant_rules.each do |rule| %>
-        <li class="flex flex-wrap items-center gap-3 border-b border-gray-100 py-2">
+        <li class="list-row flex-wrap">
           <span class="flex-1 font-medium"><%= rule.merchant_name %></span>
           <%= form_with url: merchant_rule_path(rule), scope: :merchant_classification, method: :patch,
                 class: "flex items-center gap-2" do |form| %>

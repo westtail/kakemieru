@@ -1,24 +1,29 @@
 import { Controller } from "@hotwired/stimulus"
 import {
-  Chart, PieController, ArcElement, Tooltip, Legend,
+  Chart, DoughnutController, ArcElement, Tooltip, Legend,
   BarController, BarElement, CategoryScale, LinearScale
 } from "chart.js"
 
-Chart.register(PieController, ArcElement, Tooltip, Legend,
+Chart.register(DoughnutController, ArcElement, Tooltip, Legend,
   BarController, BarElement, CategoryScale, LinearScale)
 
-// カテゴリ別円グラフの配色。自動彩色プラグイン（Colors）を積まない構成のため、
-// スライス色を明示指定する。カテゴリ数がこれを超える場合は先頭から循環させる。
+// カテゴリ別ドーナツの配色（デザインシステム「家計簿ノート」のカテゴリ配色）。
+// 自動彩色プラグインを積まない構成のため明示指定し、先頭から循環させる。
+// 「その他」「未分類」は末尾の鈍色に固定する。
 const CATEGORY_COLORS = [
-  "#3b82f6", "#f97316", "#10b981", "#ef4444", "#8b5cf6",
-  "#eab308", "#ec4899", "#14b8a6", "#6366f1", "#84cc16"
+  "#c23b2b", "#2f6d8a", "#d8a23a", "#4b8f6e", "#9c5fb0", "#d9774e",
+  "#3f7cc0", "#7a8b4f", "#c06597", "#5aa0a0", "#8a6d53"
 ]
+const OTHER_COLOR = "#6b7794"
+// 月別推移の棒グラフ色（当月＝朱 / それ以外＝非強調）。
+const BAR_CURRENT = "#c23b2b"
+const BAR_OTHER = "#ddd6c6"
 
 // 月次ダッシュボード。月切り替えで GET /transactions/summary を fetch し、
 // 支出合計・カテゴリ別円グラフ・未分類バッジを再描画する。ページ遷移はしない。
 export default class extends Controller {
   static targets = [
-    "canvas", "trendCanvas", "total", "monthLabel", "uncategorized", "recentAverage",
+    "canvas", "trendCanvas", "legend", "total", "monthLabel", "uncategorized", "recentAverage",
     "monthlyAverageOverall", "monthlyAverageCategories", "error"
   ]
   static values = { summaryUrl: String, transactionsUrl: String, month: String }
@@ -111,8 +116,8 @@ export default class extends Controller {
       this.uncategorizedTarget.innerHTML = ""
       const link = document.createElement("a")
       link.href = href
-      link.className = "text-yellow-700 hover:underline"
-      link.textContent = `未分類 ${count}件 ⚠️`
+      link.className = "badge"
+      link.textContent = `未分類 ${count}件`
       this.uncategorizedTarget.appendChild(link)
     } else {
       this.uncategorizedTarget.textContent = ""
@@ -159,10 +164,11 @@ export default class extends Controller {
 
     avg.categories.forEach((category) => {
       const item = document.createElement("li")
-      item.className = "flex justify-between border-b border-gray-100 py-1 text-sm"
       const name = document.createElement("span")
+      name.className = "nm"
       name.textContent = category.name
       const amount = document.createElement("span")
+      amount.className = "num"
       amount.textContent = this.formatYen(category.average)
       item.append(name, amount)
       list.appendChild(item)
@@ -170,11 +176,17 @@ export default class extends Controller {
   }
 
   renderChart(data) {
-    // 円グラフは金額を持つカテゴリのみ（負値=返金は円グラフに載せない）。
+    // ドーナツは金額を持つカテゴリのみ（負値=返金は載せない）。「その他/未分類」は鈍色に固定。
     const slices = data.categories.filter((c) => c.amount > 0)
     const labels = slices.map((c) => c.name)
     const amounts = slices.map((c) => c.amount)
-    const colors = slices.map((_, i) => CATEGORY_COLORS[i % CATEGORY_COLORS.length])
+    let ci = 0
+    const colors = slices.map((c) => {
+      if (c.id === null || c.name === "その他") return OTHER_COLOR
+      return CATEGORY_COLORS[ci++ % CATEGORY_COLORS.length]
+    })
+
+    this.renderLegend(slices, colors)
 
     if (this.chart) {
       this.chart.data.labels = labels
@@ -184,9 +196,31 @@ export default class extends Controller {
       return
     }
     this.chart = new Chart(this.canvasTarget, {
-      type: "pie",
-      data: { labels, datasets: [{ data: amounts, backgroundColor: colors }] },
-      options: { responsive: true, plugins: { legend: { position: "bottom" } } }
+      type: "doughnut",
+      data: { labels, datasets: [{ data: amounts, backgroundColor: colors, borderWidth: 0 }] },
+      options: {
+        responsive: true, maintainAspectRatio: false, cutout: "62%",
+        plugins: { legend: { display: false } }
+      }
+    })
+  }
+
+  // カテゴリ名＋金額の凡例を描画する（Chart.js 既定の凡例は使わず金額を併記）。
+  renderLegend(slices, colors) {
+    if (!this.hasLegendTarget) return
+    const list = this.legendTarget
+    list.innerHTML = ""
+    slices.forEach((c, i) => {
+      const item = document.createElement("li")
+      const dot = document.createElement("i")
+      dot.style.background = colors[i]
+      const name = document.createElement("span")
+      name.textContent = c.name
+      const amount = document.createElement("b")
+      amount.className = "num"
+      amount.textContent = this.formatYen(c.amount)
+      item.append(dot, name, amount)
+      list.appendChild(item)
     })
   }
 
@@ -196,7 +230,7 @@ export default class extends Controller {
     const totals = data.monthly_totals || []
     const labels = totals.map((t) => this.formatMonth(t.month))
     const amounts = totals.map((t) => t.total)
-    const colors = totals.map((t) => (t.month === data.month ? "#2563eb" : "#93c5fd"))
+    const colors = totals.map((t) => (t.month === data.month ? BAR_CURRENT : BAR_OTHER))
 
     if (this.trendChart) {
       this.trendChart.data.labels = labels
@@ -207,9 +241,9 @@ export default class extends Controller {
     }
     this.trendChart = new Chart(this.trendCanvasTarget, {
       type: "bar",
-      data: { labels, datasets: [{ data: amounts, backgroundColor: colors }] },
+      data: { labels, datasets: [{ data: amounts, backgroundColor: colors, borderRadius: 4 }] },
       options: {
-        responsive: true,
+        responsive: true, maintainAspectRatio: false,
         plugins: { legend: { display: false } },
         scales: { y: { beginAtZero: true } }
       }

@@ -6,6 +6,9 @@
 #
 # DatabaseCleaner を導入せず手書きにしているのは、依存を増やさず feature 限定の
 # 掃除だけで足りるため（テーブル増加時のメンテは truncate_tables に委譲）。
+# 不変条件: スイート全体で共有するデータ（before(:suite) での投入やシード）を作らないこと。
+# 実行順はランダムなので、この truncate は model/request の例の合間にも挟まる。共有データを
+# 置くと「途中で消える」壊れ方をする。各例が必要なデータを自分で作る前提を崩さないこと。
 RSpec.configure do |config|
   config.append_after(:each, type: :feature) do
     conn = ActiveRecord::Base.connection

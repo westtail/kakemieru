@@ -71,4 +71,5 @@ chore:    その他
 - [DEVELOPMENT_GUIDE.md](docs/DEVELOPMENT_GUIDE.md) — 開発フロー詳細
 - [DATABASE_DESIGN.md](docs/design/DATABASE_DESIGN.md) — DB設計
 - [SCREEN_DESIGN.md](docs/design/SCREEN_DESIGN.md) — 画面設計
+- [DESIGN_SYSTEM.md](docs/design/DESIGN_SYSTEM.md) — デザインシステム「家計簿ノート」（配色・タイポ・コンポーネント）
 - [AUTHENTICATION.md](docs/design/AUTHENTICATION.md) — 認証設計

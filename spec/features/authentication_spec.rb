@@ -8,7 +8,7 @@ RSpec.describe "認証フロー", type: :feature do
 
     # ログイン成功でダッシュボード（ログイン後トップ）へ
     expect(page).to have_current_path("/")
-    expect(page).to have_content("掛け見える")
+    expect(page).to have_content("Kakemieru")
 
     # ログアウトするとログイン画面へ戻る
     click_button "ログアウト"

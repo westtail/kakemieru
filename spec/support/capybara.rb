@@ -10,6 +10,9 @@ require "capybara/cuprite"
 require "resolv"
 
 remote_chrome = ENV["CHROME_URL"].presence || ENV["CHROME_HOST"].presence
+# リモート Chrome から見たアプリのホスト名。app_host と下部の許可リストの両方で使うため、
+# 既定値をここ 1 箇所だけに持つ（2 箇所に書くと片方だけ変えた時に静かに全遮断になる）。
+app_hostname = ENV["CAPYBARA_APP_HOST"].presence || "web"
 
 Capybara.server = :puma, { Silent: true }
 Capybara.default_max_wait_time = 5
@@ -24,13 +27,28 @@ cuprite_options = {
   browser_options: { "no-sandbox" => nil, "disable-dev-shm-usage" => nil }
 }
 
+# テスト実行中は外部ホストへの通信を遮断する（背景・決定・運用注意は ADR-0023 セクション6）。
+# 遮断しないとヘッドレス Chrome が実際に外部へ取りに行き、ネットワークが遅い/届かない環境では
+# Ferrum::PendingConnectionsError で feature spec が落ちる。
+#
+# 許可リスト方式で、テスト用アプリサーバ自身のオリジンだけを通す。注意点:
+# - 先頭の \A は必須。Ferrum の照合は url.match(regexp) の部分一致なので、外すと
+#   http://web.evil.com/ のようなホスト名偽装を許してしまう。
+# - WebSocket は CDP の Fetch ドメインが傍受しないため、この仕組みでは塞げない。
+#   ActionCable 等を入れるときは別の手当てが要る（ws/wss を許可リストに書いても効かない）。
+# - 外部ホストへの visit も遮断される。メール本文を辿る spec は絶対 URL ではなくパスを使うこと。
+allowed_hostnames = [ app_hostname, "127.0.0.1", "localhost", "[::1]" ].uniq
+cuprite_options[:url_whitelist] = [
+  %r{\Ahttps?://(#{allowed_hostnames.map { |host| Regexp.escape(host) }.join("|")})(?::\d+)?(?:[/?#]|\z)}i
+]
+
 if remote_chrome
   # テストプロセスの Puma を全 IF で待受けし、Chrome からコンテナ名で解決させる。
   # Chrome は DNS リバインディング対策でホスト名の CDP を拒否するため、接続先は IP に解決する。
   server_port = Integer(ENV.fetch("CAPYBARA_SERVER_PORT", "4444"))
   Capybara.server_host = "0.0.0.0"
   Capybara.server_port = server_port
-  Capybara.app_host = "http://#{ENV.fetch('CAPYBARA_APP_HOST', 'web')}:#{server_port}"
+  Capybara.app_host = "http://#{app_hostname}:#{server_port}"
 
   chrome_url = ENV.fetch("CHROME_URL") do
     host = ENV.fetch("CHROME_HOST", "chrome")
